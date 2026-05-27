@@ -1,6 +1,6 @@
 // Main Dashboard view — store-backed
 
-function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onEditHolding, accent }) {
+function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEarn, onEditHolding, accent }) {
   const store = window.useStore();
   const M = window.MOCK; // still used for portfolio history baseline
   const holdings = store.holdings;
@@ -396,7 +396,7 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onEditHo
 
       {/* ===== Earn + Bench + Rebalance ===== */}
       <section className="row-2">
-        <EarnPanel ccy={ccy} positions={earnList} FX={FX} askConfirm={askConfirm}/>
+        <EarnPanel ccy={ccy} positions={earnList} FX={FX} holdings={holdings} askConfirm={askConfirm} onAdd={onAddEarn}/>
         <div style={{display:"flex", flexDirection:"column", gap:20}}>
           <BenchmarkCard benchmarks={benchmarks}/>
           <RebalanceCard alerts={alerts}/>
@@ -455,18 +455,41 @@ function PLBars({ holdings, ccy, FX }) {
   );
 }
 
-function EarnPanel({ ccy, positions, FX, askConfirm }) {
+function EarnPanel({ ccy, positions, FX, holdings, askConfirm, onAdd }) {
   const [apy, setApy] = React.useState(15);
 
-  const totalUSD = positions.reduce((s, p) => {
-    if (p.sym === "USDT" || p.sym === "USDC") return s + p.qty;
-    if (p.sym === "BTC") return s + p.qty * 67200;
-    if (p.sym === "ETH") return s + p.qty * 3480;
-    if (p.sym === "SOL") return s + p.qty * 145.2;
-    return s;
-  }, 0);
+  // ── Real-time tick (every second) ──
+  const [secNow, setSecNow] = React.useState(() => {
+    const n = new Date();
+    return n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds();
+  });
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      const n = new Date();
+      setSecNow(n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds());
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // ── Get live price for a symbol ──
+  const getPrice = (sym) => {
+    const h = (holdings || []).find(x => x.ticker === sym);
+    if (h) return h.price;
+    if (sym === "USDT" || sym === "USDC" || sym === "BUSD") return 1;
+    return 0;
+  };
+
+  // ── Compute real-time earned today for a position (in USD) ──
+  const calcEarnedTodayUSD = (p) => {
+    const dailyNative = p.qty * (p.apy / 100) / 365;
+    const earnedNative = dailyNative * (secNow / 86400);
+    const price = getPrice(p.sym);
+    return price > 0 ? earnedNative * price : earnedNative; // fallback: treat as USD
+  };
+
+  const totalUSD = positions.reduce((s, p) => s + p.qty * (getPrice(p.sym) || (p.sym.includes("USD") ? 1 : 0)), 0);
   const stakedDisp = ccy === "THB" ? totalUSD * FX : totalUSD;
-  const earnedTodayUSD = positions.reduce((s, p) => s + (p.earnedToday || 0), 0);
+  const earnedTodayUSD = positions.reduce((s, p) => s + calcEarnedTodayUSD(p), 0);
   const earnedTodayDisp = ccy === "THB" ? earnedTodayUSD * FX : earnedTodayUSD;
 
   const usdtPos = positions.find(p => p.sym === "USDT");
@@ -484,6 +507,11 @@ function EarnPanel({ ccy, positions, FX, askConfirm }) {
           <div className="card-title">💰 Earn — สร้างผลตอบแทนจากสินทรัพย์</div>
           <div className="card-sub">รวมยอดที่กำลังสร้างดอกเบี้ย · ดอกเบี้ยทบต้นรายวัน</div>
         </div>
+        <div className="card-act">
+          <button className="btn sm accent" onClick={onAdd}>
+            <Ico name="plus" size={13}/> เพิ่มเหรียญ
+          </button>
+        </div>
       </div>
 
       <div className="earn-grid">
@@ -493,40 +521,62 @@ function EarnPanel({ ccy, positions, FX, askConfirm }) {
             {ccySym}{ccy === "THB" ? Math.round(stakedDisp).toLocaleString() : fmtNum(stakedDisp, 2)}
             <span className="ccy">{ccy}</span>
           </div>
-          <div style={{fontSize:12, color:"var(--up)", marginTop:6, fontFamily:"var(--font-num)", fontWeight:600}}>
-            +{ccySym}{ccy === "THB" ? Math.round(earnedTodayDisp).toLocaleString() : fmtNum(earnedTodayDisp, 2)} ดอกเบี้ยวันนี้
+          {/* Real-time earned today — pulses every second */}
+          <div style={{fontSize:13, color:"var(--up)", marginTop:6, fontFamily:"var(--font-num)", fontWeight:700, display:"flex", alignItems:"center", gap:6}}>
+            <span style={{width:7, height:7, borderRadius:"50%", background:"var(--up)", display:"inline-block", animation:"pulse 1.4s ease-in-out infinite"}}/>
+            +{ccySym}{ccy === "THB" ? fmtNum(earnedTodayDisp, 2) : fmtNum(earnedTodayDisp, 4)} วันนี้
+          </div>
+          <div style={{fontSize:11, color:"var(--muted)", marginTop:2}}>
+            อัพเดตทุกวินาที · รีเซ็ตเที่ยงคืน
           </div>
 
           <div className="earn-rows">
             {positions.length === 0 && (
               <div style={{padding:"14px 8px", color:"var(--muted)", fontSize:12, textAlign:"center"}}>
-                ยังไม่มีสินทรัพย์ที่ฝากใน Earn
+                ยังไม่มีสินทรัพย์ที่ฝากใน Earn —{" "}
+                <button className="btn-link" onClick={onAdd} style={{color:"var(--accent-ink)", background:"none", border:"none", cursor:"pointer", fontSize:12, padding:0}}>
+                  เพิ่มเลย
+                </button>
               </div>
             )}
-            {positions.map(p => (
-              <div className="earn-row" key={p.id || p.sym}>
-                <div>
-                  <span className="sym">{p.sym}</span>
-                  <span style={{color:"var(--muted)", fontSize:11, marginLeft:8}}>
-                    {p.kind === "ล็อก 30 วัน" && <Ico name="lock" size={10}/>} {p.kind}
-                  </span>
+            {positions.map(p => {
+              const earnedNativeToday = p.qty * (p.apy / 100) / 365 * (secNow / 86400);
+              const earnedUSD = calcEarnedTodayUSD(p);
+              const earnedDisp = ccy === "THB" ? earnedUSD * FX : earnedUSD;
+              const isLocked = p.kind && p.kind.includes("ล็อก");
+              return (
+                <div className="earn-row" key={p.id || p.sym}>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{display:"flex", alignItems:"center", gap:6}}>
+                      <span className="sym">{p.sym}</span>
+                      <span style={{color:"var(--muted)", fontSize:10}}>
+                        {isLocked && <Ico name="lock" size={10}/>} {p.kind}
+                      </span>
+                    </div>
+                    <div style={{fontSize:11, color:"var(--muted)", marginTop:2}}>
+                      {p.qty.toLocaleString("en-US", { maximumFractionDigits: 4 })} {p.sym}
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right", minWidth:0}}>
+                    <div className="apy">{p.apy.toFixed(2)}%</div>
+                    <div style={{fontSize:11, color:"var(--up)", fontFamily:"var(--font-num)", fontWeight:600, marginTop:2}}>
+                      +{earnedNativeToday.toFixed(6)} {p.sym}
+                      <span style={{color:"var(--muted)", fontWeight:400}}> ({ccySym}{fmtNum(earnedDisp, ccy === "THB" ? 2 : 4)})</span>
+                    </div>
+                  </div>
+                  <Menu items={[
+                    { label: "ปิดบัญชี Earn", icon: "trash", danger: true,
+                      onClick: () => askConfirm({
+                        title: `ปิดบัญชี Earn ${p.sym}?`,
+                        body: `${p.qty.toLocaleString("en-US", {maximumFractionDigits:4})} ${p.sym} จะถูกถอนกลับ`,
+                        confirmLabel: "ปิดบัญชี",
+                        onConfirm: () => window.removeEarn(p.id || p.sym)
+                      })
+                    },
+                  ]}/>
                 </div>
-                <div className="num" style={{fontWeight:600, fontSize:12}}>
-                  {p.qty.toLocaleString("en-US", { maximumFractionDigits: 4 })}
-                </div>
-                <div className="apy">{p.apy.toFixed(2)}%</div>
-                <Menu items={[
-                  { label: "ปิดบัญชี Earn", icon: "trash", danger: true,
-                    onClick: () => askConfirm({
-                      title: `ปิดบัญชี Earn ${p.sym}?`,
-                      body: `${p.qty.toLocaleString("en-US", {maximumFractionDigits:4})} ${p.sym} จะถูกถอนกลับ`,
-                      confirmLabel: "ปิดบัญชี",
-                      onConfirm: () => window.removeEarn(p.id || p.sym)
-                    })
-                  },
-                ]}/>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

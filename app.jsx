@@ -23,6 +23,7 @@ function App() {
   const [showHoldingModal, setShowHoldingModal] = React.useState(false);
   const [showTxModal, setShowTxModal] = React.useState(false);
   const [showDcaModal, setShowDcaModal] = React.useState(false);
+  const [showEarnModal, setShowEarnModal] = React.useState(false);
   const [editHolding, setEditHolding] = React.useState(null);
 
   // Apply theme/density/accent
@@ -68,6 +69,7 @@ function App() {
                          onAddHolding={() => { setEditHolding(null); setShowHoldingModal(true); }}
                          onAddTx={() => setShowTxModal(true)}
                          onAddDCA={() => setShowDcaModal(true)}
+                         onAddEarn={() => setShowEarnModal(true)}
                          onEditHolding={(h) => { setEditHolding(h); setShowHoldingModal(true); }}
                          accent={`var(--accent)`}/>
             : <Detail asset={currentAsset} ccy={s.ccy} onBack={onBack}
@@ -93,6 +95,11 @@ function App() {
                         defaultTicker={view.kind === "detail" && currentAsset ? currentAsset.ticker : null}
                         onClose={() => setShowTxModal(false)}
                         onSave={(tx) => window.addTransaction(tx)}/>
+
+      <EarnModal open={showEarnModal}
+                 holdings={store.holdings}
+                 onClose={() => setShowEarnModal(false)}
+                 onSave={(e) => window.addEarn(e)}/>
 
       <DCAModal open={showDcaModal}
                 holdings={store.holdings}

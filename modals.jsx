@@ -352,4 +352,84 @@ function DCAModal({ open, holdings, defaultTicker, onClose, onSave }) {
   );
 }
 
-Object.assign(window, { HoldingModal, TransactionModal, DCAModal });
+// ─────── Add Earn Position ───────
+function EarnModal({ open, holdings, onClose, onSave }) {
+  const [form, setForm] = React.useState({ sym: "", qty: 0, apy: 0, kind: "ยืดหยุ่น" });
+  React.useEffect(() => {
+    if (open) setForm({ sym: holdings[0]?.ticker || "", qty: 0, apy: 0, kind: "ยืดหยุ่น" });
+  }, [open]);
+
+  if (!open) return null;
+  const canSave = form.sym.trim() && form.qty > 0 && form.apy > 0;
+
+  const submit = (e) => {
+    e?.preventDefault();
+    if (!canSave) return;
+    onSave({ sym: form.sym.trim().toUpperCase(), qty: parseFloat(form.qty), apy: parseFloat(form.apy), kind: form.kind });
+    onClose();
+  };
+
+  const dailyEst = form.qty > 0 && form.apy > 0
+    ? (parseFloat(form.qty) * parseFloat(form.apy) / 100 / 365).toFixed(6)
+    : null;
+
+  return (
+    <div className="modal-scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <form className="modal modal-form" onSubmit={submit}>
+        <div className="modal-ico" style={{background:"var(--up-soft)", color:"var(--up)"}}>
+          <Ico name="earn" size={22}/>
+        </div>
+        <h3>เพิ่มสินทรัพย์ใน Earn</h3>
+        <p>บันทึกเหรียญที่กำลังสร้างดอกเบี้ย — ระบบจะแสดงรายได้แบบเรียลไทม์</p>
+
+        <FormRow>
+          <FormField label="สัญลักษณ์ (Symbol)" hint="เช่น BTC, ETH, USDT">
+            <input className="form-input" type="text" autoFocus placeholder="USDT"
+                   value={form.sym}
+                   onChange={e => setForm({...form, sym: e.target.value})}/>
+          </FormField>
+          <FormField label="ประเภท">
+            <select className="form-input" value={form.kind}
+                    onChange={e => setForm({...form, kind: e.target.value})}>
+              <option value="ยืดหยุ่น">ยืดหยุ่น</option>
+              <option value="ล็อก 30 วัน">ล็อก 30 วัน</option>
+              <option value="ล็อก 90 วัน">ล็อก 90 วัน</option>
+              <option value="สเตก">สเตก (Staking)</option>
+            </select>
+          </FormField>
+        </FormRow>
+
+        <FormRow>
+          <FormField label="จำนวนที่ฝาก">
+            <input className="form-input num" type="number" min="0" step="any" placeholder="0"
+                   value={form.qty} onChange={e => setForm({...form, qty: e.target.value})}/>
+          </FormField>
+          <FormField label="APY (%)">
+            <input className="form-input num" type="number" min="0" max="999" step="0.01" placeholder="0"
+                   value={form.apy} onChange={e => setForm({...form, apy: e.target.value})}/>
+          </FormField>
+        </FormRow>
+
+        {dailyEst && (
+          <div className="form-summary">
+            <div>ผลตอบแทนโดยประมาณ</div>
+            <div style={{display:"flex", gap:16, marginTop:4, flexWrap:"wrap"}}>
+              <span>วันละ <b className="num" style={{color:"var(--up)"}}>+{dailyEst} {form.sym.toUpperCase()}</b></span>
+              <span style={{color:"var(--muted)"}}>·</span>
+              <span>ปีละ <b className="num" style={{color:"var(--up)"}}>+{(parseFloat(form.qty)*parseFloat(form.apy)/100).toFixed(4)} {form.sym.toUpperCase()}</b></span>
+            </div>
+          </div>
+        )}
+
+        <div className="modal-actions">
+          <button type="button" className="btn" onClick={onClose}>ยกเลิก</button>
+          <button type="submit" className="btn primary" disabled={!canSave}>
+            <Ico name="plus" size={14}/> เพิ่ม Earn
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+Object.assign(window, { HoldingModal, TransactionModal, DCAModal, EarnModal });

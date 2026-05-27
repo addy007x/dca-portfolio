@@ -268,6 +268,20 @@ function dismissAlert(id) {
   updateStore(s => ({ ...s, rebalanceAlerts: s.rebalanceAlerts.filter(a => a.id !== id) }));
 }
 
+function addEarn(e) {
+  updateStore(s => ({
+    ...s,
+    earn: [...s.earn, { ...e, id: makeId("e"), earnedToday: 0 }],
+  }));
+}
+
+function updateEarn(id, patch) {
+  updateStore(s => ({
+    ...s,
+    earn: s.earn.map(e => e.id === id ? { ...e, ...patch } : e),
+  }));
+}
+
 function removeEarn(id) {
   updateStore(s => ({ ...s, earn: s.earn.filter(e => e.id !== id) }));
 }
@@ -332,7 +346,7 @@ Object.assign(window, {
   addHolding, removeHolding, updateHolding,
   addTransaction, removeTransaction,
   addDCA, removeDCA, updateDCA, executeDCA,
-  removeEarn, dismissAlert,
+  addEarn, updateEarn, removeEarn, dismissAlert,
   updateSettings, setLivePrices, setFX,
   resetToSeed, exportJSON, importJSON,
   dueDCAs, todayISO, daysBetween, makeId,
