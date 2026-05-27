@@ -87,26 +87,114 @@ function TaxView({ ccy }) {
   }).sort((a,b) => Math.abs(b.plTHB) - Math.abs(a.plTHB));
   const totalUnrealTHB = unrealized.reduce((s,r) => s + r.plTHB, 0);
 
-  // Export realized events as CSV
+  // ── CSV helpers ──
+  const q  = (v) => `"${String(v == null ? "" : v).replace(/"/g,'""')}"`;
+  const row = (...cells) => cells.map(q).join(",");
+
+  // Export full tax report as CSV (3 sections)
   const exportCSV = () => {
-    const hdr = ["วันที่","Ticker","ประเภทสินทรัพย์","จำนวน","ต้นทุนรวม(USD)",
-                 "ราคาขายรวม(USD)","กำไร/ขาดทุน(USD)","กำไร/ขาดทุน(THB)","ต้องเสียภาษี"];
-    const rows = taxEvents.map(e => [
-      e.date, e.ticker, e.classKey,
-      Math.abs(e.qty||0).toFixed(6),
-      e.costBasisUSD.toFixed(2), e.proceedsUSD.toFixed(2),
-      e.gainUSD.toFixed(2), e.gainTHB.toFixed(2),
-      e.isTaxable ? "ใช่" : "ไม่ (SET ยกเว้น)",
-    ]);
-    const csv = [hdr,...rows]
-      .map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(","))
-      .join("\n");
+    const thaiYear = year + 543;
+    const lines = [];
+
+    // ── Section 1: Header ──
+    lines.push(row(`รายงานภาษีการลงทุน SiamFolio — ปีภาษี ${year} (พ.ศ. ${thaiYear})`));
+    lines.push(row(`สร้างเมื่อ: ${new Date().toLocaleDateString("th-TH",{dateStyle:"full"})}`, `อัตราแลกเปลี่ยน: 1 USD = ${FX} THB`));
+    lines.push("");
+
+    // ── Section 2: Realized gains (ธุรกรรมขาย) ──
+    lines.push(row("=== ส่วนที่ 1: รายการขาย (Realized Gains/Losses) ==="));
+    lines.push(row("วันที่","Ticker","ประเภทสินทรัพย์","จำนวนที่ขาย",
+      "ต้นทุนรวม (USD)","ต้นทุนรวม (THB)",
+      "ราคาขายรวม (USD)","ราคาขายรวม (THB)",
+      "กำไร/ขาดทุน (USD)","กำไร/ขาดทุน (THB)","% กำไร/ขาดทุน",
+      "ต้องเสียภาษี","หมายเหตุ"));
+    taxEvents.forEach(e => {
+      const pct = e.costBasisUSD > 0 ? ((e.gainUSD/e.costBasisUSD)*100).toFixed(2)+"%" : "—";
+      lines.push(row(
+        e.date, e.ticker, e.classKey?.toUpperCase(),
+        Math.abs(e.qty||0).toFixed(6),
+        e.costBasisUSD.toFixed(2), (e.costBasisUSD*FX).toFixed(2),
+        e.proceedsUSD.toFixed(2),  (e.proceedsUSD*FX).toFixed(2),
+        e.gainUSD.toFixed(2),       e.gainTHB.toFixed(2), pct,
+        e.isTaxable ? "ใช่" : "ไม่ (SET ยกเว้น)",
+        e.note || "",
+      ));
+    });
+    // Realized summary row
+    lines.push(row(
+      "รวม", "", "", "",
+      taxEvents.reduce((s,e)=>s+e.costBasisUSD,0).toFixed(2),
+      (taxEvents.reduce((s,e)=>s+e.costBasisUSD,0)*FX).toFixed(2),
+      taxEvents.reduce((s,e)=>s+e.proceedsUSD,0).toFixed(2),
+      (taxEvents.reduce((s,e)=>s+e.proceedsUSD,0)*FX).toFixed(2),
+      netGainUSD.toFixed(2), (netGainUSD*FX).toFixed(2), "", "", "",
+    ));
+    lines.push("");
+
+    // ── Section 3: Unrealized positions ──
+    lines.push(row("=== ส่วนที่ 2: กำไร/ขาดทุนยังไม่รับรู้ (Unrealized) ==="));
+    lines.push(row("Ticker","ชื่อ","ประเภท","จำนวนที่ถือ",
+      "ต้นทุนเฉลี่ย","ราคาตลาดปัจจุบัน",
+      "มูลค่าตลาด (USD)","มูลค่าตลาด (THB)",
+      "กำไร/ขาดทุน (USD)","กำไร/ขาดทุน (THB)","% กำไร/ขาดทุน",
+      "ต้องเสียภาษีเมื่อขาย"));
+    unrealized.forEach(h => {
+      const mvUSD  = h.qty * h.price;
+      const mvTHB  = h.ccy==="THB" ? mvUSD : mvUSD*FX;
+      const pct    = h.costAvg > 0 ? (((h.price-h.costAvg)/h.costAvg)*100).toFixed(2)+"%" : "—";
+      lines.push(row(
+        h.ticker, h.name, h.classKey?.toUpperCase(),
+        h.qty.toFixed(6),
+        `${h.ccy==="THB"?"฿":"$"}${h.costAvg.toFixed(4)}`,
+        `${h.ccy==="THB"?"฿":"$"}${h.price.toFixed(4)}`,
+        (h.ccy==="THB" ? mvUSD/FX : mvUSD).toFixed(2),
+        (h.ccy==="THB" ? mvUSD    : mvUSD*FX).toFixed(2),
+        h.plUSD.toFixed(2), h.plTHB.toFixed(2), pct,
+        h.classKey==="th" ? "ไม่ (SET ยกเว้น)" : "ใช่ (เมื่อขาย)",
+      ));
+    });
+    lines.push("");
+
+    // ── Section 4: Earn income ──
+    const earnList = store.earn || [];
+    if (earnList.length > 0) {
+      lines.push(row("=== ส่วนที่ 3: รายได้จาก Earn ==="));
+      lines.push(row("Ticker","จำนวนที่ฝาก","APY (%)","ประเภท",
+        "คาดการณ์รายได้/ปี (Token)","คาดการณ์รายได้/ปี (USD)","คาดการณ์รายได้/ปี (THB)",
+        "หมายเหตุ"));
+      earnList.forEach(p => {
+        const annualToken = p.qty * (p.apy/100);
+        const priceUSD    = (store.holdings||[]).find(h=>h.ticker===p.sym)?.price || 1;
+        const annualUSD   = annualToken * priceUSD;
+        lines.push(row(
+          p.sym, p.qty.toFixed(6), p.apy.toFixed(2), p.kind||"",
+          annualToken.toFixed(6), annualUSD.toFixed(2), (annualUSD*FX).toFixed(2),
+          "รายได้จากดอกเบี้ย — ต้องรายงานตาม ม.40(4)",
+        ));
+      });
+      lines.push("");
+    }
+
+    // ── Section 5: Tax summary ──
+    lines.push(row("=== ส่วนที่ 4: สรุปภาษีประมาณการ ==="));
+    lines.push(row("รายการ","จำนวน (THB)","หมายเหตุ"));
+    lines.push(row("กำไรรับรู้แล้วทั้งหมด",     (totalGainUSD*FX).toFixed(2), "รวมทุกประเภทสินทรัพย์"));
+    lines.push(row("ขาดทุนรับรู้แล้วทั้งหมด",    (totalLossUSD*FX).toFixed(2), ""));
+    lines.push(row("กำไรสุทธิ",                  (netGainUSD*FX).toFixed(2),  ""));
+    lines.push(row("กำไรที่ต้องเสียภาษี",         taxableGainTHB.toFixed(2),   "ไม่รวม SET"));
+    lines.push(row("ภาษีประมาณการ (PIT อัตราก้าวหน้า)", estPIT.toFixed(2), "ไม่รวมค่าลดหย่อน"));
+    lines.push(row("ภาษีทางเลือก (15% flat)",    estFlat.toFixed(2), "หัก ณ ที่จ่าย"));
+    lines.push(row("อัตราแลกเปลี่ยนที่ใช้",      `1 USD = ${FX} THB`, `ณ วันที่สร้างรายงาน`));
+    lines.push("");
+    lines.push(row("⚠️ ข้อควรระวัง: รายงานนี้เป็นเพียงการประมาณการเบื้องต้น ไม่รวมค่าลดหย่อนส่วนตัว กรุณาปรึกษานักบัญชีหรือกรมสรรพากร (rd.go.th)"));
+
+    const csv  = lines.join("\n");
     const blob = new Blob(["﻿" + csv], { type:"text/csv;charset=utf-8;" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
-    a.href = url; a.download = `siamfolio-tax-${year}.csv`;
+    a.href = url; a.download = `siamfolio-tax-${year}-BE${thaiYear}.csv`;
     document.body.appendChild(a); a.click();
-    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 300);
   };
 
   return (
@@ -115,10 +203,34 @@ function TaxView({ ccy }) {
       sub={`ปีภาษี ${year} · ข้อมูลประมาณการ — ควรปรึกษานักบัญชีหรือกรมสรรพากร`}
       actions={
         <div style={{display:"flex", gap:8, alignItems:"center"}}>
-          <select className="form-input" style={{height:36, padding:"0 10px", fontSize:13}}
-                  value={year} onChange={e => setYear(parseInt(e.target.value))}>
-            {years.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
+          <div style={{position:"relative", display:"inline-block"}}>
+            <select value={year}
+                    onChange={e => setYear(parseInt(e.target.value))}
+                    style={{
+                      height: 36,
+                      padding: "0 32px 0 14px",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      border: "1px solid var(--line)",
+                      borderRadius: 10,
+                      background: "var(--surface)",
+                      color: "var(--ink)",
+                      cursor: "pointer",
+                      appearance: "none",
+                      WebkitAppearance: "none",
+                      MozAppearance: "none",
+                      fontFamily: "inherit",
+                      outline: "none",
+                    }}>
+              {years.map(y => <option key={y} value={y}>ปี {y}</option>)}
+            </select>
+            <span style={{
+              position:"absolute", right:12, top:"50%",
+              transform:"translateY(-50%)",
+              pointerEvents:"none", fontSize:9,
+              color:"var(--muted)",
+            }}>▼</span>
+          </div>
           <button className="btn primary" onClick={exportCSV}>⬇ Export CSV</button>
         </div>
       }
