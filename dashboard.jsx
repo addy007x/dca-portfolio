@@ -423,18 +423,7 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
               : "linear-gradient(135deg, var(--surface) 60%, var(--down-soft) 100%)",
             borderColor: unrealPct >= 0 ? "oklch(0.88 0.05 155)" : "oklch(0.88 0.05 25)",
           }}>
-            <div style={{display:"flex", alignItems:"flex-start", justifyContent:"space-between"}}>
-              {/* floating % badge */}
-              <div style={{
-                fontSize:12, fontWeight:700, fontFamily:"var(--font-num)",
-                padding:"3px 8px", borderRadius:8,
-                background: unrealPct >= 0 ? "var(--up-soft)" : "var(--down-soft)",
-                color: unrealPct >= 0 ? "var(--up)" : "var(--down)",
-              }}>
-                {unrealPct >= 0 ? "+" : ""}{unrealPct.toFixed(2)}%
-              </div>
-            </div>
-            <div className="label">กำไร/ขาดทุนยังไม่รับรู้</div>
+            <div className="label">กำไร/ขาดทุน</div>
             <div className="value" style={{color: unrealPct >= 0 ? "var(--up)" : "var(--down)"}}>
               {unrealPct >= 0 ? "+" : "−"}{ccySym}{Math.round(Math.abs(cv(unrealTHB))).toLocaleString()}
             </div>
