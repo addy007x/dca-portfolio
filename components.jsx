@@ -234,28 +234,30 @@ window.ConfirmDialog = ConfirmDialog;
 // Falls back to a coloured letter badge on any load error.
 const _ICON_CACHE = {}; // page-lifetime cache; avoids re-fetching on re-render
 
-// CoinGecko CDN URLs — matches COINGECKO_IDS in worker.js
+// Crypto icon CDN — jsdelivr spothq/cryptocurrency-icons (SVG, stable, no rate-limit)
+// XAUT uses CoinGecko CDN directly (verified URL from API 2026-05-27)
+const _JSD = "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/";
 const _CG_ICONS = {
-  BTC:   "https://assets.coingecko.com/coins/images/1/small/bitcoin.png",
-  ETH:   "https://assets.coingecko.com/coins/images/279/small/ethereum.png",
-  SOL:   "https://assets.coingecko.com/coins/images/4128/small/solana.png",
-  XAUT:  "https://assets.coingecko.com/coins/images/10058/small/tether-gold.png",
-  ADA:   "https://assets.coingecko.com/coins/images/975/small/cardano.png",
-  XRP:   "https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png",
-  DOGE:  "https://assets.coingecko.com/coins/images/5/small/dogecoin.png",
-  MATIC: "https://assets.coingecko.com/coins/images/4713/small/polygon.png",
-  BNB:   "https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png",
-  AVAX:  "https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png",
-  LINK:  "https://assets.coingecko.com/coins/images/877/small/chainlink-new-logo.png",
-  DOT:   "https://assets.coingecko.com/coins/images/12171/small/polkadot.png",
-  TRX:   "https://assets.coingecko.com/coins/images/1094/small/tron-logo.png",
-  LTC:   "https://assets.coingecko.com/coins/images/2/small/litecoin.png",
-  UNI:   "https://assets.coingecko.com/coins/images/12504/small/uniswap-uni.png",
-  ATOM:  "https://assets.coingecko.com/coins/images/1481/small/cosmos_hub.png",
-  NEAR:  "https://assets.coingecko.com/coins/images/10365/small/near.jpg",
-  FIL:   "https://assets.coingecko.com/coins/images/12817/small/filecoin.png",
-  APT:   "https://assets.coingecko.com/coins/images/26455/small/aptos_round.png",
-  ARB:   "https://assets.coingecko.com/coins/images/16547/small/photo_2023-03-29_21.47.00.jpeg",
+  BTC:   _JSD + "btc.svg",
+  ETH:   _JSD + "eth.svg",
+  SOL:   _JSD + "sol.svg",
+  ADA:   _JSD + "ada.svg",
+  XRP:   _JSD + "xrp.svg",
+  DOGE:  _JSD + "doge.svg",
+  MATIC: _JSD + "matic.svg",
+  BNB:   _JSD + "bnb.svg",
+  AVAX:  _JSD + "avax.svg",
+  LINK:  _JSD + "link.svg",
+  DOT:   _JSD + "dot.svg",
+  TRX:   _JSD + "trx.svg",
+  LTC:   _JSD + "ltc.svg",
+  UNI:   _JSD + "uni.svg",
+  ATOM:  _JSD + "atom.svg",
+  NEAR:  _JSD + "near.svg",
+  FIL:   _JSD + "fil.svg",
+  // XAUT — CoinGecko CDN (ID 10481, verified)
+  XAUT:  "https://coin-images.coingecko.com/coins/images/10481/small/logo.png",
+  // Newer coins — fall through to auto-try below
 };
 
 // Parqet logo CDN for stocks (strips .BK / .NYSE suffix automatically)
@@ -272,7 +274,10 @@ const _CLASS_BG = {
 
 function AssetIcon({ ticker, classKey, size = 32 }) {
   const url = React.useMemo(() => {
-    if (classKey === "crypto" || classKey === "gold") return _CG_ICONS[ticker] || null;
+    if (classKey === "crypto" || classKey === "gold") {
+      // use map, or auto-try jsdelivr for unknown coins
+      return _CG_ICONS[ticker] || (_JSD + ticker.toLowerCase() + ".svg");
+    }
     return _stockIconUrl(ticker);
   }, [ticker, classKey]);
 
