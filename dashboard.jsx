@@ -390,30 +390,134 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
         </div>
 
         <div className="kpi-grid">
+
+          {/* ── Card 1: ต้นทุนรวม ── */}
           <div className="kpi">
+            <div className="kpi-art">💼</div>
+            <div className="kpi-badge" style={{background:"var(--surface-2)"}}>
+              <Ico name="wallet" size={15} style={{color:"var(--muted)"}}/>
+            </div>
             <div className="label">ต้นทุนรวม</div>
             <div className="value">{ccySym}{Math.round(cv(totals.costTHB)).toLocaleString()}</div>
-            <div className="delta" style={{color:"var(--muted)"}}>ลงทุนสะสมตั้งแต่เริ่ม</div>
+            <div className="delta">ลงทุนสะสมตั้งแต่เริ่ม</div>
+            {/* cost vs unrealised gain bar */}
+            <div className="kpi-bar" style={{marginTop:"auto", paddingTop:12}}>
+              <div className="kpi-bar-seg" style={{
+                flex: Math.max(totals.costTHB, 1),
+                background:"var(--muted-2)",
+              }}/>
+              {unrealTHB > 0 && (
+                <div className="kpi-bar-seg" style={{
+                  flex: unrealTHB,
+                  background:"var(--up)",
+                }}/>
+              )}
+            </div>
+            <div style={{display:"flex", justifyContent:"space-between", marginTop:4, fontSize:10.5, color:"var(--muted)"}}>
+              <span>ต้นทุน {fmtPct(totals.costTHB / Math.max(totals.mvTHB,1) * 100)}</span>
+              {unrealTHB > 0 && <span style={{color:"var(--up)"}}>กำไร +{fmtPct(unrealPct)}</span>}
+              {unrealTHB < 0 && <span style={{color:"var(--down)"}}>ขาดทุน {fmtPct(unrealPct)}</span>}
+            </div>
           </div>
-          <div className="kpi">
+
+          {/* ── Card 2: กำไร/ขาดทุน ── */}
+          <div className="kpi" style={{
+            background: unrealPct >= 0
+              ? "linear-gradient(135deg, var(--surface) 60%, var(--up-soft) 100%)"
+              : "linear-gradient(135deg, var(--surface) 60%, var(--down-soft) 100%)",
+            borderColor: unrealPct >= 0 ? "oklch(0.88 0.05 155)" : "oklch(0.88 0.05 25)",
+          }}>
+            <div className="kpi-art">{unrealPct >= 0 ? "📈" : "📉"}</div>
+            <div style={{display:"flex", alignItems:"flex-start", justifyContent:"space-between"}}>
+              <div className="kpi-badge" style={{
+                background: unrealPct >= 0 ? "var(--up-soft)" : "var(--down-soft)",
+              }}>
+                <Ico name={unrealPct >= 0 ? "arrow-up" : "arrow-dn"} size={15}
+                     style={{color: unrealPct >= 0 ? "var(--up)" : "var(--down)"}}/>
+              </div>
+              {/* floating % badge */}
+              <div style={{
+                fontSize:12, fontWeight:700, fontFamily:"var(--font-num)",
+                padding:"3px 8px", borderRadius:8,
+                background: unrealPct >= 0 ? "var(--up-soft)" : "var(--down-soft)",
+                color: unrealPct >= 0 ? "var(--up)" : "var(--down)",
+              }}>
+                {unrealPct >= 0 ? "+" : ""}{unrealPct.toFixed(2)}%
+              </div>
+            </div>
             <div className="label">กำไร/ขาดทุนยังไม่รับรู้</div>
             <div className="value" style={{color: unrealPct >= 0 ? "var(--up)" : "var(--down)"}}>
               {unrealPct >= 0 ? "+" : "−"}{ccySym}{Math.round(Math.abs(cv(unrealTHB))).toLocaleString()}
             </div>
-            <div className={`delta ${unrealPct >= 0 ? "up" : "down"}`}>{fmtPct(unrealPct)} จากต้นทุน</div>
-          </div>
-          <div className="kpi">
-            <div className="label">DCA อัตโนมัติ</div>
-            <div className="value">{dcaList.length} รายการ</div>
-            <div className="delta" style={{color:"var(--accent-ink)"}}>ครั้งถัดไป: {nextDCALabel}</div>
-          </div>
-          <div className="kpi">
-            <div className="label">จำนวนสินทรัพย์</div>
-            <div className="value">{holdings.length} ตัว</div>
-            <div className="delta" style={{color:"var(--muted)"}}>
-              ใน {Object.values(totals.byClass).filter(v => v > 0).length} ประเภท
+            <div className={`delta ${unrealPct >= 0 ? "up" : "down"}`} style={{marginTop:"auto"}}>
+              {unrealPct >= 0 ? "↑" : "↓"} {Math.abs(unrealPct).toFixed(2)}% จากต้นทุน {ccySym}{Math.round(cv(totals.costTHB)).toLocaleString()}
             </div>
           </div>
+
+          {/* ── Card 3: DCA อัตโนมัติ ── */}
+          {(() => {
+            const active = dcaList.filter(d => !d.paused).length;
+            const paused = dcaList.filter(d => d.paused).length;
+            return (
+              <div className="kpi">
+                <div className="kpi-art">🔄</div>
+                <div className="kpi-badge" style={{background:"var(--accent-soft)"}}>
+                  <Ico name="dca" size={15} style={{color:"var(--accent-ink)"}}/>
+                </div>
+                <div className="label">DCA อัตโนมัติ</div>
+                <div className="value">{dcaList.length} <span style={{fontSize:14, fontWeight:500, color:"var(--muted)"}}>รายการ</span></div>
+                <div className="delta" style={{color:"var(--accent-ink)"}}>ถัดไป: {nextDCALabel}</div>
+                {dcaList.length > 0 && (
+                  <div style={{display:"flex", gap:6, marginTop:10}}>
+                    <div style={{
+                      padding:"2px 10px", borderRadius:6, fontSize:11, fontWeight:600,
+                      background:"var(--up-soft)", color:"var(--up)",
+                    }}>▶ {active} active</div>
+                    {paused > 0 && (
+                      <div style={{
+                        padding:"2px 10px", borderRadius:6, fontSize:11, fontWeight:600,
+                        background:"var(--surface-2)", color:"var(--muted)",
+                      }}>⏸ {paused} paused</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── Card 4: จำนวนสินทรัพย์ ── */}
+          <div className="kpi">
+            <div className="kpi-art">📊</div>
+            <div className="kpi-badge" style={{background:"var(--surface-2)"}}>
+              <Ico name="bench" size={15} style={{color:"var(--muted)"}}/>
+            </div>
+            <div className="label">จำนวนสินทรัพย์</div>
+            <div className="value">{allHoldings.length} <span style={{fontSize:14, fontWeight:500, color:"var(--muted)"}}>ตัว</span></div>
+            <div className="delta">ใน {Object.values(totals.byClass).filter(v=>v>0).length} ประเภท</div>
+            {/* class dots */}
+            <div style={{display:"flex", gap:6, marginTop:10, flexWrap:"wrap"}}>
+              {[
+                {k:"us",    label:"US",     color:"var(--c-us)"},
+                {k:"th",    label:"TH",     color:"var(--c-th)"},
+                {k:"crypto",label:"CRYPTO", color:"var(--c-crypto)"},
+                {k:"gold",  label:"GOLD",   color:"var(--c-gold)"},
+              ].filter(c => totals.byClass[c.k] > 0).map(c => {
+                const pct = (totals.byClass[c.k] / totals.mvTHB * 100).toFixed(0);
+                return (
+                  <div key={c.k} style={{
+                    display:"flex", alignItems:"center", gap:4,
+                    padding:"2px 8px", borderRadius:6, fontSize:11, fontWeight:600,
+                    background:"var(--surface-2)",
+                  }}>
+                    <div style={{width:7, height:7, borderRadius:"50%", background:c.color, flexShrink:0}}/>
+                    <span style={{color:"var(--ink-2)"}}>{c.label}</span>
+                    <span style={{color:"var(--muted)"}}>{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
         </div>
       </section>
 
