@@ -47,10 +47,19 @@ function Sidebar({ active, onNav, dcaDueCount = 0 }) {
 }
 
 function Topbar({ ccy, onCcy, onAdd, priceStatus, onSettings, searchQuery, onSearch }) {
-  const today = new Date();
-  const days = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
+  const [now, setNow] = React.useState(() => new Date());
+  React.useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const days   = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
   const months = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-  const dateStr = `วัน${days[today.getDay()]}ที่ ${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear() + 543}`;
+  const dateStr = `วัน${days[now.getDay()]}ที่ ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear() + 543}`;
+  const hh = String(now.getHours()).padStart(2,"0");
+  const mm = String(now.getMinutes()).padStart(2,"0");
+  const ss = String(now.getSeconds()).padStart(2,"0");
+  const timeStr = `${hh}:${mm}:${ss}`;
 
   // Compute status label
   let statusClass = "stale", statusLabel = "ยังไม่ได้รีเฟรช";
@@ -67,7 +76,7 @@ function Topbar({ ccy, onCcy, onAdd, priceStatus, onSettings, searchQuery, onSea
     <div className="topbar">
       <div className="greeting">
         <h1>สวัสดีค่ะ คุณภัทร 👋</h1>
-        <p>{dateStr} · <span className={`price-status ${statusClass}`}
+        <p>{dateStr} · <span className="num" style={{fontVariantNumeric:"tabular-nums"}}>{timeStr}</span> · <span className={`price-status ${statusClass}`}
               onClick={() => priceStatus?.refresh()}
               title="คลิกเพื่อรีเฟรชราคา">{statusLabel}</span></p>
       </div>
