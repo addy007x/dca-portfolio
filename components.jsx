@@ -124,72 +124,41 @@ window.fmtNum = fmtNum;
 window.fmtPct = fmtPct;
 window.toDisplay = toDisplay;
 
-// ===== Menu (dropdown) — Portal-based so overflow:hidden never clips it =====
+// ===== Menu (dropdown) =====
 function Menu({ items, label = "Actions" }) {
   const [open, setOpen] = React.useState(false);
-  const [pos, setPos] = React.useState({ top: 0, left: 0 });
-  const btnRef = React.useRef(null);
-  const menuRef = React.useRef(null);
+  const ref = React.useRef(null);
 
-  // Close on outside click
   React.useEffect(() => {
     if (!open) return;
     const onDoc = (e) => {
-      if (
-        btnRef.current && !btnRef.current.contains(e.target) &&
-        menuRef.current && !menuRef.current.contains(e.target)
-      ) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
-  // Close on scroll (menu position would be stale)
-  React.useEffect(() => {
-    if (!open) return;
-    const close = () => setOpen(false);
-    window.addEventListener("scroll", close, true);
-    return () => window.removeEventListener("scroll", close, true);
-  }, [open]);
-
-  const toggle = (e) => {
-    e.stopPropagation();
-    if (!open) {
-      const r = btnRef.current.getBoundingClientRect();
-      // Default: open below-right aligned. If too close to bottom, open upward.
-      const spaceBelow = window.innerHeight - r.bottom;
-      const approxH = items.length * 36 + 20;
-      const top = spaceBelow < approxH ? r.top - approxH - 4 : r.bottom + 4;
-      setPos({ top, right: window.innerWidth - r.right });
-    }
-    setOpen(o => !o);
-  };
-
-  const menuEl = open && ReactDOM.createPortal(
-    <div ref={menuRef} className="menu"
-         style={{ position: "fixed", top: pos.top, right: pos.right, zIndex: 9999 }}
-         onClick={(e) => e.stopPropagation()}>
-      {items.map((it, i) => {
-        if (it.sep) return <div className="sep" key={"sep"+i}/>;
-        return (
-          <button key={i} className={it.danger ? "danger" : ""}
-                  onClick={() => { setOpen(false); it.onClick && it.onClick(); }}>
-            {it.icon && <Ico name={it.icon} size={15}/>}
-            <span>{it.label}</span>
-          </button>
-        );
-      })}
-    </div>,
-    document.body
-  );
-
   return (
-    <div className="menu-wrap">
-      <button ref={btnRef} className={`row-action ${open ? "is-open" : ""}`}
-              aria-label={label} onClick={toggle}>
+    <div className="menu-wrap" ref={ref}>
+      <button className={`row-action ${open ? "is-open" : ""}`}
+              aria-label={label}
+              onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}>
         <Ico name="more" size={16}/>
       </button>
-      {menuEl}
+      {open && (
+        <div className="menu" onClick={(e) => e.stopPropagation()}>
+          {items.map((it, i) => {
+            if (it.sep) return <div className="sep" key={"sep"+i}/>;
+            return (
+              <button key={i} className={it.danger ? "danger" : ""}
+                      onClick={() => { setOpen(false); it.onClick && it.onClick(); }}>
+                {it.icon && <Ico name={it.icon} size={15}/>}
+                <span>{it.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

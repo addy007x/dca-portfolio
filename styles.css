@@ -503,7 +503,8 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 /* ===== Holdings table ===== */
-.holdings { padding: 0; overflow: hidden; }
+/* overflow: visible so dropdown menus can escape the table bounds */
+.holdings { padding: 0; overflow: visible; }
 .holdings-head, .holdings-row {
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr 0.7fr 32px;
@@ -522,6 +523,8 @@ button { font-family: inherit; cursor: pointer; }
   letter-spacing: 0.06em;
   border-bottom: 1px solid var(--line);
   background: var(--surface-2);
+  border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;
+  overflow: hidden;
 }
 .holdings-row {
   border-bottom: 1px solid var(--line);
@@ -1058,13 +1061,16 @@ button { font-family: inherit; cursor: pointer; }
 /* ===== Menu ===== */
 .menu-wrap { position: relative; display: inline-block; }
 .menu {
-  /* position/top/right/z-index set inline by JS (Portal) */
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
   min-width: 200px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: var(--shadow-pop);
   padding: 6px;
+  z-index: 50;
   display: flex;
   flex-direction: column;
   gap: 2px;
