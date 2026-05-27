@@ -18,7 +18,31 @@ const COINGECKO_IDS = {
   AVAX: "avalanche-2",
 };
 
-const CORS_PROXY = "https://corsproxy.io/?url=";
+// CORS proxy fallback list. The free CORS-proxy landscape is unreliable
+// (rate-limits per-IP, paid tiers, occasional 5xx). We try a few then fall back.
+// Note: most users will hit at most a few requests/minute so per-IP limits
+// usually don't apply in the browser.
+const CORS_PROXIES = [
+  (u) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+  (u) => `https://api.cors.lol/?url=${encodeURIComponent(u)}`,
+  (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+];
+
+async function fetchWithCorsProxy(url) {
+  // Try direct (some endpoints have CORS headers; cheap to try)
+  try {
+    const r = await fetch(url, { redirect: "follow" });
+    if (r.ok) return r;
+  } catch (_) { /* CORS or net error */ }
+  // Try each proxy
+  for (const make of CORS_PROXIES) {
+    try {
+      const r = await fetch(make(url), { redirect: "follow" });
+      if (r.ok) return r;
+    } catch (_) { /* try next */ }
+  }
+  throw new Error("All CORS proxies failed: " + url);
+}
 
 // Simple in-memory cache to avoid hammering APIs
 const cache = new Map();
@@ -82,45 +106,46 @@ async function fetchFXRate() {
   }
 }
 
-// ─────── US Stocks (Yahoo via CORS proxy) ───────
+// ─────── Stocks (Yahoo Finance v8 chart endpoint) ───────
+// Free, no key. Fetches each ticker separately (small N, runs in parallel).
+async function fetchYahooQuote(symbol) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
+  try {
+    const res = await fetchWithCorsProxy(url);
+    const data = await res.json();
+    const meta = data?.chart?.result?.[0]?.meta;
+    if (!meta || typeof meta.regularMarketPrice !== "number") return null;
+    const price = meta.regularMarketPrice;
+    const prevClose = meta.chartPreviousClose || meta.previousClose || price;
+    const chg1d = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
+    return { price, chg1d, source: "yahoo" };
+  } catch (e) {
+    console.warn(`Yahoo ${symbol} failed:`, e.message);
+    return null;
+  }
+}
+
 async function fetchUSStockPrices(tickers) {
   if (!tickers || tickers.length === 0) return {};
   const cacheKey = "yf:" + tickers.sort().join(",");
   const c = getCached(cacheKey, 60 * 1000);
   if (c) return c;
-  try {
-    const yahoo = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers.join(",")}`;
-    const url = CORS_PROXY + encodeURIComponent(yahoo);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Yahoo " + res.status);
-    const data = await res.json();
-    const out = {};
-    for (const q of data?.quoteResponse?.result || []) {
-      out[q.symbol] = {
-        price: q.regularMarketPrice,
-        chg1d: q.regularMarketChangePercent ?? 0,
-        source: "yahoo",
-      };
-    }
-    setCached(cacheKey, out);
-    return out;
-  } catch (e) {
-    console.warn("Yahoo fetch failed:", e.message);
-    return {};
-  }
+  const results = await Promise.all(tickers.map(t => fetchYahooQuote(t)));
+  const out = {};
+  tickers.forEach((t, i) => { if (results[i]) out[t] = results[i]; });
+  setCached(cacheKey, out);
+  return out;
 }
 
 // ─────── Thai Stocks (Yahoo with .BK suffix) ───────
 async function fetchThaiStockPrices(tickers) {
   if (!tickers || tickers.length === 0) return {};
-  const yfSyms = tickers.map(t => t + ".BK");
-  const result = await fetchUSStockPrices(yfSyms); // same Yahoo endpoint
-  // Strip .BK suffix in output keys
+  const results = await Promise.all(tickers.map(async t => {
+    const q = await fetchYahooQuote(t + ".BK");
+    return q ? { ticker: t, ...q } : null;
+  }));
   const out = {};
-  for (const t of tickers) {
-    const r = result[t + ".BK"];
-    if (r) out[t] = r;
-  }
+  for (const r of results) if (r) out[r.ticker] = { price: r.price, chg1d: r.chg1d, source: r.source };
   return out;
 }
 
