@@ -7,7 +7,7 @@
 //   const { holdings, addHolding } = useHoldings();
 
 const STORE_KEY = "siamfolio.v1";
-const STORE_VERSION = 1;
+const STORE_VERSION = 2;
 
 // ─────── ID generator ───────
 function makeId(prefix = "id") {
