@@ -1,5 +1,96 @@
 // Main Dashboard view — store-backed
 
+// ─────── Mascot walking sprite ───────
+function HeroMascot({ dayPct }) {
+  const containerRef = React.useRef(null);
+  const [vis, setVis] = React.useState(true);
+  // sprite state held in a ref to avoid stale closures
+  const stRef = React.useRef({ pos: -90, dir: 1, frame: 0, tick: 0 });
+  const [rs, setRs] = React.useState({ pos: -90, dir: 1, frame: 0 });
+
+  // Frame sets depending on performance
+  // up:   beach-ball(0) → surfing(3) → swim-ring(1) → surfing(3)
+  // down: water-gun(2) → water-gun(2) → beach-ball(0) → water-gun(2)
+  // neutral: 0→1→2→3
+  const isUp = dayPct >= 0;
+  const FRAME_SEQ = isUp ? [0, 3, 1, 3] : [2, 2, 0, 2];
+
+  // Sprite sheet: 2×2 grid  =>  background-size 200% 200%
+  // TL=beach ball  TR=swim ring  BL=water gun  BR=surfing
+  const FRAME_POS = [
+    { bx:"0%",   by:"0%" },    // 0 beach ball
+    { bx:"100%", by:"0%" },    // 1 swim ring
+    { bx:"0%",   by:"100%" },  // 2 water gun
+    { bx:"100%", by:"100%" },  // 3 surfing
+  ];
+
+  React.useEffect(() => {
+    const SPEED     = 2.8;   // px per 50ms tick  ≈ 56 px/s
+    const FRAME_TKS = 8;     // ticks between sprite frames (8×50ms = 400ms)
+    const SIZE      = 90;
+
+    const id = setInterval(() => {
+      const st = stRef.current;
+      const w  = containerRef.current?.offsetWidth || 480;
+
+      st.pos += st.dir * SPEED;
+      if (st.pos > w + SIZE * 0.3) { st.dir = -1; }
+      if (st.pos < -SIZE)          { st.dir =  1; }
+
+      st.tick++;
+      if (st.tick >= FRAME_TKS) { st.frame = (st.frame + 1) % 4; st.tick = 0; }
+
+      setRs({ pos: st.pos, dir: st.dir, frame: st.frame });
+    }, 50);
+
+    return () => clearInterval(id);
+  }, []);
+
+  if (!vis) return null;
+
+  const fp = FRAME_POS[FRAME_SEQ[rs.frame]];
+
+  return (
+    <div ref={containerRef} style={{
+      position:"absolute", bottom:0, left:0, right:0, height:96,
+      pointerEvents:"none", overflow:"hidden", borderRadius:"0 0 16px 16px",
+    }}>
+      {/* Soft ground shimmer */}
+      <div style={{
+        position:"absolute", bottom:0, left:0, right:0, height:3,
+        background:"linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.25) 50%,transparent 100%)",
+      }}/>
+      {/* Walking character */}
+      <div style={{
+        position:"absolute",
+        bottom:0,
+        left: rs.pos,
+        width:90, height:90,
+        backgroundImage:"url('mascot.png')",
+        backgroundSize:"200% 200%",
+        backgroundPosition:`${fp.bx} ${fp.by}`,
+        backgroundRepeat:"no-repeat",
+        transform:`scaleX(${rs.dir})`,
+        transformOrigin:"45px 45px",
+        filter: isUp ? "drop-shadow(0 2px 6px rgba(0,0,0,0.18))"
+                     : "saturate(0.65) drop-shadow(0 2px 6px rgba(0,0,0,0.18))",
+        transition:"filter 0.6s",
+      }} onError={() => setVis(false)}/>
+      {/* Tiny shadow under feet */}
+      <div style={{
+        position:"absolute",
+        bottom:0,
+        left: rs.pos + 12,
+        width:66, height:6,
+        borderRadius:"50%",
+        background:"rgba(0,0,0,0.10)",
+        filter:"blur(3px)",
+        transform:`scaleX(${rs.dir})`,
+      }}/>
+    </div>
+  );
+}
+
 function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEarn, onEditHolding, accent, searchQuery }) {
   const store = window.useStore();
   const M = window.MOCK; // still used for portfolio history baseline
@@ -91,7 +182,7 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
     <>
       {/* ===== Hero ===== */}
       <section className="hero">
-        <div className="card hero-main tint">
+        <div className="card hero-main tint" style={{position:"relative", paddingBottom:102, overflow:"hidden"}}>
           <div className="hero-eye">
             <Ico name="eye" size={14}/> มูลค่าพอร์ตรวม (ทุกสินทรัพย์)
           </div>
@@ -129,6 +220,9 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
               <span style={{color:"var(--muted)", fontSize:12}}>· CoinGecko · Yahoo · Frankfurter</span>
             </div>
           </div>
+
+          {/* Walking mascot at the bottom of hero card */}
+          <HeroMascot dayPct={dayPct}/>
         </div>
 
         <div className="kpi-grid">
