@@ -92,6 +92,8 @@ function App() {
             ? <HistoryView ccy={s.ccy}/>
             : view.kind === "tax"
             ? <TaxView ccy={s.ccy}/>
+            : view.kind === "bench"
+            ? <BenchView ccy={s.ccy}/>
             : <Dashboard ccy={s.ccy}
                          onOpenAsset={onOpenAsset}
                          onAddHolding={() => { setEditHolding(null); setShowHoldingModal(true); }}

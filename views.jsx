@@ -459,6 +459,360 @@ function EarnView({ ccy, onAddEarn }) {
   );
 }
 
+// ─────── Benchmark / Compare View ───────
+function BenchView({ ccy }) {
+  const store      = window.useStore();
+  const holdings   = store.holdings || [];
+  const FX         = store.fx || 35.8;
+  const benchmarks = store.benchmarks || window.MOCK?.BENCHMARKS || [];
+  const ccySym     = ccy === "THB" ? "฿" : "$";
+  const cv         = (thb) => ccy === "THB" ? thb : thb / FX;
+
+  // ── Portfolio-level metrics ──
+  const { mvTHB, costTHB } = React.useMemo(() => {
+    let mvTHB = 0, costTHB = 0;
+    holdings.forEach(h => {
+      const f = h.ccy === "THB" ? 1 : FX;
+      mvTHB   += h.qty * h.price   * f;
+      costTHB += h.qty * h.costAvg * f;
+    });
+    return { mvTHB, costTHB };
+  }, [holdings, FX]);
+
+  const portYTD    = costTHB > 0 ? ((mvTHB - costTHB) / costTHB) * 100 : 0;
+  const portGainTHB = mvTHB - costTHB;
+
+  // ── Per-holding performance ──
+  const holdPerf = holdings.map(h => {
+    const plNative = h.qty * (h.price - h.costAvg);
+    const plTHB    = h.ccy === "THB" ? plNative : plNative * FX;
+    const mvTHB_h  = h.qty * h.price * (h.ccy === "THB" ? 1 : FX);
+    const retPct   = h.costAvg > 0 ? ((h.price - h.costAvg) / h.costAvg) * 100 : 0;
+    const weight   = mvTHB > 0 ? (mvTHB_h / mvTHB) * 100 : 0;
+    const contrib  = weight * retPct / 100; // contribution to portfolio return
+    return { ...h, plTHB, retPct, weight, contrib };
+  }).sort((a, b) => b.retPct - a.retPct);
+
+  const best  = holdPerf.slice(0, 3);
+  const worst = [...holdPerf].sort((a, b) => a.retPct - b.retPct).slice(0, 3);
+
+  // ── What-if simulator ──
+  const [whatIfTicker, setWhatIfTicker] = React.useState("S&P 500");
+  const whatIfBench  = benchmarks.find(b => b.ticker === whatIfTicker) || benchmarks[1];
+  const whatIfValue  = costTHB * (1 + (whatIfBench?.ytd || 0) / 100);
+  const whatIfGain   = whatIfValue - costTHB;
+  const portBetter   = portGainTHB - whatIfGain;
+
+  // ── All benchmarks enriched with portfolio ──
+  const allBars = [
+    { ticker: "พอร์ตคุณ", ytd: portYTD, isYou: true },
+    ...benchmarks.filter(b => !b.isYou),
+  ].sort((a, b) => b.ytd - a.ytd);
+  const maxAbs = Math.max(...allBars.map(b => Math.abs(b.ytd)), 1);
+
+  // ── Diversification score (0–100) ──
+  const classKeys = [...new Set(holdings.map(h => h.classKey))];
+  const divScore  = Math.min(100, classKeys.length * 22 + (holdings.length > 5 ? 12 : 0));
+
+  // ── Asset class weights ──
+  const byClass = {};
+  holdings.forEach(h => {
+    const v = h.qty * h.price * (h.ccy === "THB" ? 1 : FX);
+    byClass[h.classKey] = (byClass[h.classKey] || 0) + v;
+  });
+  const classColors = { us:"var(--c-us)", th:"var(--c-th)", crypto:"var(--c-crypto)", gold:"var(--c-gold)" };
+  const classLabels = { us:"หุ้น US", th:"หุ้นไทย", crypto:"คริปโต", gold:"ทองคำ" };
+
+  return (
+    <PageShell title="📊 เปรียบเทียบผลตอบแทน"
+               sub="พอร์ตของคุณ vs ดัชนีอ้างอิง · ข้อมูล YTD">
+      {/* ── KPI strip ── */}
+      <div className="kpi-grid" style={{marginBottom:20}}>
+        <div className="kpi">
+          <div className="label">ผลตอบแทนพอร์ต</div>
+          <div className="value" style={{color: portYTD>=0?"var(--up)":"var(--down)"}}>
+            {portYTD>=0?"+":""}{portYTD.toFixed(2)}%
+          </div>
+          <div className={`delta ${portYTD>=0?"up":"down"}`}>
+            {portYTD>=0?"+":""}{ccySym}{Math.round(Math.abs(cv(portGainTHB))).toLocaleString()} กำไรสะสม
+          </div>
+        </div>
+        <div className="kpi">
+          <div className="label">ดีกว่า SET</div>
+          {(() => {
+            const set = benchmarks.find(b => b.ticker==="SET");
+            const diff = portYTD - (set?.ytd||0);
+            return <>
+              <div className="value" style={{color: diff>=0?"var(--up)":"var(--down)"}}>
+                {diff>=0?"+":""}{diff.toFixed(2)}%
+              </div>
+              <div className={`delta ${diff>=0?"up":"down"}`}>
+                SET {(set?.ytd||0).toFixed(1)}%
+              </div>
+            </>;
+          })()}
+        </div>
+        <div className="kpi">
+          <div className="label">ดีกว่า S&P 500</div>
+          {(() => {
+            const sp = benchmarks.find(b => b.ticker==="S&P 500");
+            const diff = portYTD - (sp?.ytd||0);
+            return <>
+              <div className="value" style={{color: diff>=0?"var(--up)":"var(--down)"}}>
+                {diff>=0?"+":""}{diff.toFixed(2)}%
+              </div>
+              <div className={`delta ${diff>=0?"up":"down"}`}>
+                S&P {(sp?.ytd||0).toFixed(1)}%
+              </div>
+            </>;
+          })()}
+        </div>
+        <div className="kpi">
+          <div className="label">คะแนนกระจายความเสี่ยง</div>
+          <div className="value" style={{color:"var(--accent-ink)"}}>{divScore}<span style={{fontSize:14,fontWeight:500}}>/100</span></div>
+          <div className="delta" style={{color:"var(--muted)"}}>
+            {classKeys.length} ประเภท · {holdings.length} สินทรัพย์
+          </div>
+        </div>
+      </div>
+
+      <div style={{display:"flex", gap:20, flexWrap:"wrap", alignItems:"flex-start"}}>
+
+        {/* ── Left: bar chart + per-holding table ── */}
+        <div style={{flex:"2 1 480px", display:"flex", flexDirection:"column", gap:20}}>
+
+          {/* Performance bars */}
+          <div className="card">
+            <div className="card-head">
+              <div>
+                <div className="card-title">เปรียบเทียบผลตอบแทน YTD</div>
+                <div className="card-sub">พอร์ตคุณ vs ดัชนีตลาด</div>
+              </div>
+            </div>
+            <div style={{display:"flex", flexDirection:"column", gap:10, padding:"0 4px 4px"}}>
+              {allBars.map(b => {
+                const w    = (Math.abs(b.ytd) / maxAbs) * 100;
+                const pos  = b.ytd >= 0;
+                const isYou = b.isYou;
+                return (
+                  <div key={b.ticker}>
+                    <div style={{display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:4}}>
+                      <span style={{fontWeight: isYou?800:600,
+                                    color: isYou?"var(--accent-ink)":"var(--ink)",
+                                    fontFamily: isYou?"var(--font-ui)":"var(--font-mono)"}}>
+                        {b.ticker}{isYou && " ★"}
+                      </span>
+                      <span className="num" style={{fontWeight:700,
+                                                    color: pos?"var(--up)":"var(--down)"}}>
+                        {pos?"+":""}{b.ytd.toFixed(2)}%
+                      </span>
+                    </div>
+                    <div style={{height:10, background:"var(--line)", borderRadius:5, overflow:"hidden"}}>
+                      <div style={{
+                        height:"100%", borderRadius:5, transition:"width .6s ease",
+                        width: w+"%",
+                        background: isYou ? "var(--accent)"
+                                  : pos   ? "var(--up)"
+                                  :         "var(--down)",
+                        opacity: isYou ? 1 : 0.7,
+                      }}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Per-holding performance table */}
+          <div className="card" style={{padding:0}}>
+            <div className="card-head" style={{padding:"16px 20px 12px"}}>
+              <div>
+                <div className="card-title">ผลตอบแทนรายสินทรัพย์</div>
+                <div className="card-sub">เรียงจากผลตอบแทนสูงสุด</div>
+              </div>
+            </div>
+            <div style={{
+              display:"grid", gridTemplateColumns:"1.6fr 0.8fr 0.8fr 1fr 1fr",
+              gap:12, padding:"8px 20px",
+              fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.06em",
+              borderBottom:"1px solid var(--line)", background:"var(--surface-2)",
+            }}>
+              <div>สินทรัพย์</div><div>น้ำหนัก%</div><div>ผลตอบแทน</div>
+              <div>กำไร/ขาดทุน ({ccy})</div><div>Contribution</div>
+            </div>
+            {holdPerf.map(h => (
+              <div key={h.id} style={{
+                display:"grid", gridTemplateColumns:"1.6fr 0.8fr 0.8fr 1fr 1fr",
+                gap:12, padding:"10px 20px", alignItems:"center",
+                borderBottom:"1px solid var(--line)", transition:"background .15s",
+              }}
+              onMouseEnter={e=>e.currentTarget.style.background="var(--surface-2)"}
+              onMouseLeave={e=>e.currentTarget.style.background=""}>
+                <div style={{display:"flex", gap:8, alignItems:"center"}}>
+                  <div className={`asset-logo ${h.classKey}`} style={{width:28,height:28,fontSize:10}}>
+                    {h.classKey==="gold"?"Au":h.ticker.slice(0,2)}
+                  </div>
+                  <div>
+                    <div style={{fontWeight:700, fontFamily:"var(--font-mono)", fontSize:12}}>{h.ticker}</div>
+                    <div style={{fontSize:10, color:"var(--muted)"}}>{h.classKey?.toUpperCase()}</div>
+                  </div>
+                </div>
+                <div>
+                  <div className="num" style={{fontSize:12, fontWeight:600}}>{h.weight.toFixed(1)}%</div>
+                  <div style={{height:3, background:"var(--line)", borderRadius:2, marginTop:3}}>
+                    <div style={{height:"100%", borderRadius:2, background:"var(--accent)",
+                                 width: Math.min(h.weight,100)+"%"}}/>
+                  </div>
+                </div>
+                <div className="num" style={{fontWeight:700, fontSize:13,
+                                             color: h.retPct>=0?"var(--up)":"var(--down)"}}>
+                  {h.retPct>=0?"+":""}{h.retPct.toFixed(2)}%
+                </div>
+                <div className="num" style={{fontWeight:600, fontSize:12,
+                                             color: h.plTHB>=0?"var(--up)":"var(--down)"}}>
+                  {h.plTHB>=0?"+":"−"}{ccySym}{Math.round(Math.abs(cv(h.plTHB))).toLocaleString()}
+                </div>
+                <div>
+                  <div className="num" style={{fontSize:12, fontWeight:600,
+                                               color: h.contrib>=0?"var(--up)":"var(--down)"}}>
+                    {h.contrib>=0?"+":""}{h.contrib.toFixed(2)}%
+                  </div>
+                  <div style={{fontSize:10, color:"var(--muted)"}}>ต่อพอร์ต</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Right column ── */}
+        <div style={{flex:"1 1 260px", display:"flex", flexDirection:"column", gap:16}}>
+
+          {/* Best / Worst */}
+          <div className="card">
+            <div className="card-title" style={{marginBottom:12}}>🏆 Top performers</div>
+            {best.map((h,i) => (
+              <div key={h.id} style={{display:"flex", justifyContent:"space-between",
+                                      alignItems:"center", padding:"6px 0",
+                                      borderBottom: i<best.length-1?"1px solid var(--line)":"none"}}>
+                <div style={{display:"flex", gap:8, alignItems:"center"}}>
+                  <span style={{fontSize:14}}>{["🥇","🥈","🥉"][i]}</span>
+                  <span style={{fontWeight:700, fontFamily:"var(--font-mono)", fontSize:13}}>{h.ticker}</span>
+                </div>
+                <span className="num" style={{color:"var(--up)", fontWeight:700}}>
+                  +{h.retPct.toFixed(2)}%
+                </span>
+              </div>
+            ))}
+            <div className="card-title" style={{margin:"14px 0 10px"}}>📉 Worst performers</div>
+            {worst.map((h,i) => (
+              <div key={h.id} style={{display:"flex", justifyContent:"space-between",
+                                      alignItems:"center", padding:"6px 0",
+                                      borderBottom: i<worst.length-1?"1px solid var(--line)":"none"}}>
+                <div style={{display:"flex", gap:8, alignItems:"center"}}>
+                  <span style={{fontSize:13}}>{["1️⃣","2️⃣","3️⃣"][i]}</span>
+                  <span style={{fontWeight:700, fontFamily:"var(--font-mono)", fontSize:13}}>{h.ticker}</span>
+                </div>
+                <span className="num" style={{color:"var(--down)", fontWeight:700}}>
+                  {h.retPct.toFixed(2)}%
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* What-if simulator */}
+          <div className="card">
+            <div className="card-title" style={{marginBottom:4}}>🤔 What-If Simulator</div>
+            <div style={{fontSize:12, color:"var(--muted)", marginBottom:12}}>
+              ถ้าลงทุนเงินต้นทั้งหมดใน…
+            </div>
+            <div style={{display:"flex", flexWrap:"wrap", gap:6, marginBottom:14}}>
+              {benchmarks.filter(b=>!b.isYou).map(b => (
+                <button key={b.ticker}
+                        onClick={() => setWhatIfTicker(b.ticker)}
+                        style={{
+                          padding:"5px 12px", borderRadius:20, fontSize:12, cursor:"pointer",
+                          border: whatIfTicker===b.ticker ? "2px solid var(--accent)" : "1px solid var(--line)",
+                          background: whatIfTicker===b.ticker ? "var(--accent-soft)" : "var(--surface-2)",
+                          color: whatIfTicker===b.ticker ? "var(--accent-ink)" : "var(--ink)",
+                          fontWeight: whatIfTicker===b.ticker ? 700 : 500,
+                          fontFamily:"inherit",
+                        }}>
+                  {b.ticker}
+                </button>
+              ))}
+            </div>
+            <div style={{background:"var(--surface-2)", borderRadius:10, padding:14}}>
+              <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}>
+                <span style={{fontSize:12, color:"var(--muted)"}}>มูลค่าถ้าลงใน {whatIfTicker}</span>
+                <span className="num" style={{fontWeight:700}}>
+                  {ccySym}{Math.round(cv(whatIfValue)).toLocaleString()}
+                </span>
+              </div>
+              <div style={{display:"flex", justifyContent:"space-between", marginBottom:10}}>
+                <span style={{fontSize:12, color:"var(--muted)"}}>มูลค่าพอร์ตปัจจุบัน</span>
+                <span className="num" style={{fontWeight:700}}>
+                  {ccySym}{Math.round(cv(mvTHB)).toLocaleString()}
+                </span>
+              </div>
+              <div style={{borderTop:"1px solid var(--line)", paddingTop:10,
+                            display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+                <span style={{fontSize:13, fontWeight:700}}>พอร์ตคุณ{portBetter>=0?" ดีกว่า":" แย่กว่า"}</span>
+                <span className="num" style={{
+                  fontSize:18, fontWeight:800,
+                  color: portBetter>=0 ? "var(--up)" : "var(--down)",
+                }}>
+                  {portBetter>=0?"+":"−"}{ccySym}{Math.round(Math.abs(cv(portBetter))).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Asset class allocation */}
+          <div className="card">
+            <div className="card-title" style={{marginBottom:12}}>🗂️ สัดส่วนสินทรัพย์</div>
+            {Object.entries(byClass).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([k,v]) => {
+              const pct = mvTHB > 0 ? (v/mvTHB)*100 : 0;
+              return (
+                <div key={k} style={{marginBottom:10}}>
+                  <div style={{display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:3}}>
+                    <span style={{fontWeight:600}}>{classLabels[k]||k}</span>
+                    <span className="num" style={{fontWeight:700}}>{pct.toFixed(1)}%</span>
+                  </div>
+                  <div style={{height:8, background:"var(--line)", borderRadius:4, overflow:"hidden"}}>
+                    <div style={{
+                      height:"100%", borderRadius:4, transition:"width .5s",
+                      background: classColors[k]||"var(--accent)",
+                      width: pct+"%",
+                    }}/>
+                  </div>
+                  <div style={{fontSize:11, color:"var(--muted)", marginTop:2, textAlign:"right"}}>
+                    {ccySym}{Math.round(cv(v)).toLocaleString()}
+                  </div>
+                </div>
+              );
+            })}
+            {/* Diversification bar */}
+            <div style={{borderTop:"1px solid var(--line)", marginTop:10, paddingTop:10}}>
+              <div style={{display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:4}}>
+                <span style={{color:"var(--muted)"}}>คะแนนการกระจายความเสี่ยง</span>
+                <span className="num" style={{fontWeight:700, color:"var(--accent-ink)"}}>{divScore}/100</span>
+              </div>
+              <div style={{height:8, background:"var(--line)", borderRadius:4, overflow:"hidden"}}>
+                <div style={{height:"100%", borderRadius:4, background:"var(--accent)",
+                              width: divScore+"%", transition:"width .5s"}}/>
+              </div>
+              <div style={{fontSize:11, color:"var(--muted)", marginTop:4}}>
+                {divScore >= 80 ? "✅ กระจายดีมาก" : divScore >= 50 ? "⚠️ ควรเพิ่มความหลากหลาย" : "❌ กระจุกตัวสูง"}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </PageShell>
+  );
+}
+
 // ─────── CSS for page layouts ───────
 const PAGE_STYLES = `
 .page-shell { display: flex; flex-direction: column; gap: 0; }
@@ -713,4 +1067,4 @@ if (!document.getElementById("views-styles")) {
   document.head.appendChild(s);
 }
 
-Object.assign(window, { DCAView, EarnView, HistoryView, PortfolioView, PageShell });
+Object.assign(window, { DCAView, EarnView, HistoryView, PortfolioView, BenchView, PageShell });
