@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS dca_schedules (
   freq          TEXT NOT NULL,    -- 'daily' | 'weekly' | 'biweekly' | 'monthly'
   startDate     TEXT,
   nextDate      TEXT,             -- ISO YYYY-MM-DD
+  execTime      TEXT,               -- "HH:MM" UTC+7 notification time
   executedCount INTEGER DEFAULT 0,
   totalSpent    REAL DEFAULT 0,
   paused        INTEGER DEFAULT 0

@@ -8,7 +8,7 @@ compatibility_date = "2025-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "siamfolio"
-database_id = "REPLACE_WITH_YOUR_D1_ID"
+database_id = "c2bffd98-4718-41c3-8705-c63cad57de68"
 
 # KV cache (optional). Speeds up price proxy across cold starts.
 # Create via:  wrangler kv namespace create CACHE
