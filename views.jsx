@@ -532,6 +532,179 @@ const PAGE_STYLES = `
 }
 `;
 
+// ─────── Portfolio View ───────
+function PortfolioView({ ccy, onOpenAsset, onAddHolding, onAddTx, onEditHolding }) {
+  const store    = window.useStore();
+  const holdings = store.holdings || [];
+  const FX       = store.fx || 35.8;
+  const ccySym   = ccy === "THB" ? "฿" : "$";
+  const cv       = (thb) => ccy === "THB" ? thb : thb / FX;
+
+  const [confirm, setConfirm] = React.useState(null);
+
+  const totals = React.useMemo(() => {
+    let mvTHB = 0, costTHB = 0, dayChgTHB = 0;
+    holdings.forEach(h => {
+      const mv   = h.qty * h.price;
+      const cost = h.qty * h.costAvg;
+      const day  = mv * ((h.chg1d || 0) / 100);
+      const f    = h.ccy === "THB" ? 1 : FX;
+      mvTHB    += mv   * f;
+      costTHB  += cost * f;
+      dayChgTHB += day  * f;
+    });
+    return { mvTHB, costTHB, dayChgTHB };
+  }, [holdings, FX]);
+
+  const unrealTHB = totals.mvTHB - totals.costTHB;
+  const unrealPct = totals.costTHB > 0 ? (unrealTHB / totals.costTHB) * 100 : 0;
+  const dayPct    = totals.mvTHB > 0   ? (totals.dayChgTHB / (totals.mvTHB - totals.dayChgTHB)) * 100 : 0;
+
+  return (
+    <PageShell
+      title="พอร์ตการลงทุน"
+      sub={`${holdings.length} สินทรัพย์ · คลิกแถวเพื่อดูรายละเอียด · ราคาอัพเดตทุก 60 วิ`}
+      actions={
+        <div style={{display:"flex", gap:8}}>
+          <button className="btn sm" onClick={onAddHolding}>
+            <Ico name="plus" size={13}/> เพิ่มสินทรัพย์
+          </button>
+          <button className="btn sm accent" onClick={onAddTx}>
+            <Ico name="plus" size={13}/> บันทึกธุรกรรม
+          </button>
+        </div>
+      }
+    >
+      {/* KPI strip */}
+      <div className="kpi-grid" style={{marginBottom:20}}>
+        <div className="kpi">
+          <div className="label">มูลค่าพอร์ต</div>
+          <div className="value">{ccySym}{Math.round(cv(totals.mvTHB)).toLocaleString()}</div>
+          <div className="delta" style={{color:"var(--muted)"}}>ราคาตลาด</div>
+        </div>
+        <div className="kpi">
+          <div className="label">ต้นทุนรวม</div>
+          <div className="value">{ccySym}{Math.round(cv(totals.costTHB)).toLocaleString()}</div>
+          <div className="delta" style={{color:"var(--muted)"}}>ลงทุนสะสม</div>
+        </div>
+        <div className="kpi">
+          <div className="label">กำไร / ขาดทุน</div>
+          <div className="value" style={{color: unrealPct >= 0 ? "var(--up)" : "var(--down)"}}>
+            {unrealPct >= 0 ? "+" : "−"}{ccySym}{Math.round(Math.abs(cv(unrealTHB))).toLocaleString()}
+          </div>
+          <div className={`delta ${unrealPct >= 0 ? "up" : "down"}`}>{fmtPct(unrealPct)}</div>
+        </div>
+        <div className="kpi">
+          <div className="label">เปลี่ยนวันนี้</div>
+          <div className="value" style={{color: dayPct >= 0 ? "var(--up)" : "var(--down)"}}>
+            {dayPct >= 0 ? "+" : "−"}{ccySym}{Math.round(Math.abs(cv(totals.dayChgTHB))).toLocaleString()}
+          </div>
+          <div className={`delta ${dayPct >= 0 ? "up" : "down"}`}>{fmtPct(dayPct)}</div>
+        </div>
+      </div>
+
+      {/* Holdings table */}
+      {holdings.length === 0 ? (
+        <div className="card" style={{padding:48, textAlign:"center"}}>
+          <div style={{fontSize:36, marginBottom:10}}>💼</div>
+          <div style={{fontWeight:700, fontSize:15, marginBottom:8}}>ยังไม่มีสินทรัพย์ในพอร์ต</div>
+          <button className="btn primary" onClick={onAddHolding}>
+            <Ico name="plus" size={14}/> เพิ่มสินทรัพย์แรก
+          </button>
+        </div>
+      ) : (
+        <div className="card holdings" style={{padding:0}}>
+          <div className="holdings-head">
+            <div>สินทรัพย์</div>
+            <div>ราคา / ต้นทุน</div>
+            <div>จำนวน</div>
+            <div>มูลค่า ({ccy})</div>
+            <div>กำไร / ขาดทุน</div>
+            <div style={{textAlign:"right"}}>7 วัน</div>
+            <div></div>
+          </div>
+          {holdings.map(h => {
+            const mvNative   = h.qty * h.price;
+            const costNative = h.qty * h.costAvg;
+            const plNative   = mvNative - costNative;
+            const plPct      = costNative > 0 ? (plNative / costNative) * 100 : 0;
+            const mvTHB      = h.ccy === "THB" ? mvNative : mvNative * FX;
+            const plTHB      = h.ccy === "THB" ? plNative : plNative * FX;
+            const mvDisp     = cv(mvTHB);
+            const plDisp     = cv(plTHB);
+            const classLabel = { us:"US", th:"TH", crypto:"CRYPTO", gold:"GOLD" }[h.classKey];
+            return (
+              <div className="holdings-row" key={h.id} onClick={() => onOpenAsset(h)}>
+                <div className="asset-name">
+                  <div className={`asset-logo ${h.classKey}`}>
+                    {h.classKey === "gold" ? "Au" : h.ticker.slice(0,2)}
+                  </div>
+                  <div className="asset-meta">
+                    <div className="asset-ticker">
+                      {h.ticker}<span className="asset-class-tag">{classLabel}</span>
+                    </div>
+                    <div className="asset-co">{h.name}</div>
+                  </div>
+                </div>
+                <div>
+                  <div className="num" style={{fontWeight:600}}>
+                    {h.ccy==="THB"?"฿":"$"}{fmtNum(h.price,2)}
+                  </div>
+                  <div className="num" style={{fontSize:11, color:"var(--muted)"}}>
+                    ต้นทุน {h.ccy==="THB"?"฿":"$"}{fmtNum(h.costAvg,2)}
+                  </div>
+                </div>
+                <div className="num" style={{fontSize:13}}>
+                  {h.qty.toLocaleString("en-US",{maximumFractionDigits:4})}
+                  <div style={{fontSize:11, color:"var(--muted)"}}>
+                    {h.classKey==="gold"?"oz":h.classKey==="crypto"?h.ticker:"หุ้น"}
+                  </div>
+                </div>
+                <div className="num" style={{fontWeight:700}}>
+                  {ccySym}{ccy==="THB"?Math.round(mvDisp).toLocaleString():fmtNum(mvDisp,2)}
+                </div>
+                <div>
+                  <div className="num" style={{fontWeight:700, color: plDisp>=0?"var(--up)":"var(--down)"}}>
+                    {plDisp>=0?"+":"−"}{ccySym}{ccy==="THB"?Math.round(Math.abs(plDisp)).toLocaleString():fmtNum(Math.abs(plDisp),2)}
+                  </div>
+                  <div className="num" style={{fontSize:11, color: plDisp>=0?"var(--up)":"var(--down)"}}>
+                    {fmtPct(plPct)}
+                  </div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <Sparkline data={h.spark || [h.price]}/>
+                </div>
+                <div onClick={e => e.stopPropagation()}>
+                  <Menu items={[
+                    { label:"ดูรายละเอียด", icon:"chev-r", onClick:() => onOpenAsset(h) },
+                    { label:"แก้ไข",         icon:"edit",   onClick:() => onEditHolding(h) },
+                    { label:"บันทึกธุรกรรม", icon:"plus",   onClick: onAddTx },
+                    { sep:true },
+                    { label:"ลบสินทรัพย์", icon:"trash", danger:true,
+                      onClick:() => setConfirm({
+                        title:`ลบ ${h.ticker} ออกจากพอร์ต?`,
+                        body:`${h.name} จำนวน ${h.qty.toLocaleString("en-US",{maximumFractionDigits:4})} หน่วย จะถูกลบออก`,
+                        requireType: h.ticker,
+                        confirmLabel:"ลบสินทรัพย์",
+                        onConfirm:() => window.removeHolding(h.id),
+                      })
+                    },
+                  ]}/>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <ConfirmDialog open={!!confirm} title={confirm?.title} body={confirm?.body}
+                     requireType={confirm?.requireType} confirmLabel={confirm?.confirmLabel}
+                     onCancel={() => setConfirm(null)}
+                     onConfirm={() => { confirm?.onConfirm(); setConfirm(null); }}/>
+    </PageShell>
+  );
+}
+
 // Inject styles once
 if (!document.getElementById("views-styles")) {
   const s = document.createElement("style");
@@ -540,4 +713,4 @@ if (!document.getElementById("views-styles")) {
   document.head.appendChild(s);
 }
 
-Object.assign(window, { DCAView, EarnView, HistoryView, PageShell });
+Object.assign(window, { DCAView, EarnView, HistoryView, PortfolioView, PageShell });

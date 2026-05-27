@@ -61,7 +61,7 @@ function App() {
     <>
       <div className="app">
         <Sidebar active={activeNav}
-                 onNav={(k) => goTo(k === "portfolio" ? "dashboard" : k)}
+                 onNav={(k) => goTo(k)}
                  dcaDueCount={store.dca.filter(d => !d.paused && d.nextDate && d.nextDate <= window.todayISO()).length}/>
         <main className="main">
           <Topbar ccy={s.ccy}
@@ -78,6 +78,12 @@ function App() {
             ? <Detail asset={currentAsset} ccy={s.ccy} onBack={() => goTo("dashboard")}
                       onAddTx={() => setShowTxModal(true)}
                       accent={`var(--accent)`}/>
+            : view.kind === "portfolio"
+            ? <PortfolioView ccy={s.ccy}
+                             onOpenAsset={onOpenAsset}
+                             onAddHolding={() => { setEditHolding(null); setShowHoldingModal(true); }}
+                             onAddTx={() => setShowTxModal(true)}
+                             onEditHolding={(h) => { setEditHolding(h); setShowHoldingModal(true); }}/>
             : view.kind === "dca"
             ? <DCAView ccy={s.ccy} onAddDCA={openDcaModal} onEditDCA={openEditDCA}/>
             : view.kind === "earn"
