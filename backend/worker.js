@@ -22,6 +22,8 @@ const COINGECKO_IDS = {
   BTC: "bitcoin", ETH: "ethereum", SOL: "solana", XAUT: "tether-gold",
   ADA: "cardano", XRP: "ripple", DOGE: "dogecoin", MATIC: "polygon-pos",
   BNB: "binancecoin", AVAX: "avalanche-2", LINK: "chainlink", DOT: "polkadot",
+  TRX: "tron", LTC: "litecoin", UNI: "uniswap", ATOM: "cosmos",
+  NEAR: "near", FIL: "filecoin", APT: "aptos", ARB: "arbitrum",
 };
 
 const CORS_HEADERS = {
@@ -45,7 +47,8 @@ function error(message, status = 400) {
 function requireAuth(req, env) {
   const key = req.headers.get("X-Api-Key");
   if (!env.API_KEY) return null; // not configured — open mode
-  if (!key || key !== env.API_KEY) return error("Unauthorized", 401);
+  const stored = env.API_KEY.trim();
+  if (!key || key.trim() !== stored) return error("Unauthorized", 401);
   return null;
 }
 

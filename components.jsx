@@ -248,6 +248,14 @@ const _CG_ICONS = {
   AVAX:  "https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png",
   LINK:  "https://assets.coingecko.com/coins/images/877/small/chainlink-new-logo.png",
   DOT:   "https://assets.coingecko.com/coins/images/12171/small/polkadot.png",
+  TRX:   "https://assets.coingecko.com/coins/images/1094/small/tron-logo.png",
+  LTC:   "https://assets.coingecko.com/coins/images/2/small/litecoin.png",
+  UNI:   "https://assets.coingecko.com/coins/images/12504/small/uniswap-uni.png",
+  ATOM:  "https://assets.coingecko.com/coins/images/1481/small/cosmos_hub.png",
+  NEAR:  "https://assets.coingecko.com/coins/images/10365/small/near.jpg",
+  FIL:   "https://assets.coingecko.com/coins/images/12817/small/filecoin.png",
+  APT:   "https://assets.coingecko.com/coins/images/26455/small/aptos_round.png",
+  ARB:   "https://assets.coingecko.com/coins/images/16547/small/photo_2023-03-29_21.47.00.jpeg",
 };
 
 // Parqet logo CDN for stocks (strips .BK / .NYSE suffix automatically)
