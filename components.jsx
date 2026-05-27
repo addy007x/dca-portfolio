@@ -46,7 +46,7 @@ function Sidebar({ active, onNav, scenario }) {
   );
 }
 
-function Topbar({ ccy, onCcy, onAdd, priceStatus }) {
+function Topbar({ ccy, onCcy, onAdd, priceStatus, onSettings }) {
   const today = new Date();
   const days = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
   const months = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
@@ -82,6 +82,9 @@ function Topbar({ ccy, onCcy, onAdd, priceStatus }) {
         </div>
         <button className="icon-btn" aria-label="แจ้งเตือน">
           <Ico name="bell" size={18}/>
+        </button>
+        <button className="icon-btn" aria-label="ตั้งค่า" onClick={onSettings} title="ตั้งค่า">
+          <Ico name="settings" size={18}/>
         </button>
         <button className="btn primary" onClick={onAdd}>
           <Ico name="plus" size={16}/> เพิ่มธุรกรรม

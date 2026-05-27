@@ -57,7 +57,8 @@ function App() {
           <Topbar ccy={s.ccy}
                   onCcy={(c) => window.updateSettings({ ccy: c })}
                   onAdd={() => setShowTxModal(true)}
-                  priceStatus={priceStatus}/>
+                  priceStatus={priceStatus}
+                  onSettings={() => window.postMessage({ type: '__activate_edit_mode' }, '*')}/>
 
           {view.kind === "dashboard" && <DCAReminderBanner/>}
 
