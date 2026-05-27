@@ -1,12 +1,4 @@
-// Root App — manages global state, tweaks, view routing
-
-const DEFAULTS = /*EDITMODE-BEGIN*/{
-  "density": "comfortable",
-  "theme": "light",
-  "accent": "mint",
-  "scenario": "mixed",
-  "ccy": "THB"
-}/*EDITMODE-END*/;
+// Root App — store-backed, live prices, modals, reminders
 
 const ACCENT_PRESETS = {
   mint:    { name: "Mint",    accent: "oklch(0.72 0.08 175)", ink: "oklch(0.38 0.06 175)", soft: "oklch(0.94 0.03 175)" },
@@ -25,17 +17,23 @@ function applyAccent(key) {
 }
 
 function App() {
-  const [t, setTweak] = useTweaks(DEFAULTS);
+  const store = useStore();
+  const s = store.settings;
   const [view, setView] = React.useState({ kind: "dashboard", asset: null });
-  const [ccy, setCcy] = React.useState(t.ccy);
+  const [showHoldingModal, setShowHoldingModal] = React.useState(false);
+  const [showTxModal, setShowTxModal] = React.useState(false);
+  const [showDcaModal, setShowDcaModal] = React.useState(false);
+  const [editHolding, setEditHolding] = React.useState(null);
 
+  // Apply theme/density/accent
   React.useEffect(() => {
-    document.documentElement.dataset.density = t.density;
-    document.documentElement.dataset.theme = t.theme;
-    applyAccent(t.accent);
-  }, [t.density, t.theme, t.accent]);
+    document.documentElement.dataset.density = s.density;
+    document.documentElement.dataset.theme = s.theme;
+    applyAccent(s.accent);
+  }, [s.density, s.theme, s.accent]);
 
-  React.useEffect(() => { setCcy(t.ccy); }, [t.ccy]);
+  // Live price feed — refreshes every 60s
+  const priceStatus = useLivePrices(store.holdings, 60000);
 
   const onOpenAsset = (asset) => {
     setView({ kind: "detail", asset });
@@ -45,57 +43,113 @@ function App() {
 
   const activeNav = view.kind === "dashboard" ? "dashboard" : "portfolio";
 
+  // Find current asset state (may have changed since opening detail)
+  const currentAsset = view.kind === "detail" && view.asset
+    ? store.holdings.find(h => h.id === view.asset.id) || view.asset
+    : null;
+
   return (
     <>
       <div className="app" data-screen-label={view.kind === "dashboard" ? "01 Dashboard" : "02 Asset Detail"}>
         <Sidebar active={activeNav}
-                 onNav={(k) => { if (k === "dashboard") onBack(); }}
-                 scenario={t.scenario}/>
+                 onNav={(k) => { if (k === "dashboard") onBack(); }}/>
         <main className="main">
-          <Topbar ccy={ccy} onCcy={(c) => { setCcy(c); setTweak("ccy", c); }} onAdd={() => {}}/>
+          <Topbar ccy={s.ccy}
+                  onCcy={(c) => window.updateSettings({ ccy: c })}
+                  onAdd={() => setShowTxModal(true)}
+                  priceStatus={priceStatus}/>
+
+          {view.kind === "dashboard" && <DCAReminderBanner/>}
+
           {view.kind === "dashboard"
-            ? <Dashboard ccy={ccy} scenario={t.scenario}
+            ? <Dashboard ccy={s.ccy}
                          onOpenAsset={onOpenAsset}
+                         onAddHolding={() => { setEditHolding(null); setShowHoldingModal(true); }}
+                         onAddTx={() => setShowTxModal(true)}
+                         onAddDCA={() => setShowDcaModal(true)}
+                         onEditHolding={(h) => { setEditHolding(h); setShowHoldingModal(true); }}
                          accent={`var(--accent)`}/>
-            : <Detail asset={view.asset} ccy={ccy} onBack={onBack}
+            : <Detail asset={currentAsset} ccy={s.ccy} onBack={onBack}
+                      onAddTx={() => setShowTxModal(true)}
                       accent={`var(--accent)`}/>
           }
         </main>
       </div>
 
-      <TweaksPanel title="Tweaks">
+      <HoldingModal open={showHoldingModal}
+                    holding={editHolding}
+                    onClose={() => setShowHoldingModal(false)}
+                    onSave={(data) => {
+                      if (editHolding) {
+                        window.updateHolding(editHolding.id, data);
+                      } else {
+                        window.addHolding(data);
+                      }
+                    }}/>
+
+      <TransactionModal open={showTxModal}
+                        holdings={store.holdings}
+                        defaultTicker={view.kind === "detail" && currentAsset ? currentAsset.ticker : null}
+                        onClose={() => setShowTxModal(false)}
+                        onSave={(tx) => window.addTransaction(tx)}/>
+
+      <DCAModal open={showDcaModal}
+                holdings={store.holdings}
+                onClose={() => setShowDcaModal(false)}
+                onSave={(dca) => window.addDCA(dca)}/>
+
+      <TweaksPanel title="Settings">
         <TweakSection label="แสดงผล">
           <TweakRadio label="ธีม"
-                      value={t.theme}
+                      value={s.theme}
                       options={[{value:"light", label:"สว่าง"},{value:"dark", label:"มืด"}]}
-                      onChange={v => setTweak("theme", v)}/>
+                      onChange={v => window.updateSettings({theme: v})}/>
           <TweakRadio label="ความหนาแน่น"
-                      value={t.density}
+                      value={s.density}
                       options={[{value:"comfortable", label:"สบาย"},{value:"compact", label:"กระชับ"}]}
-                      onChange={v => setTweak("density", v)}/>
-          <AccentSwatches value={t.accent} onChange={v => setTweak("accent", v)}/>
+                      onChange={v => window.updateSettings({density: v})}/>
+          <AccentSwatches value={s.accent} onChange={v => window.updateSettings({accent: v})}/>
+        </TweakSection>
+
+        <TweakSection label="สกุลเงิน">
+          <TweakRadio label="แสดงในสกุล"
+                      value={s.ccy}
+                      options={[{value:"THB", label:"฿ THB"},{value:"USD", label:"$ USD"}]}
+                      onChange={v => window.updateSettings({ccy: v})}/>
+        </TweakSection>
+
+        <TweakSection label="แจ้งเตือน DCA">
+          <NotifPermissionButton/>
         </TweakSection>
 
         <TweakSection label="ข้อมูล">
-          <TweakRadio label="สถานการณ์"
-                      value={t.scenario}
-                      options={[
-                        {value:"mixed", label:"ผสม"},
-                        {value:"gain", label:"กำไร"},
-                        {value:"loss", label:"ลบ"},
-                      ]}
-                      onChange={v => setTweak("scenario", v)}/>
-          <TweakRadio label="สกุลเงิน"
-                      value={ccy}
-                      options={[{value:"THB", label:"฿ THB"},{value:"USD", label:"$ USD"}]}
-                      onChange={v => { setCcy(v); setTweak("ccy", v); }}/>
+          <div className="twk-action-row">
+            <button className="twk-btn secondary" onClick={() => exportPortfolio()}>
+              ส่งออก JSON
+            </button>
+            <button className="twk-btn secondary" onClick={() => importPortfolio()}>
+              นำเข้า JSON
+            </button>
+          </div>
+          <button className="twk-btn secondary" style={{marginTop:6}}
+                  onClick={() => priceStatus.refresh()}>
+            {priceStatus.loading ? "กำลังโหลด..." : "รีเฟรชราคา"}
+          </button>
+          <button className="twk-btn secondary" style={{marginTop:6, color:"var(--down)"}}
+                  onClick={() => {
+                    if (confirm("รีเซ็ตเป็นข้อมูลตัวอย่าง? ข้อมูลทั้งหมดในเครื่องจะถูกแทนที่")) {
+                      window.resetToSeed();
+                    }
+                  }}>
+            รีเซ็ตเป็นข้อมูลตัวอย่าง
+          </button>
         </TweakSection>
       </TweaksPanel>
     </>
   );
 }
 
-// Custom accent swatch row — uses preset keys mapped to oklch CSS strings
+// ─────── Custom accent swatches ───────
 function AccentSwatches({ value, onChange }) {
   return (
     <div className="twk-row">
@@ -118,6 +172,42 @@ function AccentSwatches({ value, onChange }) {
       </div>
     </div>
   );
+}
+
+// ─────── Export / Import ───────
+function exportPortfolio() {
+  const json = window.exportJSON();
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `siamfolio-${window.todayISO()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 200);
+}
+
+function importPortfolio() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "application/json,.json";
+  input.onchange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target.result;
+      if (!confirm(`นำเข้าไฟล์ ${file.name}? ข้อมูลปัจจุบันจะถูกแทนที่ทั้งหมด`)) return;
+      const ok = window.importJSON(text);
+      if (ok) alert("นำเข้าสำเร็จ ✓");
+      else alert("ไฟล์ไม่ถูกต้อง — กรุณาตรวจสอบ");
+    };
+    reader.readAsText(file);
+  };
+  input.click();
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);

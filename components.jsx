@@ -46,17 +46,30 @@ function Sidebar({ active, onNav, scenario }) {
   );
 }
 
-function Topbar({ ccy, onCcy, onAdd }) {
+function Topbar({ ccy, onCcy, onAdd, priceStatus }) {
   const today = new Date();
   const days = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
   const months = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
   const dateStr = `วัน${days[today.getDay()]}ที่ ${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear() + 543}`;
 
+  // Compute status label
+  let statusClass = "stale", statusLabel = "ยังไม่ได้รีเฟรช";
+  if (priceStatus?.loading) {
+    statusClass = "loading"; statusLabel = "กำลังโหลดราคา...";
+  } else if (priceStatus?.lastUpdate) {
+    const ageSec = Math.floor((Date.now() - priceStatus.lastUpdate) / 1000);
+    if (ageSec < 90) { statusClass = "live"; statusLabel = `Live · ${ageSec}s`; }
+    else { statusClass = "stale"; statusLabel = `อัพเดต ${Math.floor(ageSec/60)}m ที่แล้ว`; }
+  }
+  if (priceStatus?.error) { statusClass = "stale"; statusLabel = "ดึงราคาไม่สำเร็จ"; }
+
   return (
     <div className="topbar">
       <div className="greeting">
         <h1>สวัสดีค่ะ คุณภัทร 👋</h1>
-        <p>{dateStr} · ตลาด SET เปิด · ข้อมูลอัพเดตล่าสุด 14:32 น.</p>
+        <p>{dateStr} · <span className={`price-status ${statusClass}`}
+              onClick={() => priceStatus?.refresh()}
+              title="คลิกเพื่อรีเฟรชราคา">{statusLabel}</span></p>
       </div>
       <div className="topbar-actions">
         <div className="ccy-toggle" role="tablist">

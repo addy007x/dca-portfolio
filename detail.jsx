@@ -1,10 +1,13 @@
-// Portfolio Detail view — opened when clicking a holding
+// Portfolio Detail view — store-backed
 
-function Detail({ asset, ccy, onBack, accent }) {
+function Detail({ asset, ccy, onBack, onAddTx, accent }) {
+  const store = window.useStore();
   const M = window.MOCK;
-  const [tx, setTx] = React.useState(() => M.TX_NVDA);
   const [confirm, setConfirm] = React.useState(null);
   if (!asset) return null;
+
+  const FX = store.fx || 35.8;
+  const txAll = store.transactions.filter(t => t.ticker === asset.ticker);
 
   const askConfirm = (cfg) => setConfirm(cfg);
   const closeConfirm = () => setConfirm(null);
@@ -13,30 +16,30 @@ function Detail({ asset, ccy, onBack, accent }) {
   const mvNative = asset.qty * asset.price;
   const costNative = asset.qty * asset.costAvg;
   const plNative = mvNative - costNative;
-  const plPct = (plNative / costNative) * 100;
-  const mvTHB = asset.ccy === "THB" ? mvNative : mvNative * M.FX;
-  const mvDisp = ccy === "THB" ? mvTHB : mvTHB / M.FX;
-  const plTHB = asset.ccy === "THB" ? plNative : plNative * M.FX;
-  const plDisp = ccy === "THB" ? plTHB : plTHB / M.FX;
+  const plPct = costNative > 0 ? (plNative / costNative) * 100 : 0;
+  const mvTHB = asset.ccy === "THB" ? mvNative : mvNative * FX;
+  const mvDisp = ccy === "THB" ? mvTHB : mvTHB / FX;
+  const plTHB = asset.ccy === "THB" ? plNative : plNative * FX;
+  const plDisp = ccy === "THB" ? plTHB : plTHB / FX;
   const ccySym = ccy === "THB" ? "฿" : "$";
   const nativeSym = asset.ccy === "THB" ? "฿" : "$";
 
   const classLabel = { us:"หุ้นสหรัฐ", th:"หุ้นไทย (SET)", crypto:"คริปโตเคอเรนซี", gold:"ทองคำดิจิทัล" }[asset.classKey];
 
-  // Generate detail history line
+  // Generate detail history line from baseline portfolio history
   const baseHist = M.PORTFOLIO_HISTORY["6M"];
   const minH = Math.min(...baseHist), maxH = Math.max(...baseHist);
-  // normalize and scale around asset price
   const normHist = baseHist.map((v, i) => {
-    const p = (v - minH) / (maxH - minH);
-    // create a trajectory ending at current price, starting near costAvg
+    const p = (v - minH) / (maxH - minH || 1);
     return asset.costAvg + (asset.price - asset.costAvg) * p
            + (Math.sin(i / 9) * asset.price * 0.02);
   });
-  const histDisp = normHist.map(v => ccy === asset.ccy ? v : (asset.ccy === "USD" ? v * M.FX : v / M.FX));
+  const histDisp = normHist.map(v => ccy === asset.ccy ? v : (asset.ccy === "USD" ? v * FX : v / FX));
 
   // DCA stats for this asset (if scheduled)
-  const sched = M.DCA_SCHEDULES.find(d => d.ticker === asset.ticker);
+  const sched = store.dca.find(d => d.ticker === asset.ticker && !d.paused);
+  const freqLabel = sched ? ({ daily: "วัน", weekly: "สัปดาห์", biweekly: "2 สัปดาห์", monthly: "เดือน" }[sched.freq] || sched.freq) : "";
+  const daysLeft = sched?.nextDate ? window.daysBetween(window.todayISO(), sched.nextDate) : null;
 
   return (
     <div className="detail-wrap">
@@ -57,19 +60,19 @@ function Detail({ asset, ccy, onBack, accent }) {
           <div className="co">{asset.name}</div>
         </div>
         <div style={{display:"flex", gap:8}}>
-          <button className="btn"><Ico name="swap" size={14}/> ขาย</button>
-          <button className="btn accent"><Ico name="plus" size={14}/> ซื้อเพิ่ม</button>
+          <button className="btn accent" onClick={onAddTx}>
+            <Ico name="plus" size={14}/> บันทึกธุรกรรม
+          </button>
           <Menu items={[
-            { label: "แก้ไขต้นทุนเฉลี่ย", icon: "edit", onClick: () => {} },
-            { label: "ตั้งการแจ้งเตือนราคา", icon: "bell", onClick: () => {} },
+            { label: "ตั้งการแจ้งเตือนราคา", icon: "bell", onClick: () => alert("เร็วๆ นี้ — รอ Phase B (backend)") },
             { sep: true },
             { label: "ลบสินทรัพย์ทั้งหมด", icon: "trash", danger: true,
               onClick: () => askConfirm({
                 title: `ลบ ${asset.ticker} ออกจากพอร์ต?`,
-                body: `${asset.name} จำนวน ${asset.qty.toLocaleString("en-US", {maximumFractionDigits:4})} หน่วย พร้อมประวัติธุรกรรมทั้งหมด ${tx.length} รายการ จะถูกลบถาวร — กระทบการคำนวณภาษีย้อนหลัง การดำเนินการนี้ไม่สามารถยกเลิกได้`,
+                body: `${asset.name} จำนวน ${asset.qty.toLocaleString("en-US", {maximumFractionDigits:4})} หน่วย พร้อมประวัติธุรกรรมทั้งหมด ${txAll.length} รายการ จะถูกลบถาวร`,
                 requireType: asset.ticker,
                 confirmLabel: "ลบสินทรัพย์",
-                onConfirm: () => { onBack(); /* in real app, also remove from portfolio */ }
+                onConfirm: () => { window.removeHolding(asset.id); onBack(); }
               })
             },
           ]}/>
@@ -81,7 +84,7 @@ function Detail({ asset, ccy, onBack, accent }) {
         <div className="stat-cell">
           <div className="l">ราคาปัจจุบัน</div>
           <div className="v num">{nativeSym}{fmtNum(asset.price, 2)}</div>
-          <div className={`d ${asset.chg1d >= 0 ? "up" : "down"}`}>{fmtPct(asset.chg1d)} วันนี้</div>
+          <div className={`d ${asset.chg1d >= 0 ? "up" : "down"}`}>{fmtPct(asset.chg1d || 0)} วันนี้</div>
         </div>
         <div className="stat-cell">
           <div className="l">จำนวนที่ถือ</div>
@@ -94,7 +97,7 @@ function Detail({ asset, ccy, onBack, accent }) {
           <div className="l">ต้นทุนเฉลี่ย</div>
           <div className="v num">{nativeSym}{fmtNum(asset.costAvg, 2)}</div>
           <div className="d" style={{color:"var(--muted)"}}>
-            รวม {ccySym}{ccy === "THB" ? Math.round(ccy === "THB" ? (asset.ccy === "THB" ? costNative : costNative * M.FX) : costNative).toLocaleString() : fmtNum(asset.ccy === "USD" ? costNative : costNative / M.FX, 2)}
+            รวม {nativeSym}{fmtNum(costNative, 2)}
           </div>
         </div>
         <div className="stat-cell">
@@ -112,14 +115,7 @@ function Detail({ asset, ccy, onBack, accent }) {
           <div className="card-head">
             <div>
               <div className="card-title">ราคา & ต้นทุนเฉลี่ย</div>
-              <div className="card-sub">6 เดือนล่าสุด · เส้นแนวนอน = ต้นทุนของคุณ</div>
-            </div>
-            <div className="card-act">
-              <div className="range-tabs">
-                {["1M","3M","6M","1Y"].map(r => (
-                  <button key={r} className={r === "6M" ? "is-on" : ""}>{r}</button>
-                ))}
-              </div>
+              <div className="card-sub">6 เดือนล่าสุด (จำลองจากประวัติฐาน)</div>
             </div>
           </div>
           <LineChart data={histDisp} height={240} accent={accent}/>
@@ -143,10 +139,10 @@ function Detail({ asset, ccy, onBack, accent }) {
                 <div className="num" style={{fontSize:32, fontWeight:700, letterSpacing:"-0.02em"}}>
                   {sched.ccy === "THB" ? "฿" : "$"}{fmtNum(sched.amount, 0)}
                 </div>
-                <div style={{color:"var(--muted)", fontSize:13}}>ทุก{sched.freq}</div>
+                <div style={{color:"var(--muted)", fontSize:13}}>ทุก{freqLabel}</div>
               </div>
               <div style={{fontSize:12, color:"var(--muted)", marginTop:2}}>
-                เริ่มเมื่อ {sched.since} · ทำมาแล้ว {sched.executed} ครั้ง · ใช้เงินรวม {sched.ccy === "THB" ? "฿" : "$"}{fmtNum(sched.total, 0)}
+                ทำมาแล้ว {sched.executedCount} ครั้ง · ใช้เงินรวม {sched.ccy === "THB" ? "฿" : "$"}{fmtNum(sched.totalSpent, 0)}
               </div>
 
               <div style={{
@@ -156,7 +152,9 @@ function Detail({ asset, ccy, onBack, accent }) {
                 <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
                   <div>
                     <div style={{fontSize:12, color:"var(--muted)"}}>ครั้งถัดไป</div>
-                    <div style={{fontWeight:700, marginTop:2}}>{sched.nextIn}</div>
+                    <div style={{fontWeight:700, marginTop:2}}>
+                      {daysLeft != null ? (daysLeft <= 0 ? "ถึงรอบแล้ว!" : `อีก ${daysLeft} วัน`) : "—"}
+                    </div>
                   </div>
                   <div style={{
                     width:48, height:48, borderRadius:"50%",
@@ -167,8 +165,14 @@ function Detail({ asset, ccy, onBack, accent }) {
               </div>
 
               <div style={{display:"flex", gap:8, marginTop:14}}>
-                <button className="btn sm" style={{flex:1, justifyContent:"center"}}><Ico name="edit" size={13}/> แก้ไข</button>
-                <button className="btn sm" style={{flex:1, justifyContent:"center"}}>หยุดชั่วคราว</button>
+                <button className="btn sm" style={{flex:1, justifyContent:"center"}}
+                        onClick={() => window.executeDCA(sched.id)}>
+                  <Ico name="plus" size={13}/> บันทึกซื้อวันนี้
+                </button>
+                <button className="btn sm" style={{flex:1, justifyContent:"center"}}
+                        onClick={() => window.updateDCA(sched.id, { paused: !sched.paused })}>
+                  {sched.paused ? "เริ่มต่อ" : "หยุดชั่วคราว"}
+                </button>
               </div>
             </>
           ) : (
@@ -176,9 +180,6 @@ function Detail({ asset, ccy, onBack, accent }) {
               <div style={{fontSize:13, color:"var(--muted)", marginBottom:14}}>
                 ยังไม่ได้ตั้ง DCA สำหรับ {asset.ticker} — ลองตั้งซื้ออัตโนมัติเพื่อทยอยลงทุน
               </div>
-              <button className="btn accent" style={{width:"100%", justifyContent:"center"}}>
-                <Ico name="plus" size={14}/> ตั้ง DCA สำหรับ {asset.ticker}
-              </button>
             </div>
           )}
         </div>
@@ -189,21 +190,22 @@ function Detail({ asset, ccy, onBack, accent }) {
         <div className="card-head">
           <div>
             <div className="card-title">ประวัติธุรกรรม</div>
-            <div className="card-sub">{tx.length} รายการ · ใช้สำหรับคำนวณภาษีแบบ FIFO</div>
+            <div className="card-sub">{txAll.length} รายการ · ใช้สำหรับคำนวณภาษีแบบ FIFO</div>
           </div>
           <div className="card-act">
-            <button className="btn sm ghost">ส่งออก CSV</button>
-            <button className="btn sm">ดูทั้งหมด <Ico name="chev-r" size={13}/></button>
+            <button className="btn sm" onClick={onAddTx}>
+              <Ico name="plus" size={13}/> เพิ่มธุรกรรม
+            </button>
           </div>
         </div>
         <div className="tx-list">
-          {tx.length === 0 && (
+          {txAll.length === 0 && (
             <div style={{padding:"24px 0", textAlign:"center", color:"var(--muted)", fontSize:13}}>
               ยังไม่มีประวัติธุรกรรมสำหรับ {asset.ticker}
             </div>
           )}
-          {tx.map((t, i) => (
-            <div className="tx-row" key={i}>
+          {txAll.map((t) => (
+            <div className="tx-row" key={t.id}>
               <div className={`tx-ico ${t.kind}`}>
                 {t.kind === "buy" ? "+" : t.kind === "sell" ? "−" : "⟳"}
               </div>
@@ -215,7 +217,7 @@ function Detail({ asset, ccy, onBack, accent }) {
                 {t.qty >= 0 ? "+" : ""}{t.qty.toLocaleString("en-US", { maximumFractionDigits: 4 })} {asset.ticker === "XAUT" ? "oz" : asset.ticker}
               </div>
               <div className="tx-val" style={{color: t.kind === "sell" ? "var(--down)" : "var(--up)"}}>
-                {t.kind === "sell" ? "+" : "−"}${fmtNum(t.valUSD, 2)}
+                {t.kind === "sell" ? "+" : "−"}${fmtNum(t.valUSD || 0, 2)}
               </div>
               <button className="row-action danger"
                       title="ลบรายการธุรกรรมนี้"
@@ -223,7 +225,7 @@ function Detail({ asset, ccy, onBack, accent }) {
                         title: "ลบรายการธุรกรรมนี้?",
                         body: `${t.kind === "buy" ? "การซื้อ" : t.kind === "sell" ? "การขาย" : "DCA"} ${Math.abs(t.qty)} ${asset.ticker} วันที่ ${t.date} จะถูกลบจากประวัติ ส่งผลกับการคำนวณต้นทุนเฉลี่ยและภาษี FIFO`,
                         confirmLabel: "ลบรายการ",
-                        onConfirm: () => setTx(prev => prev.filter((_, idx) => idx !== i))
+                        onConfirm: () => window.removeTransaction(t.id)
                       })}>
                 <Ico name="x" size={14}/>
               </button>

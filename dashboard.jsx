@@ -1,23 +1,16 @@
-// Main Dashboard view
+// Main Dashboard view — store-backed
 
-function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
-  const M = window.MOCK;
+function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onEditHolding, accent }) {
+  const store = window.useStore();
+  const M = window.MOCK; // still used for portfolio history baseline
+  const holdings = store.holdings;
+  const dcaList = store.dca;
+  const earnList = store.earn;
+  const alerts = store.rebalanceAlerts;
+  const benchmarks = store.benchmarks || M.BENCHMARKS;
+  const FX = store.fx || 35.8;
 
-  // Local state for mutable lists (delete actions)
-  const [holdings, setHoldings] = React.useState(() => M.makeScenario(scenario));
-  const [dcaList, setDcaList] = React.useState(() => M.DCA_SCHEDULES);
-  const [earnList, setEarnList] = React.useState(() => M.EARN_POSITIONS);
-  const [alerts, setAlerts] = React.useState(() => M.REBALANCE_ALERTS);
   const [confirm, setConfirm] = React.useState(null);
-
-  // Reset whenever scenario changes
-  React.useEffect(() => {
-    setHoldings(M.makeScenario(scenario));
-    setDcaList(M.DCA_SCHEDULES);
-    setEarnList(M.EARN_POSITIONS);
-    setAlerts(M.REBALANCE_ALERTS);
-  }, [scenario]);
-
   const askConfirm = (cfg) => setConfirm(cfg);
   const closeConfirm = () => setConfirm(null);
   const doConfirm = () => {
@@ -25,42 +18,69 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
     setConfirm(null);
   };
 
-  // Aggregate metrics, all converted to THB then displayed in chosen ccy
+  // Aggregate metrics
   const totals = React.useMemo(() => {
     let mvTHB = 0, costTHB = 0, dayChgTHB = 0;
     const byClass = { us: 0, th: 0, crypto: 0, gold: 0 };
     holdings.forEach(h => {
       const mv = h.qty * h.price;
       const cost = h.qty * h.costAvg;
-      const dayChg = mv * (h.chg1d / 100);
-      const mvT = h.ccy === "THB" ? mv : mv * M.FX;
-      const costT = h.ccy === "THB" ? cost : cost * M.FX;
-      const dayT = h.ccy === "THB" ? dayChg : dayChg * M.FX;
+      const dayChg = mv * ((h.chg1d || 0) / 100);
+      const mvT = h.ccy === "THB" ? mv : mv * FX;
+      const costT = h.ccy === "THB" ? cost : cost * FX;
+      const dayT = h.ccy === "THB" ? dayChg : dayChg * FX;
       mvTHB += mvT;
       costTHB += costT;
       dayChgTHB += dayT;
-      byClass[h.classKey] += mvT;
+      if (byClass[h.classKey] != null) byClass[h.classKey] += mvT;
     });
     return { mvTHB, costTHB, dayChgTHB, byClass };
-  }, [holdings]);
+  }, [holdings, FX]);
 
   const unrealTHB = totals.mvTHB - totals.costTHB;
-  const unrealPct = (unrealTHB / totals.costTHB) * 100;
-  const dayPct = (totals.dayChgTHB / (totals.mvTHB - totals.dayChgTHB)) * 100;
+  const unrealPct = totals.costTHB > 0 ? (unrealTHB / totals.costTHB) * 100 : 0;
+  const dayPct = totals.mvTHB > 0 ? (totals.dayChgTHB / (totals.mvTHB - totals.dayChgTHB)) * 100 : 0;
 
-  const cv = (vTHB) => ccy === "THB" ? vTHB : vTHB / M.FX;
+  const cv = (vTHB) => ccy === "THB" ? vTHB : vTHB / FX;
   const ccySym = ccy === "THB" ? "฿" : "$";
 
   const [range, setRange] = React.useState("6M");
   const histTHB = M.PORTFOLIO_HISTORY[range];
-  const histDisp = histTHB.map(v => cv(v));
+  // Scale baseline history to current portfolio value
+  const baselineLast = histTHB[histTHB.length - 1];
+  const scale = totals.mvTHB > 0 && baselineLast > 0 ? totals.mvTHB / baselineLast : 1;
+  const histDisp = histTHB.map(v => cv(v * scale));
 
   const allocSegs = [
     { key:"us", label:"หุ้น US", color:"var(--c-us)", value: totals.byClass.us },
     { key:"th", label:"หุ้นไทย", color:"var(--c-th)", value: totals.byClass.th },
     { key:"crypto", label:"คริปโต", color:"var(--c-crypto)", value: totals.byClass.crypto },
     { key:"gold", label:"ทองคำ", color:"var(--c-gold)", value: totals.byClass.gold },
-  ];
+  ].filter(s => s.value > 0);
+
+  // Find next DCA
+  const nextDCA = dcaList
+    .filter(d => !d.paused && d.nextDate)
+    .sort((a, b) => a.nextDate.localeCompare(b.nextDate))[0];
+  const nextDCALabel = nextDCA
+    ? `${nextDCA.ticker} ใน ${Math.max(0, window.daysBetween(window.todayISO(), nextDCA.nextDate))} วัน`
+    : "ไม่มีรายการ";
+
+  // ─────── Empty portfolio? Show onboarding ───────
+  if (holdings.length === 0) {
+    return (
+      <section className="card" style={{padding:40, textAlign:"center"}}>
+        <div className="empty-state">
+          <div className="ico"><Ico name="wallet" size={28}/></div>
+          <div className="title">ยังไม่มีสินทรัพย์ในพอร์ต</div>
+          <div>เริ่มต้นโดยการเพิ่มสินทรัพย์แรก หรือนำเข้าจากไฟล์ JSON</div>
+          <button className="btn primary" onClick={onAddHolding} style={{marginTop:14}}>
+            <Ico name="plus" size={14}/> เพิ่มสินทรัพย์แรก
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <>
@@ -71,14 +91,14 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
             <Ico name="eye" size={14}/> มูลค่าพอร์ตรวม (ทุกสินทรัพย์)
           </div>
           <div className="hero-total num">
-            <span>{ccySym}{ccy === "THB" ? Math.round(totals.mvTHB).toLocaleString() : (totals.mvTHB / M.FX).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+            <span>{ccySym}{ccy === "THB" ? Math.round(totals.mvTHB).toLocaleString() : (totals.mvTHB / FX).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
             <span className="ccy">{ccy}</span>
           </div>
           <div className="hero-sub">
             ≈ {ccy === "THB"
-              ? "$" + (totals.mvTHB / M.FX).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2}) + " USD"
+              ? "$" + (totals.mvTHB / FX).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2}) + " USD"
               : "฿" + Math.round(totals.mvTHB).toLocaleString() + " THB"}
-            {"  ·  อัตราแลกเปลี่ยน 1 USD = "}<span className="num">{M.FX.toFixed(2)}</span>{" บาท"}
+            {"  ·  อัตราแลกเปลี่ยน 1 USD = "}<span className="num">{FX.toFixed(2)}</span>{" บาท"}
           </div>
 
           <div className="hero-pills">
@@ -101,7 +121,7 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
             <div className="hero-pill">
               <span className="dot"></span>
               <span>เชื่อมต่อ Real-time</span>
-              <span style={{color:"var(--muted)", fontSize:12}}>· 4 แหล่งข้อมูล</span>
+              <span style={{color:"var(--muted)", fontSize:12}}>· CoinGecko · Yahoo · Frankfurter</span>
             </div>
           </div>
         </div>
@@ -120,14 +140,16 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
             <div className={`delta ${unrealPct >= 0 ? "up" : "down"}`}>{fmtPct(unrealPct)} จากต้นทุน</div>
           </div>
           <div className="kpi">
-            <div className="label">รับ DCA อัตโนมัติ</div>
-            <div className="value">5 รายการ</div>
-            <div className="delta" style={{color:"var(--accent-ink)"}}>ครั้งถัดไป: VOO ใน 3 วัน</div>
+            <div className="label">DCA อัตโนมัติ</div>
+            <div className="value">{dcaList.length} รายการ</div>
+            <div className="delta" style={{color:"var(--accent-ink)"}}>ครั้งถัดไป: {nextDCALabel}</div>
           </div>
           <div className="kpi">
-            <div className="label">เงินสดพร้อมลงทุน</div>
-            <div className="value">{ccySym}{ccy === "THB" ? "182,400" : "5,094"}</div>
-            <div className="delta" style={{color:"var(--muted)"}}>กระเป๋า THB + USD รวม</div>
+            <div className="label">จำนวนสินทรัพย์</div>
+            <div className="value">{holdings.length} ตัว</div>
+            <div className="delta" style={{color:"var(--muted)"}}>
+              ใน {Object.values(totals.byClass).filter(v => v > 0).length} ประเภท
+            </div>
           </div>
         </div>
       </section>
@@ -138,7 +160,7 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
           <div className="card-head">
             <div>
               <div className="card-title">มูลค่าพอร์ตย้อนหลัง</div>
-              <div className="card-sub">มูลค่าตลาดในสกุล {ccy} ตามช่วงเวลา</div>
+              <div className="card-sub">มูลค่าตลาดในสกุล {ccy} ตามช่วงเวลา (อิงประวัติฐาน)</div>
             </div>
             <div className="card-act">
               <div className="range-tabs">
@@ -158,16 +180,13 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
               <div className="card-title">การจัดสรรสินทรัพย์</div>
               <div className="card-sub">แยกตามประเภท</div>
             </div>
-            <div className="card-act">
-              <button className="btn sm ghost"><Ico name="edit" size={14}/> ตั้งเป้า</button>
-            </div>
           </div>
 
           <div className="alloc">
             <div style={{display:"flex", alignItems:"center", gap:18, padding:"4px 0 8px"}}>
               <Donut size={130} thickness={20} segments={allocSegs}/>
               <div style={{flex:1, minWidth:0}}>
-                <div style={{fontSize:12, color:"var(--muted)"}}>4 ประเภทสินทรัพย์</div>
+                <div style={{fontSize:12, color:"var(--muted)"}}>{allocSegs.length} ประเภทสินทรัพย์</div>
                 <div className="num" style={{fontSize:26, fontWeight:700, letterSpacing:"-0.015em", marginTop:2}}>
                   {ccySym}{Math.round(cv(totals.mvTHB)).toLocaleString()}
                 </div>
@@ -177,7 +196,7 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
 
             <div className="alloc-rows">
               {allocSegs.map(s => {
-                const pct = (s.value / totals.mvTHB) * 100;
+                const pct = totals.mvTHB > 0 ? (s.value / totals.mvTHB) * 100 : 0;
                 return (
                   <div className="alloc-row" key={s.key}>
                     <span className="alloc-dot" style={{background:s.color}}></span>
@@ -199,13 +218,12 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
         <div className="card-head" style={{padding:"18px 22px 12px", marginBottom:0}}>
           <div>
             <div className="card-title">สินทรัพย์ที่ถืออยู่</div>
-            <div className="card-sub">{holdings.length} รายการ · คลิกเพื่อดูรายละเอียด</div>
+            <div className="card-sub">{holdings.length} รายการ · คลิกเพื่อดูรายละเอียด · ราคาอัพเดตอัตโนมัติทุก 60 วินาที</div>
           </div>
           <div className="card-act">
-            <button className="btn sm ghost">ทั้งหมด</button>
-            <button className="btn sm ghost">หุ้น</button>
-            <button className="btn sm ghost">คริปโต</button>
-            <button className="btn sm"><Ico name="plus" size={13}/> เพิ่ม</button>
+            <button className="btn sm" onClick={onAddHolding}>
+              <Ico name="plus" size={13}/> เพิ่มสินทรัพย์
+            </button>
           </div>
         </div>
 
@@ -223,15 +241,15 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
           const mvNative = h.qty * h.price;
           const costNative = h.qty * h.costAvg;
           const plNative = mvNative - costNative;
-          const plPct = (plNative / costNative) * 100;
-          const mvTHB = h.ccy === "THB" ? mvNative : mvNative * M.FX;
-          const plTHB = h.ccy === "THB" ? plNative : plNative * M.FX;
+          const plPct = costNative > 0 ? (plNative / costNative) * 100 : 0;
+          const mvTHB = h.ccy === "THB" ? mvNative : mvNative * FX;
+          const plTHB = h.ccy === "THB" ? plNative : plNative * FX;
           const mvDisp = cv(mvTHB);
           const plDisp = cv(plTHB);
           const classLabel = { us:"US", th:"TH", crypto:"CRYPTO", gold:"GOLD" }[h.classKey];
 
           return (
-            <div className="holdings-row" key={h.ticker} onClick={() => onOpenAsset(h)}>
+            <div className="holdings-row" key={h.id} onClick={() => onOpenAsset(h)}>
               <div className="asset-name">
                 <div className={`asset-logo ${h.classKey}`}>
                   {h.classKey === "gold" ? "Au" : h.ticker.slice(0,2)}
@@ -246,7 +264,7 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
               </div>
               <div>
                 <div className="num" style={{fontWeight:600}}>
-                  {h.ccy === "THB" ? "฿" : "$"}{fmtNum(h.price, h.price < 10 ? 2 : 2)}
+                  {h.ccy === "THB" ? "฿" : "$"}{fmtNum(h.price, 2)}
                 </div>
                 <div className="num" style={{fontSize:11, color:"var(--muted)"}}>
                   ต้นทุน {h.ccy === "THB" ? "฿" : "$"}{fmtNum(h.costAvg, 2)}
@@ -254,7 +272,9 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
               </div>
               <div className="num" style={{fontSize:13}}>
                 {h.qty.toLocaleString("en-US", { maximumFractionDigits: 4 })}
-                <div style={{fontSize:11, color:"var(--muted)"}}>{h.ticker === "BTC" ? "BTC" : h.ticker === "ETH" ? "ETH" : h.ticker === "SOL" ? "SOL" : h.ticker === "XAUT" ? "oz" : "หุ้น"}</div>
+                <div style={{fontSize:11, color:"var(--muted)"}}>
+                  {h.classKey === "gold" ? "oz" : h.classKey === "crypto" ? h.ticker : "หุ้น"}
+                </div>
               </div>
               <div className="num" style={{fontWeight:700}}>
                 {ccySym}{ccy === "THB" ? Math.round(mvDisp).toLocaleString() : fmtNum(mvDisp, 2)}
@@ -268,13 +288,13 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
                 </div>
               </div>
               <div style={{textAlign:"right"}}>
-                <Sparkline data={h.spark}/>
+                <Sparkline data={h.spark || [h.price]}/>
               </div>
               <div onClick={(e) => e.stopPropagation()}>
                 <Menu items={[
                   { label: "ดูรายละเอียด", icon: "chev-r", onClick: () => onOpenAsset(h) },
-                  { label: "ตั้ง DCA", icon: "dca", onClick: () => {} },
-                  { label: "ขายทั้งหมด", icon: "swap", onClick: () => {} },
+                  { label: "แก้ไข", icon: "edit", onClick: () => onEditHolding(h) },
+                  { label: "บันทึกธุรกรรม", icon: "plus", onClick: onAddTx },
                   { sep: true },
                   { label: "ลบสินทรัพย์", icon: "trash", danger: true,
                     onClick: () => askConfirm({
@@ -282,7 +302,7 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
                       body: `${h.name} จำนวน ${h.qty.toLocaleString("en-US", {maximumFractionDigits:4})} ${h.classKey === "gold" ? "oz" : "หน่วย"} จะถูกลบออก รวมถึงประวัติธุรกรรมที่เกี่ยวข้อง การดำเนินการนี้ไม่สามารถยกเลิกได้`,
                       requireType: h.ticker,
                       confirmLabel: "ลบสินทรัพย์",
-                      onConfirm: () => setHoldings(prev => prev.filter(x => x.ticker !== h.ticker))
+                      onConfirm: () => window.removeHolding(h.id)
                     })
                   },
                 ]}/>
@@ -298,10 +318,12 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
           <div className="card-head">
             <div>
               <div className="card-title">ตารางลงทุนอัตโนมัติ (DCA)</div>
-              <div className="card-sub">{dcaList.length} รายการกำลังทำงาน · ระบบจะซื้อให้อัตโนมัติ</div>
+              <div className="card-sub">{dcaList.length} รายการกำลังทำงาน · ระบบจะเตือนเมื่อถึงรอบ</div>
             </div>
             <div className="card-act">
-              <button className="btn sm accent"><Ico name="plus" size={13}/> ตั้ง DCA ใหม่</button>
+              <button className="btn sm accent" onClick={onAddDCA}>
+                <Ico name="plus" size={13}/> ตั้ง DCA ใหม่
+              </button>
             </div>
           </div>
           <div className="dca-list">
@@ -310,41 +332,51 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
                 ยังไม่มีตาราง DCA — ลองตั้งซื้ออัตโนมัติเพื่อทยอยลงทุน
               </div>
             )}
-            {dcaList.map(d => (
-              <div className="dca-item" key={d.ticker}>
-                <div className={`asset-logo ${d.classKey}`}>
-                  {d.ticker === "XAUT" ? "Au" : d.ticker.slice(0,2)}
-                </div>
-                <div>
-                  <div className="ticker">{d.ticker}</div>
-                  <div className="schedule">
-                    ทุก{d.freq} · เริ่ม {d.since} · ทำไปแล้ว <b className="num">{d.executed}</b> ครั้ง
+            {dcaList.map(d => {
+              const daysLeft = d.nextDate ? window.daysBetween(window.todayISO(), d.nextDate) : null;
+              const freqLabel = { daily: "วัน", weekly: "สัปดาห์", biweekly: "2 สัปดาห์", monthly: "เดือน" }[d.freq] || d.freq;
+              return (
+                <div className="dca-item" key={d.id}>
+                  <div className={`asset-logo ${d.classKey}`}>
+                    {d.ticker === "XAUT" ? "Au" : d.ticker.slice(0,2)}
                   </div>
-                  <div className="next-in">⏱ ครั้งถัดไป {d.nextIn}</div>
-                </div>
-                <div>
-                  <div className="amount">
-                    {d.ccy === "THB" ? "฿" : "$"}{fmtNum(d.amount, 0)}
+                  <div>
+                    <div className="ticker">{d.ticker}</div>
+                    <div className="schedule">
+                      ทุก{freqLabel} · ทำไปแล้ว <b className="num">{d.executedCount}</b> ครั้ง
+                    </div>
+                    <div className="next-in">
+                      ⏱ ครั้งถัดไป {daysLeft != null ? (daysLeft <= 0 ? "ถึงรอบแล้ว!" : `อีก ${daysLeft} วัน`) : "—"}
+                    </div>
                   </div>
-                  <div style={{fontSize:11, color:"var(--muted)", textAlign:"right", marginTop:2}}>
-                    /{d.freq}
+                  <div>
+                    <div className="amount">
+                      {d.ccy === "THB" ? "฿" : "$"}{fmtNum(d.amount, 0)}
+                    </div>
+                    <div style={{fontSize:11, color:"var(--muted)", textAlign:"right", marginTop:2}}>
+                      /{freqLabel}
+                    </div>
                   </div>
+                  <Menu items={[
+                    { label: d.paused ? "เริ่มทำงานต่อ" : "หยุดชั่วคราว",
+                      icon: "pause",
+                      onClick: () => window.updateDCA(d.id, { paused: !d.paused }) },
+                    { label: "บันทึก DCA วันนี้",
+                      icon: "plus",
+                      onClick: () => window.executeDCA(d.id) },
+                    { sep: true },
+                    { label: "ลบตาราง DCA", icon: "trash", danger: true,
+                      onClick: () => askConfirm({
+                        title: `หยุดและลบ DCA สำหรับ ${d.ticker}?`,
+                        body: `ตารางลงทุนอัตโนมัติ ${d.ccy === "THB" ? "฿" : "$"}${fmtNum(d.amount, 0)} ทุก${freqLabel} จะถูกยกเลิก`,
+                        confirmLabel: "ลบ DCA",
+                        onConfirm: () => window.removeDCA(d.id)
+                      })
+                    },
+                  ]}/>
                 </div>
-                <Menu items={[
-                  { label: "แก้ไขจำนวนเงิน", icon: "edit", onClick: () => {} },
-                  { label: "หยุดชั่วคราว", icon: "pause", onClick: () => {} },
-                  { sep: true },
-                  { label: "ลบตาราง DCA", icon: "trash", danger: true,
-                    onClick: () => askConfirm({
-                      title: `หยุดและลบ DCA สำหรับ ${d.ticker}?`,
-                      body: `ตารางลงทุนอัตโนมัติ ${d.ccy === "THB" ? "฿" : "$"}${fmtNum(d.amount, 0)} ทุก${d.freq} จะถูกยกเลิก ระบบจะไม่ซื้อ ${d.ticker} ในรอบถัดไปอีก สินทรัพย์ที่เคยซื้อไปแล้วจะยังคงอยู่ในพอร์ต`,
-                      confirmLabel: "ลบ DCA",
-                      onConfirm: () => setDcaList(prev => prev.filter(x => x.ticker !== d.ticker))
-                    })
-                  },
-                ]}/>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -358,16 +390,16 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
               <span className="tag">เรียงตามมูลค่า P&L</span>
             </div>
           </div>
-          <PLBars holdings={holdings} ccy={ccy} FX={M.FX}/>
+          <PLBars holdings={holdings} ccy={ccy} FX={FX}/>
         </div>
       </section>
 
       {/* ===== Earn + Bench + Rebalance ===== */}
       <section className="row-2">
-        <EarnPanel ccy={ccy} positions={earnList} setPositions={setEarnList} askConfirm={askConfirm}/>
+        <EarnPanel ccy={ccy} positions={earnList} FX={FX} askConfirm={askConfirm}/>
         <div style={{display:"flex", flexDirection:"column", gap:20}}>
-          <BenchmarkCard/>
-          <RebalanceCard alerts={alerts} setAlerts={setAlerts}/>
+          <BenchmarkCard benchmarks={benchmarks}/>
+          <RebalanceCard alerts={alerts}/>
         </div>
       </section>
 
@@ -383,6 +415,11 @@ function Dashboard({ ccy, scenario, onOpenAsset, accent }) {
 }
 
 function PLBars({ holdings, ccy, FX }) {
+  if (holdings.length === 0) {
+    return <div style={{padding:"20px", textAlign:"center", color:"var(--muted)", fontSize:12}}>
+      ยังไม่มีข้อมูล
+    </div>;
+  }
   const rows = holdings.map(h => {
     const plNative = h.qty * (h.price - h.costAvg);
     const plTHB = h.ccy === "THB" ? plNative : plNative * FX;
@@ -390,12 +427,12 @@ function PLBars({ holdings, ccy, FX }) {
     return { ticker: h.ticker, plDisp, classKey: h.classKey };
   }).sort((a,b) => Math.abs(b.plDisp) - Math.abs(a.plDisp));
 
-  const maxAbs = Math.max(...rows.map(r => Math.abs(r.plDisp)));
+  const maxAbs = Math.max(...rows.map(r => Math.abs(r.plDisp)), 1);
 
   return (
     <div className="pl-bars">
       {rows.map(r => {
-        const w = Math.abs(r.plDisp) / maxAbs * 48; // half-width %
+        const w = Math.abs(r.plDisp) / maxAbs * 48;
         const up = r.plDisp >= 0;
         const ccySym = ccy === "THB" ? "฿" : "$";
         return (
@@ -418,11 +455,9 @@ function PLBars({ holdings, ccy, FX }) {
   );
 }
 
-function EarnPanel({ ccy, positions, setPositions, askConfirm }) {
-  const M = window.MOCK;
+function EarnPanel({ ccy, positions, FX, askConfirm }) {
   const [apy, setApy] = React.useState(15);
 
-  // total earn balance in USD then convert
   const totalUSD = positions.reduce((s, p) => {
     if (p.sym === "USDT" || p.sym === "USDC") return s + p.qty;
     if (p.sym === "BTC") return s + p.qty * 67200;
@@ -430,17 +465,16 @@ function EarnPanel({ ccy, positions, setPositions, askConfirm }) {
     if (p.sym === "SOL") return s + p.qty * 145.2;
     return s;
   }, 0);
-  const stakedDisp = ccy === "THB" ? totalUSD * M.FX : totalUSD;
+  const stakedDisp = ccy === "THB" ? totalUSD * FX : totalUSD;
   const earnedTodayUSD = positions.reduce((s, p) => s + (p.earnedToday || 0), 0);
-  const earnedTodayDisp = ccy === "THB" ? earnedTodayUSD * M.FX : earnedTodayUSD;
+  const earnedTodayDisp = ccy === "THB" ? earnedTodayUSD * FX : earnedTodayUSD;
 
-  // Projected annual yield based on slider APY applied to USDT only
   const usdtPos = positions.find(p => p.sym === "USDT");
   const usdtBal = usdtPos ? usdtPos.qty : 0;
   const projAnnualUSD = usdtBal * (apy / 100);
   const projDailyUSD = projAnnualUSD / 365;
-  const projDisp = ccy === "THB" ? projAnnualUSD * M.FX : projAnnualUSD;
-  const projDailyDisp = ccy === "THB" ? projDailyUSD * M.FX : projDailyUSD;
+  const projDisp = ccy === "THB" ? projAnnualUSD * FX : projAnnualUSD;
+  const projDailyDisp = ccy === "THB" ? projDailyUSD * FX : projDailyUSD;
   const ccySym = ccy === "THB" ? "฿" : "$";
 
   return (
@@ -449,10 +483,6 @@ function EarnPanel({ ccy, positions, setPositions, askConfirm }) {
         <div>
           <div className="card-title">💰 Earn — สร้างผลตอบแทนจากสินทรัพย์</div>
           <div className="card-sub">รวมยอดที่กำลังสร้างดอกเบี้ย · ดอกเบี้ยทบต้นรายวัน</div>
-        </div>
-        <div className="card-act">
-          <button className="btn sm">ฝากเพิ่ม</button>
-          <button className="btn sm ghost">ถอน</button>
         </div>
       </div>
 
@@ -468,8 +498,13 @@ function EarnPanel({ ccy, positions, setPositions, askConfirm }) {
           </div>
 
           <div className="earn-rows">
+            {positions.length === 0 && (
+              <div style={{padding:"14px 8px", color:"var(--muted)", fontSize:12, textAlign:"center"}}>
+                ยังไม่มีสินทรัพย์ที่ฝากใน Earn
+              </div>
+            )}
             {positions.map(p => (
-              <div className="earn-row" key={p.sym}>
+              <div className="earn-row" key={p.id || p.sym}>
                 <div>
                   <span className="sym">{p.sym}</span>
                   <span style={{color:"var(--muted)", fontSize:11, marginLeft:8}}>
@@ -481,15 +516,12 @@ function EarnPanel({ ccy, positions, setPositions, askConfirm }) {
                 </div>
                 <div className="apy">{p.apy.toFixed(2)}%</div>
                 <Menu items={[
-                  { label: "ฝากเพิ่ม", icon: "plus", onClick: () => {} },
-                  { label: "ถอนทั้งหมด", icon: "swap", onClick: () => {} },
-                  { sep: true },
                   { label: "ปิดบัญชี Earn", icon: "trash", danger: true,
                     onClick: () => askConfirm({
                       title: `ปิดบัญชี Earn ${p.sym}?`,
-                      body: `${p.qty.toLocaleString("en-US", {maximumFractionDigits:4})} ${p.sym} (${p.kind}) จะถูกถอนกลับเข้ากระเป๋าหลัก และหยุดรับดอกเบี้ย ${p.apy.toFixed(2)}% APY ทันที${p.kind === "ล็อก 30 วัน" ? " — อาจมีค่าธรรมเนียมการถอนก่อนกำหนด" : ""}`,
+                      body: `${p.qty.toLocaleString("en-US", {maximumFractionDigits:4})} ${p.sym} จะถูกถอนกลับ`,
                       confirmLabel: "ปิดบัญชี",
-                      onConfirm: () => setPositions(prev => prev.filter(x => x.sym !== p.sym))
+                      onConfirm: () => window.removeEarn(p.id || p.sym)
                     })
                   },
                 ]}/>
@@ -527,19 +559,14 @@ function EarnPanel({ ccy, positions, setPositions, askConfirm }) {
               </div>
             </div>
           </div>
-
-          <button className="btn primary" style={{width:"100%", justifyContent:"center", marginTop:10}}>
-            <Ico name="plus" size={14}/> ฝาก USDT เพิ่มเพื่อรับ {apy.toFixed(1)}% APY
-          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function BenchmarkCard() {
-  const M = window.MOCK;
-  const max = Math.max(...M.BENCHMARKS.map(b => Math.abs(b.ytd)));
+function BenchmarkCard({ benchmarks }) {
+  const max = Math.max(...benchmarks.map(b => Math.abs(b.ytd)), 1);
   return (
     <div className="card">
       <div className="card-head">
@@ -549,7 +576,7 @@ function BenchmarkCard() {
         </div>
       </div>
       <div className="bench">
-        {M.BENCHMARKS.map(b => {
+        {benchmarks.map(b => {
           const w = (b.ytd / max) * 100;
           return (
             <div className="bench-row" key={b.ticker}>
@@ -571,7 +598,7 @@ function BenchmarkCard() {
   );
 }
 
-function RebalanceCard({ alerts, setAlerts }) {
+function RebalanceCard({ alerts }) {
   return (
     <div className="card">
       <div className="card-head">
@@ -590,8 +617,8 @@ function RebalanceCard({ alerts, setAlerts }) {
             ไม่มีการแจ้งเตือนในขณะนี้
           </div>
         )}
-        {alerts.map((r, i) => (
-          <div className="reb-row" key={r.ticker}>
+        {alerts.map((r) => (
+          <div className="reb-row" key={r.id || r.ticker}>
             <div>
               <div style={{display:"flex", alignItems:"center", gap:8}}>
                 <span style={{fontWeight:700, fontFamily:"var(--font-mono)", fontSize:13}}>{r.ticker}</span>
@@ -602,7 +629,7 @@ function RebalanceCard({ alerts, setAlerts }) {
             <span className={`pill ${r.action}`}>{r.action === "buy" ? "ซื้อเพิ่ม" : "ขายบางส่วน"}</span>
             <button className="row-action danger"
                     title="ปิดการแจ้งเตือน"
-                    onClick={() => setAlerts(prev => prev.filter(a => a.ticker !== r.ticker))}>
+                    onClick={() => window.dismissAlert(r.id || r.ticker)}>
               <Ico name="x" size={14}/>
             </button>
           </div>
