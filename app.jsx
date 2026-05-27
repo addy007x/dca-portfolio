@@ -261,19 +261,37 @@ function BackendConfigPanel() {
   const [key, setKey] = React.useState(current?.key || "");
   const [status, setStatus] = React.useState(null); // null | 'testing' | 'ok' | 'error:msg'
   const [syncMsg, setSyncMsg] = React.useState("");
+  const [autoSync, setAutoSyncState] = React.useState(() => window.isAutoSyncEnabled());
+  const [countdown, setCountdown] = React.useState(null); // seconds until next auto-sync
 
   React.useEffect(() => {
     if (current) { setUrl(current.url); setKey(current.key); }
   }, [current]);
 
+  // Listen to sync events
   React.useEffect(() => {
     const onSync = (e) => {
-      if (e.detail?.ok) setSyncMsg(`✓ sync ${new Date().toLocaleTimeString("th-TH")}`);
+      const t = new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      if (e.detail?.ok) setSyncMsg(`✓ ${e.detail.auto ? "auto-sync" : "sync"} ${t}`);
       else setSyncMsg(`✗ ${e.detail?.error || "sync failed"}`);
     };
     window.addEventListener("siamfolio.sync", onSync);
     return () => window.removeEventListener("siamfolio.sync", onSync);
   }, []);
+
+  // Countdown tick
+  React.useEffect(() => {
+    if (!autoSync || !current) { setCountdown(null); return; }
+    const tick = () => {
+      const next = window.getAutoSyncNextAt();
+      if (!next) { setCountdown(null); return; }
+      const sec = Math.max(0, Math.round((next - Date.now()) / 1000));
+      setCountdown(sec);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [autoSync, current]);
 
   const test = async () => {
     setStatus("testing");
@@ -293,6 +311,8 @@ function BackendConfigPanel() {
   const disconnect = () => {
     if (!confirm("ตัดการเชื่อมต่อ backend? ข้อมูลใน localStorage จะยังคงอยู่")) return;
     window.setBackendConfig(null);
+    window.setAutoSync(false);
+    setAutoSyncState(false);
     setStatus(null);
   };
 
@@ -318,6 +338,14 @@ function BackendConfigPanel() {
     } catch (e) { setSyncMsg("✗ " + e.message); }
   };
 
+  const toggleAutoSync = () => {
+    const next = !autoSync;
+    setAutoSyncState(next);
+    window.setAutoSync(next);
+    if (next) setSyncMsg("⏱ auto-sync เปิดแล้ว — ทุก 1 นาที");
+    else setSyncMsg("auto-sync ปิดแล้ว");
+  };
+
   return (
     <div style={{display:"flex", flexDirection:"column", gap:6}}>
       {current ? (
@@ -325,10 +353,47 @@ function BackendConfigPanel() {
           <div style={{fontSize:11, color:"var(--up)", fontWeight:600}}>
             ✓ เชื่อมต่อกับ {new URL(current.url).hostname}
           </div>
-          {syncMsg && <div style={{fontSize:10, color:"var(--muted)"}}>{syncMsg}</div>}
-          <div className="twk-action-row" style={{marginTop:4}}>
+
+          {/* Auto-sync toggle */}
+          <div style={{display:"flex", alignItems:"center", justifyContent:"space-between",
+                       padding:"6px 10px", borderRadius:8,
+                       background: autoSync ? "var(--accent-soft)" : "var(--surface)",
+                       border:"1px solid var(--line)", cursor:"pointer"}}
+               onClick={toggleAutoSync}>
+            <div>
+              <div style={{fontSize:12, fontWeight:600, color: autoSync ? "var(--accent-ink)" : "var(--text)"}}>
+                ⏱ Auto-sync
+              </div>
+              <div style={{fontSize:10, color:"var(--muted)"}}>
+                {autoSync
+                  ? countdown !== null
+                    ? `ถัดไปใน ${countdown} วินาที`
+                    : "กำลังรอ..."
+                  : "อัพโหลดอัตโนมัติทุก 1 นาที"}
+              </div>
+            </div>
+            {/* Toggle pill */}
+            <div style={{
+              width:36, height:20, borderRadius:10, position:"relative", transition:"background 0.2s",
+              background: autoSync ? "var(--accent)" : "var(--line)", flexShrink:0,
+            }}>
+              <div style={{
+                position:"absolute", top:3, left: autoSync ? 19 : 3,
+                width:14, height:14, borderRadius:"50%", background:"white",
+                boxShadow:"0 1px 3px rgba(0,0,0,0.2)", transition:"left 0.2s",
+              }}/>
+            </div>
+          </div>
+
+          {syncMsg && (
+            <div style={{fontSize:10, color: syncMsg.startsWith("✓") ? "var(--up)" : syncMsg.startsWith("✗") ? "var(--down)" : "var(--muted)"}}>
+              {syncMsg}
+            </div>
+          )}
+
+          <div className="twk-action-row" style={{marginTop:2}}>
             <button className="twk-btn secondary" onClick={pull}>ดึงข้อมูล</button>
-            <button className="twk-btn secondary" onClick={push}>อัพโหลด</button>
+            <button className="twk-btn secondary" onClick={push}>อัพโหลดเดี๋ยวนี้</button>
           </div>
           <button className="twk-btn secondary" style={{marginTop:4, color:"var(--down)"}}
                   onClick={disconnect}>ตัดการเชื่อมต่อ</button>

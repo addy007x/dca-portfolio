@@ -111,7 +111,7 @@ async function backendFX(from = "USD", to = "THB") {
   }
 }
 
-// ─────── Debounced auto-sync ───────
+// ─────── Debounced auto-sync (on data change) ───────
 let _syncTimer = null;
 let _lastSyncAt = 0;
 function scheduleSync() {
@@ -129,6 +129,63 @@ function scheduleSync() {
 }
 
 function getLastSyncAt() { return _lastSyncAt; }
+
+// ─────── Periodic auto-sync every 60s ───────
+const AUTO_SYNC_KEY = "siamfolio.autosync";
+let _autoSyncInterval = null;
+let _autoSyncNextAt = 0;          // timestamp of next scheduled push
+const AUTO_SYNC_MS = 60_000;      // 1 minute
+
+function isAutoSyncEnabled() {
+  return localStorage.getItem(AUTO_SYNC_KEY) === "1";
+}
+
+async function _doAutoSync() {
+  if (!isBackendConfigured()) { stopAutoSync(); return; }
+  _autoSyncNextAt = Date.now() + AUTO_SYNC_MS;
+  try {
+    await pushPortfolio();
+    _lastSyncAt = Date.now();
+    window.dispatchEvent(new CustomEvent("siamfolio.sync", { detail: { ok: true, at: _lastSyncAt, auto: true } }));
+  } catch (e) {
+    window.dispatchEvent(new CustomEvent("siamfolio.sync", { detail: { ok: false, error: e.message, auto: true } }));
+  }
+}
+
+function startAutoSync() {
+  stopAutoSync();
+  if (!isBackendConfigured() || !isAutoSyncEnabled()) return;
+  _autoSyncNextAt = Date.now() + AUTO_SYNC_MS;
+  _autoSyncInterval = setInterval(_doAutoSync, AUTO_SYNC_MS);
+  console.log("[autoSync] started — every 60s");
+}
+
+function stopAutoSync() {
+  if (_autoSyncInterval) { clearInterval(_autoSyncInterval); _autoSyncInterval = null; }
+  _autoSyncNextAt = 0;
+  console.log("[autoSync] stopped");
+}
+
+function setAutoSync(enabled) {
+  if (enabled) {
+    localStorage.setItem(AUTO_SYNC_KEY, "1");
+    startAutoSync();
+  } else {
+    localStorage.removeItem(AUTO_SYNC_KEY);
+    stopAutoSync();
+  }
+}
+
+function getAutoSyncNextAt() { return _autoSyncNextAt; }
+
+// Restart when backend config changes (connect/disconnect)
+window.addEventListener("siamfolio.backend.changed", () => {
+  if (isBackendConfigured() && isAutoSyncEnabled()) startAutoSync();
+  else stopAutoSync();
+});
+
+// Auto-start on page load if both configured and enabled
+if (isBackendConfigured() && isAutoSyncEnabled()) startAutoSync();
 
 // React hook — true if backend is currently configured (re-renders on changes)
 function useBackendStatus() {
@@ -151,4 +208,5 @@ Object.assign(window, {
   pullPortfolio, pushPortfolio, fetchDueDCAs,
   backendPrices, backendFX,
   scheduleSync, getLastSyncAt, useBackendStatus,
+  isAutoSyncEnabled, setAutoSync, startAutoSync, stopAutoSync, getAutoSyncNextAt,
 });
