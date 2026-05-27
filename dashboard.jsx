@@ -393,10 +393,6 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
 
           {/* ── Card 1: ต้นทุนรวม ── */}
           <div className="kpi">
-            <div className="kpi-art">💼</div>
-            <div className="kpi-badge" style={{background:"var(--surface-2)"}}>
-              <Ico name="wallet" size={15} style={{color:"var(--muted)"}}/>
-            </div>
             <div className="label">ต้นทุนรวม</div>
             <div className="value">{ccySym}{Math.round(cv(totals.costTHB)).toLocaleString()}</div>
             <div className="delta">ลงทุนสะสมตั้งแต่เริ่ม</div>
@@ -427,14 +423,7 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
               : "linear-gradient(135deg, var(--surface) 60%, var(--down-soft) 100%)",
             borderColor: unrealPct >= 0 ? "oklch(0.88 0.05 155)" : "oklch(0.88 0.05 25)",
           }}>
-            <div className="kpi-art">{unrealPct >= 0 ? "📈" : "📉"}</div>
             <div style={{display:"flex", alignItems:"flex-start", justifyContent:"space-between"}}>
-              <div className="kpi-badge" style={{
-                background: unrealPct >= 0 ? "var(--up-soft)" : "var(--down-soft)",
-              }}>
-                <Ico name={unrealPct >= 0 ? "arrow-up" : "arrow-dn"} size={15}
-                     style={{color: unrealPct >= 0 ? "var(--up)" : "var(--down)"}}/>
-              </div>
               {/* floating % badge */}
               <div style={{
                 fontSize:12, fontWeight:700, fontFamily:"var(--font-num)",
@@ -460,10 +449,6 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
             const paused = dcaList.filter(d => d.paused).length;
             return (
               <div className="kpi">
-                <div className="kpi-art">🔄</div>
-                <div className="kpi-badge" style={{background:"var(--accent-soft)"}}>
-                  <Ico name="dca" size={15} style={{color:"var(--accent-ink)"}}/>
-                </div>
                 <div className="label">DCA อัตโนมัติ</div>
                 <div className="value">{dcaList.length} <span style={{fontSize:14, fontWeight:500, color:"var(--muted)"}}>รายการ</span></div>
                 <div className="delta" style={{color:"var(--accent-ink)"}}>ถัดไป: {nextDCALabel}</div>
@@ -487,10 +472,6 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
 
           {/* ── Card 4: จำนวนสินทรัพย์ ── */}
           <div className="kpi">
-            <div className="kpi-art">📊</div>
-            <div className="kpi-badge" style={{background:"var(--surface-2)"}}>
-              <Ico name="bench" size={15} style={{color:"var(--muted)"}}/>
-            </div>
             <div className="label">จำนวนสินทรัพย์</div>
             <div className="value">{allHoldings.length} <span style={{fontSize:14, fontWeight:500, color:"var(--muted)"}}>ตัว</span></div>
             <div className="delta">ใน {Object.values(totals.byClass).filter(v=>v>0).length} ประเภท</div>
