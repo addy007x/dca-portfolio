@@ -98,6 +98,16 @@ function YearPicker({ value, years, onChange }) {
 }
 
 // ─────── Tax View ───────────────────────────────────────────────────────────
+
+// Extract 4-digit year from any date format
+// Handles: "2024-03-22" (ISO) and "22 มี.ค. 2026" (Thai) and "22/03/2026"
+function extractYear(dateStr) {
+  if (!dateStr) return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.slice(0, 4); // ISO
+  const m = dateStr.match(/\b(20\d{2}|19\d{2})\b/);
+  return m ? m[1] : null;
+}
+
 function TaxView({ ccy }) {
   const store    = window.useStore();
   const FX       = store.fx || 35.8;
@@ -111,7 +121,7 @@ function TaxView({ ccy }) {
 
   // Available years from transaction history
   const years = React.useMemo(() => {
-    const ys = new Set(transactions.map(t => t.date?.slice(0,4)).filter(Boolean));
+    const ys = new Set(transactions.map(t => extractYear(t.date)).filter(Boolean));
     ys.add(String(thisYear));
     return [...ys].sort().reverse();
   }, [transactions]);
@@ -125,7 +135,7 @@ function TaxView({ ccy }) {
 
   // Sell transactions for selected year
   const yearSells = transactions.filter(t =>
-    t.kind === "sell" && t.date?.startsWith(String(year))
+    t.kind === "sell" && extractYear(t.date) === String(year)
   );
 
   // Enrich with tax info
