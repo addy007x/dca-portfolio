@@ -130,7 +130,7 @@ function DCAView({ ccy, onAddDCA, onEditDCA }) {
                     <div style={{fontSize:13, fontWeight:600, fontFamily:"var(--font-mono)", color:"var(--accent-ink)"}}>
                       {d.execTime || "—"}
                     </div>
-                    <div style={{fontSize:10, color:"var(--muted)"}}>น. (ICT)</div>
+                    <div style={{fontSize:10, color:"var(--muted)"}}>UTC+7</div>
                   </div>
                   <div>
                     <div className="num" style={{fontWeight:600}}>{d.executedCount || 0} <span style={{color:"var(--muted)", fontWeight:400}}>ครั้ง</span></div>

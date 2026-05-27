@@ -341,7 +341,7 @@ function DCAModal({ open, holdings, defaultTicker, editDCA, onClose, onSave }) {
                    value={form.startDate}
                    onChange={e => setForm({...form, startDate: e.target.value})}/>
           </FormField>
-          <FormField label="เวลาที่ต้องการ" hint="เวลาที่จะแจ้งเตือน (เวลาท้องถิ่น)">
+          <FormField label="เวลาที่ต้องการ" hint="UTC+7 (เวลาประเทศไทย)">
             <input className="form-input" type="time"
                    value={form.execTime}
                    onChange={e => setForm({...form, execTime: e.target.value})}/>
@@ -350,7 +350,7 @@ function DCAModal({ open, holdings, defaultTicker, editDCA, onClose, onSave }) {
 
         {form.amount > 0 && (
           <div className="form-summary">
-            <div>ลงทุน {ccySym}{parseFloat(form.amount).toLocaleString()} ทุก{freqLabel} เวลา <b>{form.execTime} น.</b></div>
+            <div>ลงทุน {ccySym}{parseFloat(form.amount).toLocaleString()} ทุก{freqLabel} เวลา <b>{form.execTime} UTC+7</b></div>
             <div style={{color:"var(--muted)", fontSize:12, marginTop:4}}>
               ≈ {ccySym}{annual.toLocaleString()} ต่อปี ({perYear} ครั้ง)
             </div>
