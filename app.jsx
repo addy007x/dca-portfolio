@@ -25,6 +25,7 @@ function App() {
   const [showDcaModal, setShowDcaModal] = React.useState(false);
   const [showEarnModal, setShowEarnModal] = React.useState(false);
   const [editHolding, setEditHolding] = React.useState(null);
+  const [editDCA, setEditDCA] = React.useState(null);
 
   // Apply theme/density/accent
   React.useEffect(() => {
@@ -42,18 +43,24 @@ function App() {
   };
   const onBack = () => setView({ kind: "dashboard", asset: null });
 
-  const activeNav = view.kind === "dashboard" ? "dashboard" : "portfolio";
+  const navKinds = ["dashboard","portfolio","dca","earn","history","tax","bench"];
+  const activeNav = navKinds.includes(view.kind) ? view.kind : (view.kind === "detail" ? "portfolio" : "dashboard");
 
   // Find current asset state (may have changed since opening detail)
   const currentAsset = view.kind === "detail" && view.asset
     ? store.holdings.find(h => h.id === view.asset.id) || view.asset
     : null;
 
+  const goTo = (k) => { setView({ kind: k, asset: null }); window.scrollTo({ top: 0, behavior: "smooth" }); };
+
+  const openDcaModal = () => { setEditDCA(null); setShowDcaModal(true); };
+  const openEditDCA = (d) => { setEditDCA(d); setShowDcaModal(true); };
+
   return (
     <>
-      <div className="app" data-screen-label={view.kind === "dashboard" ? "01 Dashboard" : "02 Asset Detail"}>
+      <div className="app">
         <Sidebar active={activeNav}
-                 onNav={(k) => { if (k === "dashboard") onBack(); }}/>
+                 onNav={(k) => goTo(k === "portfolio" ? "dashboard" : k)}/>
         <main className="main">
           <Topbar ccy={s.ccy}
                   onCcy={(c) => window.updateSettings({ ccy: c })}
@@ -61,20 +68,26 @@ function App() {
                   priceStatus={priceStatus}
                   onSettings={() => window.postMessage({ type: '__activate_edit_mode' }, '*')}/>
 
-          {view.kind === "dashboard" && <DCAReminderBanner/>}
+          {(view.kind === "dashboard" || view.kind === "portfolio") && <DCAReminderBanner/>}
 
-          {view.kind === "dashboard"
-            ? <Dashboard ccy={s.ccy}
+          {view.kind === "detail"
+            ? <Detail asset={currentAsset} ccy={s.ccy} onBack={() => goTo("dashboard")}
+                      onAddTx={() => setShowTxModal(true)}
+                      accent={`var(--accent)`}/>
+            : view.kind === "dca"
+            ? <DCAView ccy={s.ccy} onAddDCA={openDcaModal} onEditDCA={openEditDCA}/>
+            : view.kind === "earn"
+            ? <EarnView ccy={s.ccy} onAddEarn={() => setShowEarnModal(true)}/>
+            : view.kind === "history"
+            ? <HistoryView ccy={s.ccy}/>
+            : <Dashboard ccy={s.ccy}
                          onOpenAsset={onOpenAsset}
                          onAddHolding={() => { setEditHolding(null); setShowHoldingModal(true); }}
                          onAddTx={() => setShowTxModal(true)}
-                         onAddDCA={() => setShowDcaModal(true)}
+                         onAddDCA={openDcaModal}
                          onAddEarn={() => setShowEarnModal(true)}
                          onEditHolding={(h) => { setEditHolding(h); setShowHoldingModal(true); }}
                          accent={`var(--accent)`}/>
-            : <Detail asset={currentAsset} ccy={s.ccy} onBack={onBack}
-                      onAddTx={() => setShowTxModal(true)}
-                      accent={`var(--accent)`}/>
           }
         </main>
       </div>
@@ -103,8 +116,12 @@ function App() {
 
       <DCAModal open={showDcaModal}
                 holdings={store.holdings}
-                onClose={() => setShowDcaModal(false)}
-                onSave={(dca) => window.addDCA(dca)}/>
+                editDCA={editDCA}
+                onClose={() => { setShowDcaModal(false); setEditDCA(null); }}
+                onSave={(dca) => {
+                  if (editDCA) window.updateDCA(editDCA.id, dca);
+                  else window.addDCA(dca);
+                }}/>
 
       <TweaksPanel title="Settings">
         <TweakSection label="แสดงผล">

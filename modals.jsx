@@ -258,19 +258,20 @@ function TransactionModal({ open, defaultTicker, holdings, onClose, onSave }) {
 }
 
 // ─────── Add DCA Schedule ───────
-function DCAModal({ open, holdings, defaultTicker, onClose, onSave }) {
+function DCAModal({ open, holdings, defaultTicker, editDCA, onClose, onSave }) {
+  const isEdit = !!editDCA;
   const [form, setForm] = React.useState({
-    ticker: defaultTicker || "",
-    amount: 100,
-    freq: "weekly",
+    ticker: "", amount: 100, freq: "weekly", execTime: "09:00", startDate: "",
   });
   React.useEffect(() => {
     if (open) setForm({
-      ticker: defaultTicker || holdings[0]?.ticker || "",
-      amount: 100,
-      freq: "weekly",
+      ticker: editDCA?.ticker || defaultTicker || holdings[0]?.ticker || "",
+      amount: editDCA?.amount || 100,
+      freq: editDCA?.freq || "weekly",
+      execTime: editDCA?.execTime || "09:00",
+      startDate: editDCA?.startDate || window.todayISO(),
     });
-  }, [open, defaultTicker]);
+  }, [open, defaultTicker, editDCA]);
 
   if (!open) return null;
 
@@ -292,6 +293,8 @@ function DCAModal({ open, holdings, defaultTicker, onClose, onSave }) {
       ccy,
       amount: parseFloat(form.amount),
       freq: form.freq,
+      execTime: form.execTime,
+      startDate: form.startDate || window.todayISO(),
     });
     onClose();
   };
@@ -302,11 +305,11 @@ function DCAModal({ open, holdings, defaultTicker, onClose, onSave }) {
         <div className="modal-ico" style={{background:"var(--accent-soft)", color:"var(--accent-ink)"}}>
           <Ico name="dca" size={22}/>
         </div>
-        <h3>ตั้ง DCA ใหม่</h3>
+        <h3>{isEdit ? `แก้ไข DCA ${editDCA.ticker}` : "ตั้ง DCA ใหม่"}</h3>
         <p>ลงทุนอัตโนมัติแบบสม่ำเสมอ — ระบบจะเตือนเมื่อถึงรอบ</p>
 
         <FormField label="สินทรัพย์">
-          <select className="form-input" value={form.ticker}
+          <select className="form-input" value={form.ticker} disabled={isEdit}
                   onChange={e => setForm({...form, ticker: e.target.value})}>
             {holdings.length === 0 && <option value="">— เพิ่มสินทรัพย์ก่อน —</option>}
             {holdings.map(h => (
@@ -332,9 +335,22 @@ function DCAModal({ open, holdings, defaultTicker, onClose, onSave }) {
           </FormField>
         </FormRow>
 
+        <FormRow>
+          <FormField label="วันที่เริ่ม" hint="วันแรกที่ DCA จะทำงาน">
+            <input className="form-input" type="date"
+                   value={form.startDate}
+                   onChange={e => setForm({...form, startDate: e.target.value})}/>
+          </FormField>
+          <FormField label="เวลาที่ต้องการ" hint="เวลาที่จะแจ้งเตือน (เวลาท้องถิ่น)">
+            <input className="form-input" type="time"
+                   value={form.execTime}
+                   onChange={e => setForm({...form, execTime: e.target.value})}/>
+          </FormField>
+        </FormRow>
+
         {form.amount > 0 && (
           <div className="form-summary">
-            <div>ลงทุน {ccySym}{parseFloat(form.amount).toLocaleString()} ทุก{freqLabel}</div>
+            <div>ลงทุน {ccySym}{parseFloat(form.amount).toLocaleString()} ทุก{freqLabel} เวลา <b>{form.execTime} น.</b></div>
             <div style={{color:"var(--muted)", fontSize:12, marginTop:4}}>
               ≈ {ccySym}{annual.toLocaleString()} ต่อปี ({perYear} ครั้ง)
             </div>
@@ -344,7 +360,7 @@ function DCAModal({ open, holdings, defaultTicker, onClose, onSave }) {
         <div className="modal-actions">
           <button type="button" className="btn" onClick={onClose}>ยกเลิก</button>
           <button type="submit" className="btn primary" disabled={!canSave}>
-            <Ico name="dca" size={14}/> ตั้ง DCA
+            <Ico name="dca" size={14}/> {isEdit ? "บันทึก" : "ตั้ง DCA"}
           </button>
         </div>
       </form>
