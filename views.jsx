@@ -540,4 +540,4 @@ if (!document.getElementById("views-styles")) {
   document.head.appendChild(s);
 }
 
-Object.assign(window, { DCAView, EarnView, HistoryView });
+Object.assign(window, { DCAView, EarnView, HistoryView, PageShell });

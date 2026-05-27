@@ -84,6 +84,8 @@ function App() {
             ? <EarnView ccy={s.ccy} onAddEarn={() => setShowEarnModal(true)}/>
             : view.kind === "history"
             ? <HistoryView ccy={s.ccy}/>
+            : view.kind === "tax"
+            ? <TaxView ccy={s.ccy}/>
             : <Dashboard ccy={s.ccy}
                          onOpenAsset={onOpenAsset}
                          onAddHolding={() => { setEditHolding(null); setShowHoldingModal(true); }}
