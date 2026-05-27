@@ -1,0 +1,25 @@
+name = "siamfolio-api"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# D1 SQLite binding. Replace database_id after creating the DB:
+#   wrangler d1 create siamfolio
+# (or via dashboard) — paste the returned id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "siamfolio"
+database_id = "REPLACE_WITH_YOUR_D1_ID"
+
+# KV cache (optional). Speeds up price proxy across cold starts.
+# Create via:  wrangler kv namespace create CACHE
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "REPLACE_WITH_KV_ID"
+
+# Daily cron: 02:00 UTC = 09:00 ICT
+[triggers]
+crons = ["0 2 * * *"]
+
+# Set API_KEY via:
+#   wrangler secret put API_KEY
+# (will prompt for value — paste a long random string)

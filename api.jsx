@@ -150,30 +150,66 @@ async function fetchThaiStockPrices(tickers) {
 }
 
 // ─────── Orchestrator: fetch all prices for a portfolio ───────
+// If backend is configured, route through the Worker (no CORS gambling).
+// Otherwise hit the public APIs directly.
 async function refreshAllPrices(holdings) {
   const byClass = { us: [], th: [], crypto: [], gold: [] };
   for (const h of holdings) byClass[h.classKey]?.push(h.ticker);
 
-  const results = await Promise.allSettled([
-    fetchCryptoPrices([...byClass.crypto, ...byClass.gold]),
-    fetchUSStockPrices(byClass.us),
-    fetchThaiStockPrices(byClass.th),
-    fetchFXRate(),
-  ]);
+  const useBackend = typeof window.isBackendConfigured === "function" && window.isBackendConfigured();
 
-  const [crypto, us, th, fx] = results.map(r => r.status === "fulfilled" ? r.value : null);
+  let crypto, us, th, fx;
 
-  // Combine — newer source overrides older
-  const merged = { ...crypto, ...us, ...th };
+  if (useBackend) {
+    // Backend handles all sources server-side
+    const cryptoSyms = [...byClass.crypto, ...byClass.gold];
+    const stockSyms = [...byClass.us, ...byClass.th.map(t => t + ".BK")];
+    const [cryptoRes, stockRes, fxRes] = await Promise.allSettled([
+      cryptoSyms.length ? window.backendPrices("crypto", cryptoSyms) : Promise.resolve({}),
+      stockSyms.length ? window.backendPrices("stocks", stockSyms) : Promise.resolve({}),
+      window.backendFX("USD", "THB"),
+    ]);
+    crypto = cryptoRes.status === "fulfilled" ? cryptoRes.value : {};
+    // Split US vs TH from stockRes — strip .BK suffix
+    const stocks = stockRes.status === "fulfilled" ? stockRes.value : {};
+    us = {};
+    th = {};
+    for (const [sym, info] of Object.entries(stocks)) {
+      if (sym.endsWith(".BK")) th[sym.replace(".BK", "")] = info;
+      else us[sym] = info;
+    }
+    fx = fxRes.status === "fulfilled" ? fxRes.value : null;
+  } else {
+    // Direct public APIs (Phase A behavior)
+    const results = await Promise.allSettled([
+      fetchCryptoPrices([...byClass.crypto, ...byClass.gold]),
+      fetchUSStockPrices(byClass.us),
+      fetchThaiStockPrices(byClass.th),
+      fetchFXRate(),
+    ]);
+    [crypto, us, th, fx] = results.map(r => r.status === "fulfilled" ? r.value : null);
+  }
+
+  // Combine
+  const merged = { ...(crypto || {}), ...(us || {}), ...(th || {}) };
   const priceMap = {};
   const chgMap = {};
-  for (const [t, info] of Object.entries(merged || {})) {
+  for (const [t, info] of Object.entries(merged)) {
     if (info && typeof info.price === "number") {
       priceMap[t] = info.price;
       chgMap[t] = info.chg1d;
     }
   }
-  return { priceMap, chgMap, fx, sources: { crypto: !!crypto, us: !!us, th: !!th, fx: !!fx } };
+  return {
+    priceMap, chgMap, fx,
+    sources: {
+      crypto: !!crypto && Object.keys(crypto).length > 0,
+      us: !!us && Object.keys(us).length > 0,
+      th: !!th && Object.keys(th).length > 0,
+      fx: !!fx,
+      backend: useBackend,
+    },
+  };
 }
 
 // ─────── Auto-refresh hook ───────

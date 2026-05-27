@@ -128,6 +128,10 @@ function updateStore(updater) {
   _state.listeners.forEach(fn => {
     try { fn(next); } catch (e) { console.error(e); }
   });
+  // Auto-sync to backend if configured (debounced inside)
+  if (typeof window.scheduleSync === "function") {
+    try { window.scheduleSync(); } catch (_) {}
+  }
 }
 
 // React hook — subscribes to all changes

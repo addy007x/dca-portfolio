@@ -122,6 +122,10 @@ function App() {
           <NotifPermissionButton/>
         </TweakSection>
 
+        <TweakSection label="Backend (Phase B)">
+          <BackendConfigPanel/>
+        </TweakSection>
+
         <TweakSection label="ข้อมูล">
           <div className="twk-action-row">
             <button className="twk-btn secondary" onClick={() => exportPortfolio()}>
@@ -208,6 +212,109 @@ function importPortfolio() {
     reader.readAsText(file);
   };
   input.click();
+}
+
+// ─────── Backend config panel (Tweaks > Backend) ───────
+function BackendConfigPanel() {
+  const current = window.useBackendStatus();
+  const [url, setUrl] = React.useState(current?.url || "");
+  const [key, setKey] = React.useState(current?.key || "");
+  const [status, setStatus] = React.useState(null); // null | 'testing' | 'ok' | 'error:msg'
+  const [syncMsg, setSyncMsg] = React.useState("");
+
+  React.useEffect(() => {
+    if (current) { setUrl(current.url); setKey(current.key); }
+  }, [current]);
+
+  React.useEffect(() => {
+    const onSync = (e) => {
+      if (e.detail?.ok) setSyncMsg(`✓ sync ${new Date().toLocaleTimeString("th-TH")}`);
+      else setSyncMsg(`✗ ${e.detail?.error || "sync failed"}`);
+    };
+    window.addEventListener("siamfolio.sync", onSync);
+    return () => window.removeEventListener("siamfolio.sync", onSync);
+  }, []);
+
+  const test = async () => {
+    setStatus("testing");
+    const ping = await window.pingBackend(url);
+    if (!ping.ok) { setStatus("error:ping failed (" + (ping.error || ping.status) + ")"); return; }
+    const auth = await window.testBackendAuth(url, key);
+    if (!auth) { setStatus("error:API key invalid"); return; }
+    setStatus("ok");
+  };
+
+  const connect = () => {
+    if (!url || !key) return;
+    window.setBackendConfig({ url, key });
+    setStatus("ok");
+  };
+
+  const disconnect = () => {
+    if (!confirm("ตัดการเชื่อมต่อ backend? ข้อมูลใน localStorage จะยังคงอยู่")) return;
+    window.setBackendConfig(null);
+    setStatus(null);
+  };
+
+  const pull = async () => {
+    if (!confirm("ดึงข้อมูลจาก backend มาแทนที่ในเครื่อง?")) return;
+    try {
+      const data = await window.pullPortfolio();
+      window.updateStore(s => ({
+        ...s,
+        holdings: data.holdings || s.holdings,
+        transactions: data.transactions || s.transactions,
+        dca: data.dca || s.dca,
+        earn: data.earn || s.earn,
+      }));
+      setSyncMsg("✓ ดึงข้อมูลสำเร็จ");
+    } catch (e) { setSyncMsg("✗ " + e.message); }
+  };
+
+  const push = async () => {
+    try {
+      await window.pushPortfolio();
+      setSyncMsg("✓ อัพโหลดสำเร็จ");
+    } catch (e) { setSyncMsg("✗ " + e.message); }
+  };
+
+  return (
+    <div style={{display:"flex", flexDirection:"column", gap:6}}>
+      {current ? (
+        <>
+          <div style={{fontSize:11, color:"var(--up)", fontWeight:600}}>
+            ✓ เชื่อมต่อกับ {new URL(current.url).hostname}
+          </div>
+          {syncMsg && <div style={{fontSize:10, color:"var(--muted)"}}>{syncMsg}</div>}
+          <div className="twk-action-row" style={{marginTop:4}}>
+            <button className="twk-btn secondary" onClick={pull}>ดึงข้อมูล</button>
+            <button className="twk-btn secondary" onClick={push}>อัพโหลด</button>
+          </div>
+          <button className="twk-btn secondary" style={{marginTop:4, color:"var(--down)"}}
+                  onClick={disconnect}>ตัดการเชื่อมต่อ</button>
+        </>
+      ) : (
+        <>
+          <input className="twk-field" type="text" placeholder="https://siamfolio-api.your.workers.dev"
+                 value={url} onChange={e => setUrl(e.target.value)}/>
+          <input className="twk-field" type="password" placeholder="API Key"
+                 value={key} onChange={e => setKey(e.target.value)}/>
+          <div className="twk-action-row" style={{marginTop:4}}>
+            <button className="twk-btn secondary" onClick={test}>ทดสอบ</button>
+            <button className="twk-btn" onClick={connect} disabled={!url || !key}>เชื่อมต่อ</button>
+          </div>
+          {status === "testing" && <div style={{fontSize:10, color:"var(--muted)"}}>กำลังทดสอบ...</div>}
+          {status === "ok" && <div style={{fontSize:10, color:"var(--up)"}}>✓ พร้อมเชื่อมต่อ</div>}
+          {status?.startsWith("error:") && <div style={{fontSize:10, color:"var(--down)"}}>✗ {status.slice(6)}</div>}
+          <a href="https://github.com/addy007x/dca-portfolio/blob/main/backend/README.md"
+             target="_blank" rel="noopener"
+             style={{fontSize:10, color:"var(--accent-ink)", textDecoration:"none", marginTop:2}}>
+            ↗ วิธี deploy backend
+          </a>
+        </>
+      )}
+    </div>
+  );
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
