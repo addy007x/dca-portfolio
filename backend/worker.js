@@ -76,9 +76,13 @@ async function handleCrypto(url, env) {
   const cached = await cacheGet(env, cacheKey);
   if (cached) return json(cached);
   const r = await fetch(
-    `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(",")}&vs_currencies=usd&include_24hr_change=true`
+    `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(",")}&vs_currencies=usd&include_24hr_change=true`,
+    { headers: { "User-Agent": "SiamFolio/1.0 (https://github.com/addy007x/dca-portfolio)", "Accept": "application/json" } }
   );
-  if (!r.ok) return error("CoinGecko upstream error", 502);
+  if (!r.ok) {
+    const txt = await r.text().catch(() => "");
+    return error(`CoinGecko ${r.status}: ${txt.slice(0, 200)}`, 502);
+  }
   const data = await r.json();
   const out = {};
   for (const [t, id] of Object.entries(COINGECKO_IDS)) {
