@@ -220,3 +220,82 @@ function ConfirmDialog({ open, title, body, confirmLabel, requireType, onCancel,
 
 window.Menu = Menu;
 window.ConfirmDialog = ConfirmDialog;
+
+// ─────── AssetIcon — auto-fetches logo from CoinGecko CDN (crypto) or Parqet CDN (stocks) ───────
+// Falls back to a coloured letter badge on any load error.
+const _ICON_CACHE = {}; // page-lifetime cache; avoids re-fetching on re-render
+
+// CoinGecko CDN URLs — matches COINGECKO_IDS in worker.js
+const _CG_ICONS = {
+  BTC:   "https://assets.coingecko.com/coins/images/1/small/bitcoin.png",
+  ETH:   "https://assets.coingecko.com/coins/images/279/small/ethereum.png",
+  SOL:   "https://assets.coingecko.com/coins/images/4128/small/solana.png",
+  XAUT:  "https://assets.coingecko.com/coins/images/10058/small/tether-gold.png",
+  ADA:   "https://assets.coingecko.com/coins/images/975/small/cardano.png",
+  XRP:   "https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png",
+  DOGE:  "https://assets.coingecko.com/coins/images/5/small/dogecoin.png",
+  MATIC: "https://assets.coingecko.com/coins/images/4713/small/polygon.png",
+  BNB:   "https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png",
+  AVAX:  "https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png",
+  LINK:  "https://assets.coingecko.com/coins/images/877/small/chainlink-new-logo.png",
+  DOT:   "https://assets.coingecko.com/coins/images/12171/small/polkadot.png",
+};
+
+// Parqet logo CDN for stocks (strips .BK / .NYSE suffix automatically)
+function _stockIconUrl(ticker) {
+  return `https://assets.parqet.com/logos/symbol/${ticker.replace(/\.[A-Z]+$/i, "")}`;
+}
+
+const _CLASS_BG = {
+  us:     "#3264C8",
+  th:     "#C84820",
+  crypto: "#D07800",
+  gold:   "#B87C10",
+};
+
+function AssetIcon({ ticker, classKey, size = 32 }) {
+  const url = React.useMemo(() => {
+    if (classKey === "crypto" || classKey === "gold") return _CG_ICONS[ticker] || null;
+    return _stockIconUrl(ticker);
+  }, [ticker, classKey]);
+
+  // cached === "ok" | "fail" | undefined
+  const [imgState, setImgState] = React.useState(() => _ICON_CACHE[ticker] || (url ? "idle" : "fail"));
+
+  const onLoad  = () => { _ICON_CACHE[ticker] = "ok";   setImgState("ok"); };
+  const onError = () => { _ICON_CACHE[ticker] = "fail"; setImgState("fail"); };
+
+  const isCircle = classKey === "crypto" || classKey === "gold";
+  const bg    = _CLASS_BG[classKey] || "#888";
+  const label = classKey === "gold" ? "Au"
+              : ticker.replace(/\.[A-Z]+$/i, "").slice(0, 2).toUpperCase();
+
+  return (
+    <div style={{
+      width: size, height: size, flexShrink: 0,
+      borderRadius: isCircle ? "50%" : Math.round(size * 0.28),
+      overflow: "hidden",
+      background: imgState === "ok" ? "#fff" : bg,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      border: "1.5px solid rgba(0,0,0,0.08)",
+      boxShadow: "0 1px 4px rgba(0,0,0,0.10)",
+      transition: "background 0.25s",
+    }}>
+      {url && imgState !== "fail" && (
+        <img src={url} alt={ticker}
+             width={Math.round(size * 0.72)} height={Math.round(size * 0.72)}
+             style={{ display: imgState === "ok" ? "block" : "none", objectFit: "contain" }}
+             onLoad={onLoad} onError={onError}/>
+      )}
+      {imgState !== "ok" && (
+        <span style={{
+          fontSize: Math.round(size * 0.33), fontWeight: 700,
+          color: "white", letterSpacing: "-0.5px", lineHeight: 1,
+          fontFamily: "var(--font-num)",
+        }}>{label}</span>
+      )}
+    </div>
+  );
+}
+
+window.AssetIcon = AssetIcon;

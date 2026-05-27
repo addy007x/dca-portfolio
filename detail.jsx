@@ -48,9 +48,7 @@ function Detail({ asset, ccy, onBack, onAddTx, accent }) {
       </button>
 
       <div className="detail-head">
-        <div className={`asset-logo ${asset.classKey}`}>
-          {asset.classKey === "gold" ? "Au" : asset.ticker.slice(0,2)}
-        </div>
+        <AssetIcon ticker={asset.ticker} classKey={asset.classKey} size={48}/>
         <div style={{flex:1, minWidth:0}}>
           <div style={{display:"flex", alignItems:"center", gap:10}}>
             <h2>{asset.ticker}</h2>

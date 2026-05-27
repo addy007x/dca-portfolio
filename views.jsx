@@ -100,9 +100,7 @@ function DCAView({ ccy, onAddDCA, onEditDCA }) {
               return (
                 <div className="dca-page-row" key={d.id}>
                   <div className="asset-name">
-                    <div className={`asset-logo ${d.classKey}`} style={{width:32, height:32, fontSize:12}}>
-                      {d.ticker === "XAUT" ? "Au" : d.ticker.slice(0,2)}
-                    </div>
+                    <AssetIcon ticker={d.ticker} classKey={d.classKey} size={32}/>
                     <div>
                       <div style={{fontWeight:700, fontFamily:"var(--font-mono)", fontSize:13}}>{d.ticker}</div>
                       <div style={{fontSize:11, color:"var(--muted)"}}>{d.classKey?.toUpperCase()}</div>
@@ -649,9 +647,7 @@ function BenchView({ ccy }) {
               onMouseEnter={e=>e.currentTarget.style.background="var(--surface-2)"}
               onMouseLeave={e=>e.currentTarget.style.background=""}>
                 <div style={{display:"flex", gap:8, alignItems:"center"}}>
-                  <div className={`asset-logo ${h.classKey}`} style={{width:28,height:28,fontSize:10}}>
-                    {h.classKey==="gold"?"Au":h.ticker.slice(0,2)}
-                  </div>
+                  <AssetIcon ticker={h.ticker} classKey={h.classKey} size={28}/>
                   <div>
                     <div style={{fontWeight:700, fontFamily:"var(--font-mono)", fontSize:12}}>{h.ticker}</div>
                     <div style={{fontSize:10, color:"var(--muted)"}}>{h.classKey?.toUpperCase()}</div>
@@ -990,9 +986,7 @@ function PortfolioView({ ccy, onOpenAsset, onAddHolding, onAddTx, onEditHolding 
             return (
               <div className="holdings-row" key={h.id} onClick={() => onOpenAsset(h)}>
                 <div className="asset-name">
-                  <div className={`asset-logo ${h.classKey}`}>
-                    {h.classKey === "gold" ? "Au" : h.ticker.slice(0,2)}
-                  </div>
+                  <AssetIcon ticker={h.ticker} classKey={h.classKey} size={32}/>
                   <div className="asset-meta">
                     <div className="asset-ticker">
                       {h.ticker}<span className="asset-class-tag">{classLabel}</span>

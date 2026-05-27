@@ -514,9 +514,7 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
           return (
             <div className="holdings-row" key={h.id} onClick={() => onOpenAsset(h)}>
               <div className="asset-name">
-                <div className={`asset-logo ${h.classKey}`}>
-                  {h.classKey === "gold" ? "Au" : h.ticker.slice(0,2)}
-                </div>
+                <AssetIcon ticker={h.ticker} classKey={h.classKey} size={32}/>
                 <div className="asset-meta">
                   <div className="asset-ticker">
                     {h.ticker}
@@ -600,9 +598,7 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
               const freqLabel = { daily: "วัน", weekly: "สัปดาห์", biweekly: "2 สัปดาห์", monthly: "เดือน" }[d.freq] || d.freq;
               return (
                 <div className="dca-item" key={d.id}>
-                  <div className={`asset-logo ${d.classKey}`}>
-                    {d.ticker === "XAUT" ? "Au" : d.ticker.slice(0,2)}
-                  </div>
+                  <AssetIcon ticker={d.ticker} classKey={d.classKey} size={30}/>
                   <div>
                     <div className="ticker">{d.ticker}</div>
                     <div className="schedule">
