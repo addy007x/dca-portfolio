@@ -159,17 +159,17 @@ function TransactionModal({ open, defaultTicker, holdings, onClose, onSave }) {
     });
   }, [open, defaultTicker]);
 
-  if (!open) return null;
-
+  // Auto-fill current price when ticker changes (must be before early return)
   const h = holdings.find(x => x.ticker === form.ticker);
-  const ccy = h?.ccy || "USD";
-  const ccySym = ccy === "THB" ? "฿" : "$";
-  const canSave = form.ticker && form.qty > 0 && form.pricePerUnit > 0;
-
-  // Auto-fill current price when ticker changes
   React.useEffect(() => {
     if (h && form.pricePerUnit === 0) setForm(f => ({...f, pricePerUnit: h.price}));
   }, [form.ticker]);
+
+  if (!open) return null;
+
+  const ccy = h?.ccy || "USD";
+  const ccySym = ccy === "THB" ? "฿" : "$";
+  const canSave = form.ticker && form.qty > 0 && form.pricePerUnit > 0;
 
   const submit = (e) => {
     e?.preventDefault();
