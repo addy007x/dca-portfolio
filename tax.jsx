@@ -203,33 +203,14 @@ function TaxView({ ccy }) {
       sub={`ปีภาษี ${year} · ข้อมูลประมาณการ — ควรปรึกษานักบัญชีหรือกรมสรรพากร`}
       actions={
         <div style={{display:"flex", gap:8, alignItems:"center"}}>
-          <div style={{position:"relative", display:"inline-block"}}>
-            <select value={year}
-                    onChange={e => setYear(parseInt(e.target.value))}
-                    style={{
-                      height: 36,
-                      padding: "0 32px 0 14px",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      border: "1px solid var(--line)",
-                      borderRadius: 10,
-                      background: "var(--surface)",
-                      color: "var(--ink)",
-                      cursor: "pointer",
-                      appearance: "none",
-                      WebkitAppearance: "none",
-                      MozAppearance: "none",
-                      fontFamily: "inherit",
-                      outline: "none",
-                    }}>
-              {years.map(y => <option key={y} value={y}>ปี {y}</option>)}
-            </select>
-            <span style={{
-              position:"absolute", right:12, top:"50%",
-              transform:"translateY(-50%)",
-              pointerEvents:"none", fontSize:9,
-              color:"var(--muted)",
-            }}>▼</span>
+          <div className="range-tabs">
+            {years.map(y => (
+              <button key={y}
+                      className={year === parseInt(y) ? "is-on" : ""}
+                      onClick={() => setYear(parseInt(y))}>
+                {y}
+              </button>
+            ))}
           </div>
           <button className="btn primary" onClick={exportCSV}>⬇ Export CSV</button>
         </div>
