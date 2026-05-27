@@ -25,74 +25,37 @@ const TAX_GUIDES = [
   { key:"gold",   icon:"🥇",  label:"ทองคำ",               exempt:false, desc:"เงินได้ ม.40(8) — กำไรจากการขายทองต้องนำคำนวณภาษี" },
 ];
 
-// ─────── Year Picker (calendar-style) ────────────────────────────────────────
+// ─────── Year Stepper ────────────────────────────────────────────────────────
 function YearPicker({ value, years, onChange }) {
-  const [open, setOpen] = React.useState(false);
-  const ref = React.useRef(null);
-
-  React.useEffect(() => {
-    if (!open) return;
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [open]);
-
+  const sorted = [...years].map(Number).sort((a,b) => a - b);
+  const idx    = sorted.indexOf(value);
+  const canPrev = idx > 0;
+  const canNext = idx < sorted.length - 1;
   return (
-    <div style={{position:"relative"}} ref={ref}>
-      <button onClick={() => setOpen(o => !o)}
-              style={{
-                display:"flex", alignItems:"center", gap:8,
-                height:36, padding:"0 14px",
-                background:"var(--surface)", border:"1px solid var(--line)",
-                borderRadius:10, cursor:"pointer", fontFamily:"inherit",
-                boxShadow: open ? "0 0 0 2px var(--accent)" : "none",
-                transition:"box-shadow .15s",
-              }}>
-        <span style={{fontSize:16}}>📅</span>
-        <div style={{textAlign:"left"}}>
-          <div style={{fontWeight:700, fontSize:13, lineHeight:1.2, color:"var(--ink)"}}>{value}</div>
-          <div style={{fontSize:10, color:"var(--muted)", lineHeight:1}}>พ.ศ. {value + 543}</div>
-        </div>
-        <span style={{fontSize:10, color:"var(--muted)", marginLeft:2}}>{open ? "▲" : "▼"}</span>
+    <div style={{display:"flex", alignItems:"center", gap:4,
+                 height:36, padding:"0 6px",
+                 background:"var(--surface)", border:"1px solid var(--line)",
+                 borderRadius:10}}>
+      <button onClick={() => canPrev && onChange(sorted[idx - 1])}
+              disabled={!canPrev}
+              style={{width:28, height:28, border:"none", background:"none",
+                      borderRadius:7, cursor: canPrev ? "pointer" : "default",
+                      color: canPrev ? "var(--ink)" : "var(--line)",
+                      fontSize:14, display:"flex", alignItems:"center", justifyContent:"center"}}>
+        ◀
       </button>
-
-      {open && (
-        <div style={{
-          position:"absolute", top:"calc(100% + 6px)", left:0,
-          background:"var(--surface)", border:"1px solid var(--line)",
-          borderRadius:14, boxShadow:"0 8px 28px rgba(0,0,0,.13)",
-          padding:12, zIndex:200, minWidth:210,
-        }}>
-          <div style={{fontSize:11, color:"var(--muted)", fontWeight:600,
-                       textAlign:"center", marginBottom:10, letterSpacing:"0.05em"}}>
-            เลือกปีภาษี
-          </div>
-          <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:6}}>
-            {[...years].sort().reverse().map(y => {
-              const yi = parseInt(y);
-              const sel = value === yi;
-              return (
-                <button key={y}
-                        onClick={() => { onChange(yi); setOpen(false); }}
-                        style={{
-                          padding:"10px 4px", borderRadius:10, cursor:"pointer",
-                          border: sel ? "2px solid var(--accent)" : "1.5px solid var(--line)",
-                          background: sel ? "var(--accent-soft)" : "var(--surface-2)",
-                          color: sel ? "var(--accent-ink)" : "var(--ink)",
-                          fontFamily:"inherit", textAlign:"center",
-                          transition:"all .15s",
-                        }}>
-                  <div style={{fontWeight:800, fontSize:16, lineHeight:1.1}}>{yi}</div>
-                  <div style={{fontSize:10, marginTop:3,
-                               color: sel ? "var(--accent-ink)" : "var(--muted)"}}>
-                    พ.ศ. {yi + 543}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <div style={{textAlign:"center", minWidth:72}}>
+        <div style={{fontWeight:700, fontSize:14, lineHeight:1.2, color:"var(--ink)"}}>{value}</div>
+        <div style={{fontSize:10, color:"var(--muted)", lineHeight:1}}>พ.ศ. {value + 543}</div>
+      </div>
+      <button onClick={() => canNext && onChange(sorted[idx + 1])}
+              disabled={!canNext}
+              style={{width:28, height:28, border:"none", background:"none",
+                      borderRadius:7, cursor: canNext ? "pointer" : "default",
+                      color: canNext ? "var(--ink)" : "var(--line)",
+                      fontSize:14, display:"flex", alignItems:"center", justifyContent:"center"}}>
+        ▶
+      </button>
     </div>
   );
 }
