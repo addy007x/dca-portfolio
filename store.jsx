@@ -42,24 +42,7 @@ function computeNextDCA(dca, fromISO = todayISO()) {
 function buildSeed() {
   const M = window.MOCK;
   const hold = M.HOLDINGS_MIXED.map(h => ({ ...h, id: makeId("h") }));
-  const dca = M.DCA_SCHEDULES.map((d, i) => {
-    // Parse "อีก N วัน" into days
-    const m = String(d.nextIn).match(/(\d+)/);
-    const inDays = m ? parseInt(m[1], 10) : 7;
-    return {
-      id: makeId("dca"),
-      ticker: d.ticker,
-      classKey: d.classKey,
-      ccy: d.ccy,
-      amount: d.amount,
-      freq: d.freq === "สัปดาห์" ? "weekly" : d.freq === "เดือน" ? "monthly" : "weekly",
-      startDate: daysFromNow(-(d.executed * (d.freq === "เดือน" ? 30 : 7))),
-      nextDate: daysFromNow(inDays),
-      executedCount: d.executed,
-      totalSpent: d.total,
-      paused: false,
-    };
-  });
+  const dca = []; // Users create their own DCA schedules
   const earn = M.EARN_POSITIONS.map(e => ({ ...e, id: makeId("e") }));
   const tx = M.TX_NVDA.map(t => ({ ...t, id: makeId("tx"), ticker: "NVDA", ccy: "USD" }));
   return {

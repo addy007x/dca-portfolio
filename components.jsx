@@ -1,10 +1,10 @@
 // Sidebar + Topbar + small shared bits
 
-function Sidebar({ active, onNav, scenario }) {
+function Sidebar({ active, onNav, dcaDueCount = 0 }) {
   const items = [
     { key: "dashboard", icon: "home", label: "หน้าแรก", labelShort: "หน้าแรก" },
     { key: "portfolio", icon: "wallet", label: "พอร์ตการลงทุน", labelShort: "พอร์ต" },
-    { key: "dca", icon: "dca", label: "DCA Schedule", labelShort: "DCA", badge: "5" },
+    { key: "dca", icon: "dca", label: "DCA Schedule", labelShort: "DCA", badge: dcaDueCount > 0 ? String(dcaDueCount) : null },
     { key: "earn", icon: "earn", label: "Earn", labelShort: "Earn" },
     { key: "history", icon: "history", label: "ประวัติธุรกรรม", labelShort: "ประวัติ", mobileHide: true },
     { key: "tax", icon: "tax", label: "รายงานภาษี", labelShort: "ภาษี", mobileHide: true },

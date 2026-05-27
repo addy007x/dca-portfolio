@@ -60,7 +60,8 @@ function App() {
     <>
       <div className="app">
         <Sidebar active={activeNav}
-                 onNav={(k) => goTo(k === "portfolio" ? "dashboard" : k)}/>
+                 onNav={(k) => goTo(k === "portfolio" ? "dashboard" : k)}
+                 dcaDueCount={store.dca.filter(d => !d.paused && d.nextDate && d.nextDate <= window.todayISO()).length}/>
         <main className="main">
           <Topbar ccy={s.ccy}
                   onCcy={(c) => window.updateSettings({ ccy: c })}
