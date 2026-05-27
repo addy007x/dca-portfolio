@@ -1317,3 +1317,29 @@ button { font-family: inherit; cursor: pointer; }
 /* Tweaks panel extras */
 .twk-action-row { display: flex; gap: 8px; }
 .twk-action-row button { flex: 1; }
+
+/* ── Mascot beach scene animations ── */
+@keyframes mascot-wave {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes mascot-cloud-a {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(calc(100vw + 120px)); }
+}
+@keyframes mascot-cloud-b {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(calc(100vw + 120px)); }
+}
+@keyframes mascot-sun-pulse {
+  0%,100% { box-shadow: 0 0 14px 4px rgba(255,220,50,0.45); }
+  50%      { box-shadow: 0 0 22px 8px rgba(255,220,50,0.70); }
+}
+@keyframes mascot-bob {
+  0%,100% { transform: translateY(0px); }
+  50%     { transform: translateY(-3px); }
+}
+@keyframes mascot-star-twinkle {
+  0%,100% { opacity:0.6; transform:scale(1); }
+  50%     { opacity:1;   transform:scale(1.25); }
+}

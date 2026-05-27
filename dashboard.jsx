@@ -1,92 +1,256 @@
 // Main Dashboard view — store-backed
 
-// ─────── Mascot walking sprite ───────
+// ─────── Beach scene cloud ───────
+function BeachCloud({ style, animName, duration, delay }) {
+  return (
+    <div style={{
+      position:"absolute", pointerEvents:"none",
+      animation:`${animName} ${duration}s linear ${delay}s infinite`,
+      ...style,
+    }}>
+      {/* Main cloud body */}
+      <div style={{
+        position:"relative",
+        width:style.width || 70,
+        height: (style.width || 70) * 0.4,
+        background:"rgba(255,255,255,0.92)",
+        borderRadius: 999,
+        boxShadow:"0 2px 8px rgba(255,255,255,0.5)",
+      }}>
+        {/* Left puff */}
+        <div style={{
+          position:"absolute", top:"-40%", left:"10%",
+          width:"38%", height:"80%",
+          background:"rgba(255,255,255,0.95)",
+          borderRadius:"50%",
+        }}/>
+        {/* Centre puff */}
+        <div style={{
+          position:"absolute", top:"-55%", left:"30%",
+          width:"45%", height:"95%",
+          background:"white",
+          borderRadius:"50%",
+        }}/>
+        {/* Right puff */}
+        <div style={{
+          position:"absolute", top:"-30%", left:"55%",
+          width:"32%", height:"70%",
+          background:"rgba(255,255,255,0.9)",
+          borderRadius:"50%",
+        }}/>
+      </div>
+    </div>
+  );
+}
+
+// ─────── Mascot walking sprite with full beach scene ───────
 function HeroMascot({ dayPct }) {
   const containerRef = React.useRef(null);
   const [vis, setVis] = React.useState(true);
-  // sprite state held in a ref to avoid stale closures
-  const stRef = React.useRef({ pos: -90, dir: 1, frame: 0, tick: 0 });
-  const [rs, setRs] = React.useState({ pos: -90, dir: 1, frame: 0 });
+  const stRef = React.useRef({ pos: -100, dir: 1, frame: 0, tick: 0 });
+  const [rs, setRs]   = React.useState({ pos: -100, dir: 1, frame: 0 });
 
-  // Frame sets depending on performance
-  // up:   beach-ball(0) → surfing(3) → swim-ring(1) → surfing(3)
-  // down: water-gun(2) → water-gun(2) → beach-ball(0) → water-gun(2)
-  // neutral: 0→1→2→3
   const isUp = dayPct >= 0;
-  const FRAME_SEQ = isUp ? [0, 3, 1, 3] : [2, 2, 0, 2];
 
-  // Sprite sheet: 2×2 grid  =>  background-size 200% 200%
-  // TL=beach ball  TR=swim ring  BL=water gun  BR=surfing
+  // Frame mapping: TL=0 beach-ball  TR=1 swim-ring  BL=2 water-gun  BR=3 surfing
+  const FRAME_SEQ = isUp ? [0, 3, 1, 3] : [2, 2, 0, 2];
   const FRAME_POS = [
-    { bx:"0%",   by:"0%" },    // 0 beach ball
-    { bx:"100%", by:"0%" },    // 1 swim ring
-    { bx:"0%",   by:"100%" },  // 2 water gun
-    { bx:"100%", by:"100%" },  // 3 surfing
+    { bx:"0%",   by:"0%" },
+    { bx:"100%", by:"0%" },
+    { bx:"0%",   by:"100%" },
+    { bx:"100%", by:"100%" },
   ];
 
   React.useEffect(() => {
-    const SPEED     = 2.8;   // px per 50ms tick  ≈ 56 px/s
-    const FRAME_TKS = 8;     // ticks between sprite frames (8×50ms = 400ms)
-    const SIZE      = 90;
-
+    const SPEED = 2.4, FRAME_TKS = 8, SIZE = 96;
     const id = setInterval(() => {
       const st = stRef.current;
-      const w  = containerRef.current?.offsetWidth || 480;
-
+      const w  = containerRef.current?.offsetWidth || 500;
       st.pos += st.dir * SPEED;
-      if (st.pos > w + SIZE * 0.3) { st.dir = -1; }
-      if (st.pos < -SIZE)          { st.dir =  1; }
-
+      if (st.pos > w + SIZE * 0.3)  st.dir = -1;
+      if (st.pos < -SIZE)            st.dir =  1;
       st.tick++;
       if (st.tick >= FRAME_TKS) { st.frame = (st.frame + 1) % 4; st.tick = 0; }
-
       setRs({ pos: st.pos, dir: st.dir, frame: st.frame });
     }, 50);
-
     return () => clearInterval(id);
   }, []);
 
   if (!vis) return null;
-
   const fp = FRAME_POS[FRAME_SEQ[rs.frame]];
+
+  // Sky colours change based on performance
+  const skyTop    = isUp ? "#5BC8F5" : "#7896B4";
+  const skyBot    = isUp ? "#A8DFFF" : "#B0C8D8";
+  const seaTop    = isUp ? "#1E9ECC" : "#5077A0";
+  const seaBot    = isUp ? "#1578A8" : "#3A5F80";
+  const sandTop   = isUp ? "#F9DC72" : "#D4BC5A";
+  const sandBot   = isUp ? "#EEC845" : "#C0A848";
 
   return (
     <div ref={containerRef} style={{
-      position:"absolute", bottom:0, left:0, right:0, height:96,
-      pointerEvents:"none", overflow:"hidden", borderRadius:"0 0 16px 16px",
+      position:"absolute", bottom:0, left:0, right:0, height:148,
+      overflow:"hidden", borderRadius:"0 0 var(--radius) var(--radius)",
+      pointerEvents:"none",
     }}>
-      {/* Soft ground shimmer */}
+
+      {/* ── Sky ── */}
       <div style={{
-        position:"absolute", bottom:0, left:0, right:0, height:3,
-        background:"linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.25) 50%,transparent 100%)",
+        position:"absolute", inset:0,
+        background:`linear-gradient(180deg, ${skyTop} 0%, ${skyBot} 100%)`,
+        transition:"background 1.2s",
       }}/>
-      {/* Walking character */}
+
+      {/* ── Sun (only when up) ── */}
+      {isUp && (
+        <div style={{
+          position:"absolute", top:14, right:56,
+          width:30, height:30, borderRadius:"50%",
+          background:"radial-gradient(circle, #FFF176 0%, #FFD740 60%, #FFC107 100%)",
+          animation:"mascot-sun-pulse 3s ease-in-out infinite",
+        }}>
+          {/* Sun rays */}
+          {[0,45,90,135].map(deg => (
+            <div key={deg} style={{
+              position:"absolute", top:"50%", left:"50%",
+              width:38, height:2,
+              background:"linear-gradient(90deg,rgba(255,220,50,0.7),transparent)",
+              transformOrigin:"0 50%",
+              transform:`translate(12px,-1px) rotate(${deg}deg)`,
+              borderRadius:2,
+            }}/>
+          ))}
+        </div>
+      )}
+
+      {/* ── Stars (only when down — night/storm mood) ── */}
+      {!isUp && [
+        {x:"12%",y:12,d:"0s"},{x:"28%",y:7,d:"0.6s"},{x:"55%",y:14,d:"1.1s"},
+        {x:"72%",y:8,d:"0.3s"},{x:"88%",y:16,d:"0.8s"},
+      ].map((s,i) => (
+        <div key={i} style={{
+          position:"absolute", left:s.x, top:s.y,
+          width:4, height:4, borderRadius:"50%",
+          background:"white",
+          animation:`mascot-star-twinkle 2s ease-in-out ${s.d} infinite`,
+        }}/>
+      ))}
+
+      {/* ── Clouds ── */}
+      <BeachCloud
+        style={{ top:10, left:"-80px", width:90 }}
+        animName="mascot-cloud-a" duration={38} delay={0}/>
+      <BeachCloud
+        style={{ top:6, left:"-160px", width:70, opacity:0.85 }}
+        animName="mascot-cloud-a" duration={52} delay={-18}/>
+      <BeachCloud
+        style={{ top:18, left:"-220px", width:60, opacity:0.7 }}
+        animName="mascot-cloud-b" duration={44} delay={-32}/>
+
+      {/* ── Distant hills / horizon glow ── */}
+      <div style={{
+        position:"absolute", bottom:58, left:0, right:0, height:18,
+        background:`linear-gradient(180deg, transparent 0%, ${isUp?"rgba(30,158,204,0.3)":"rgba(50,77,100,0.3)"} 100%)`,
+        transition:"background 1.2s",
+      }}/>
+
+      {/* ── Sea ── */}
+      <div style={{
+        position:"absolute", bottom:36, left:0, right:0, height:56,
+        background:`linear-gradient(180deg, ${seaTop} 0%, ${seaBot} 100%)`,
+        transition:"background 1.2s",
+      }}>
+        {/* subtle sea shimmer */}
+        <div style={{
+          position:"absolute", inset:0,
+          backgroundImage:"repeating-linear-gradient(90deg,rgba(255,255,255,0.06) 0px,rgba(255,255,255,0.06) 2px,transparent 2px,transparent 24px)",
+          animation:"mascot-wave 8s linear infinite",
+        }}/>
+      </div>
+
+      {/* ── Wave crest (animated scroll) ── */}
+      <div style={{
+        position:"absolute", bottom:54, left:0, right:0, height:22,
+        overflow:"hidden",
+      }}>
+        <div style={{
+          position:"absolute", top:0, left:0,
+          width:"300%", height:"100%",
+          animation:"mascot-wave 4s linear infinite",
+          backgroundImage:`
+            radial-gradient(ellipse 40px 14px at 40px 100%, rgba(255,255,255,${isUp?0.55:0.25}) 0%, transparent 70%),
+            radial-gradient(ellipse 28px 10px at 95px 100%, rgba(255,255,255,${isUp?0.4:0.18}) 0%, transparent 70%),
+            radial-gradient(ellipse 35px 12px at 150px 100%, rgba(255,255,255,${isUp?0.5:0.22}) 0%, transparent 70%)
+          `,
+          backgroundSize:"160px 100%",
+        }}/>
+      </div>
+      {/* Wave foam edge */}
+      <div style={{
+        position:"absolute", bottom:50, left:0, right:0, height:8,
+        overflow:"hidden",
+      }}>
+        <div style={{
+          position:"absolute", top:0, left:0,
+          width:"200%", height:"100%",
+          animation:"mascot-wave 3.2s linear infinite",
+          background:`repeating-linear-gradient(90deg,
+            rgba(255,255,255,${isUp?0.7:0.3}) 0px, rgba(255,255,255,0) 24px,
+            transparent 24px, transparent 60px)`,
+        }}/>
+      </div>
+
+      {/* ── Sand ── */}
+      <div style={{
+        position:"absolute", bottom:0, left:0, right:0, height:38,
+        background:`linear-gradient(180deg, ${sandTop} 0%, ${sandBot} 100%)`,
+        transition:"background 1.2s",
+      }}>
+        {/* Sand pebble texture */}
+        <div style={{
+          position:"absolute", inset:0,
+          backgroundImage:"radial-gradient(circle,rgba(0,0,0,0.05) 1px,transparent 1px)",
+          backgroundSize:"10px 10px",
+          backgroundPosition:"0 0",
+        }}/>
+        {/* Sand wet edge (darker near water) */}
+        <div style={{
+          position:"absolute", top:0, left:0, right:0, height:8,
+          background:`linear-gradient(180deg, ${isUp?"rgba(200,160,40,0.45)":"rgba(150,120,40,0.45)"} 0%, transparent 100%)`,
+        }}/>
+      </div>
+
+      {/* ── Mascot shadow ── */}
       <div style={{
         position:"absolute",
-        bottom:0,
+        bottom:30,
+        left: rs.pos + 8,
+        width:72, height:10,
+        borderRadius:"50%",
+        background:"rgba(0,0,0,0.14)",
+        filter:"blur(5px)",
+        transform:`scaleX(${rs.dir})`,
+        transformOrigin:"36px 5px",
+      }}/>
+
+      {/* ── Mascot sprite ── */}
+      <div style={{
+        position:"absolute",
+        bottom:26,
         left: rs.pos,
-        width:90, height:90,
+        width:96, height:96,
         backgroundImage:"url('mascot.png')",
         backgroundSize:"200% 200%",
         backgroundPosition:`${fp.bx} ${fp.by}`,
         backgroundRepeat:"no-repeat",
         transform:`scaleX(${rs.dir})`,
-        transformOrigin:"45px 45px",
-        filter: isUp ? "drop-shadow(0 2px 6px rgba(0,0,0,0.18))"
-                     : "saturate(0.65) drop-shadow(0 2px 6px rgba(0,0,0,0.18))",
-        transition:"filter 0.6s",
+        transformOrigin:"48px 48px",
+        filter: isUp
+          ? "drop-shadow(0 3px 8px rgba(0,0,0,0.28))"
+          : "saturate(0.55) brightness(0.9) drop-shadow(0 3px 8px rgba(0,0,0,0.3))",
+        transition:"filter 1s",
       }} onError={() => setVis(false)}/>
-      {/* Tiny shadow under feet */}
-      <div style={{
-        position:"absolute",
-        bottom:0,
-        left: rs.pos + 12,
-        width:66, height:6,
-        borderRadius:"50%",
-        background:"rgba(0,0,0,0.10)",
-        filter:"blur(3px)",
-        transform:`scaleX(${rs.dir})`,
-      }}/>
+
     </div>
   );
 }
@@ -182,7 +346,7 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
     <>
       {/* ===== Hero ===== */}
       <section className="hero">
-        <div className="card hero-main tint" style={{position:"relative", paddingBottom:102, overflow:"hidden"}}>
+        <div className="card hero-main tint" style={{position:"relative", paddingBottom:160, overflow:"hidden"}}>
           <div className="hero-eye">
             <Ico name="eye" size={14}/> มูลค่าพอร์ตรวม (ทุกสินทรัพย์)
           </div>
