@@ -26,6 +26,7 @@ function App() {
   const [showEarnModal, setShowEarnModal] = React.useState(false);
   const [editHolding, setEditHolding] = React.useState(null);
   const [editDCA, setEditDCA] = React.useState(null);
+  const [searchQuery, setSearchQuery] = React.useState("");
 
   // Apply theme/density/accent
   React.useEffect(() => {
@@ -67,7 +68,9 @@ function App() {
                   onCcy={(c) => window.updateSettings({ ccy: c })}
                   onAdd={() => setShowTxModal(true)}
                   priceStatus={priceStatus}
-                  onSettings={() => window.postMessage({ type: '__activate_edit_mode' }, '*')}/>
+                  onSettings={() => window.postMessage({ type: '__activate_edit_mode' }, '*')}
+                  searchQuery={searchQuery}
+                  onSearch={setSearchQuery}/>
 
           {(view.kind === "dashboard" || view.kind === "portfolio") && <DCAReminderBanner/>}
 
@@ -88,7 +91,8 @@ function App() {
                          onAddDCA={openDcaModal}
                          onAddEarn={() => setShowEarnModal(true)}
                          onEditHolding={(h) => { setEditHolding(h); setShowHoldingModal(true); }}
-                         accent={`var(--accent)`}/>
+                         accent={`var(--accent)`}
+                         searchQuery={searchQuery}/>
           }
         </main>
       </div>

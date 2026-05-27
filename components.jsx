@@ -46,7 +46,7 @@ function Sidebar({ active, onNav, dcaDueCount = 0 }) {
   );
 }
 
-function Topbar({ ccy, onCcy, onAdd, priceStatus, onSettings }) {
+function Topbar({ ccy, onCcy, onAdd, priceStatus, onSettings, searchQuery, onSearch }) {
   const today = new Date();
   const days = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
   const months = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
@@ -78,11 +78,16 @@ function Topbar({ ccy, onCcy, onAdd, priceStatus, onSettings }) {
         </div>
         <div className="search">
           <Ico name="search" size={16}/>
-          <input placeholder="ค้นหา ticker, ธุรกรรม..."/>
+          <input placeholder="ค้นหา ticker..."
+                 value={searchQuery || ""}
+                 onChange={e => onSearch && onSearch(e.target.value)}/>
+          {searchQuery && (
+            <button onClick={() => onSearch("")}
+                    style={{background:"none",border:"none",cursor:"pointer",padding:"0 4px",color:"var(--muted)",lineHeight:1,fontSize:16}}>
+              ×
+            </button>
+          )}
         </div>
-        <button className="icon-btn" aria-label="แจ้งเตือน">
-          <Ico name="bell" size={18}/>
-        </button>
         <button className="icon-btn" aria-label="ตั้งค่า" onClick={onSettings} title="ตั้งค่า">
           <Ico name="settings" size={18}/>
         </button>

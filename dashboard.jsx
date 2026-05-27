@@ -1,12 +1,17 @@
 // Main Dashboard view — store-backed
 
-function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEarn, onEditHolding, accent }) {
+function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEarn, onEditHolding, accent, searchQuery }) {
   const store = window.useStore();
   const M = window.MOCK; // still used for portfolio history baseline
-  const holdings = store.holdings;
+  const allHoldings = store.holdings;
+  const holdings = searchQuery
+    ? allHoldings.filter(h =>
+        h.ticker.toUpperCase().includes(searchQuery.toUpperCase()) ||
+        (h.name || "").toUpperCase().includes(searchQuery.toUpperCase())
+      )
+    : allHoldings;
   const dcaList = store.dca;
   const earnList = store.earn;
-  const alerts = store.rebalanceAlerts;
   const benchmarks = store.benchmarks || M.BENCHMARKS;
   const FX = store.fx || 35.8;
 
@@ -18,11 +23,11 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
     setConfirm(null);
   };
 
-  // Aggregate metrics
+  // Aggregate metrics (always use full list, not filtered)
   const totals = React.useMemo(() => {
     let mvTHB = 0, costTHB = 0, dayChgTHB = 0;
     const byClass = { us: 0, th: 0, crypto: 0, gold: 0 };
-    holdings.forEach(h => {
+    allHoldings.forEach(h => {
       const mv = h.qty * h.price;
       const cost = h.qty * h.costAvg;
       const dayChg = mv * ((h.chg1d || 0) / 100);
@@ -35,7 +40,7 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
       if (byClass[h.classKey] != null) byClass[h.classKey] += mvT;
     });
     return { mvTHB, costTHB, dayChgTHB, byClass };
-  }, [holdings, FX]);
+  }, [allHoldings, FX]);
 
   const unrealTHB = totals.mvTHB - totals.costTHB;
   const unrealPct = totals.costTHB > 0 ? (unrealTHB / totals.costTHB) * 100 : 0;
@@ -394,13 +399,10 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
         </div>
       </section>
 
-      {/* ===== Earn + Bench + Rebalance ===== */}
+      {/* ===== Earn + Bench ===== */}
       <section className="row-2">
-        <EarnPanel ccy={ccy} positions={earnList} FX={FX} holdings={holdings} askConfirm={askConfirm} onAdd={onAddEarn}/>
-        <div style={{display:"flex", flexDirection:"column", gap:20}}>
-          <BenchmarkCard benchmarks={benchmarks}/>
-          <RebalanceCard alerts={alerts}/>
-        </div>
+        <EarnPanel ccy={ccy} positions={earnList} FX={FX} holdings={allHoldings} askConfirm={askConfirm} onAdd={onAddEarn}/>
+        <BenchmarkCard benchmarks={benchmarks}/>
       </section>
 
       <ConfirmDialog open={!!confirm}
@@ -643,47 +645,6 @@ function BenchmarkCard({ benchmarks }) {
             </div>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-function RebalanceCard({ alerts }) {
-  return (
-    <div className="card">
-      <div className="card-head">
-        <div>
-          <div className="card-title">
-            <Ico name="alert" size={14}/> แจ้งเตือนปรับสมดุล
-          </div>
-          <div className="card-sub">
-            {alerts.length > 0 ? "สัดส่วนเบี่ยงจากเป้า · แนะนำให้ดำเนินการ" : "พอร์ตอยู่ในสมดุลที่ตั้งไว้ 🎯"}
-          </div>
-        </div>
-      </div>
-      <div className="reb-list">
-        {alerts.length === 0 && (
-          <div style={{padding:"12px 8px", textAlign:"center", color:"var(--muted)", fontSize:12}}>
-            ไม่มีการแจ้งเตือนในขณะนี้
-          </div>
-        )}
-        {alerts.map((r) => (
-          <div className="reb-row" key={r.id || r.ticker}>
-            <div>
-              <div style={{display:"flex", alignItems:"center", gap:8}}>
-                <span style={{fontWeight:700, fontFamily:"var(--font-mono)", fontSize:13}}>{r.ticker}</span>
-                <span className="num" style={{fontSize:12, color:"var(--muted)"}}>{r.delta}</span>
-              </div>
-              <div className="reason">{r.reason}</div>
-            </div>
-            <span className={`pill ${r.action}`}>{r.action === "buy" ? "ซื้อเพิ่ม" : "ขายบางส่วน"}</span>
-            <button className="row-action danger"
-                    title="ปิดการแจ้งเตือน"
-                    onClick={() => window.dismissAlert(r.id || r.ticker)}>
-              <Ico name="x" size={14}/>
-            </button>
-          </div>
-        ))}
       </div>
     </div>
   );
