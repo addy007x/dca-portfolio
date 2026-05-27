@@ -74,6 +74,12 @@ function loadStore() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed.version === STORE_VERSION) return parsed;
+      // v1 → v2 migration: keep holdings/tx/earn, clear seeded DCAs
+      if (parsed.version === 1) {
+        const migrated = { ...parsed, version: STORE_VERSION, dca: [] };
+        saveStore(migrated);
+        return migrated;
+      }
     }
   } catch (e) {
     console.warn("Store load failed, seeding fresh:", e);
