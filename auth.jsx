@@ -199,10 +199,15 @@ function useAuthSession() {
 
 function AuthSetupPanel() {
   return (
-    <div className="auth-shell">
+    <div className="auth-shell auth-shell-fantasy">
+      <section className="auth-hero-copy">
+        <div className="auth-kicker">SiamFolio</div>
+        <h1>คลังพอร์ตนักลงทุน</h1>
+        <p>ล็อกอินเพื่อเปิดห้องเก็บข้อมูลพอร์ตของคุณแบบส่วนตัว</p>
+      </section>
       <div className="auth-card">
-        <div className="auth-brand">SiamFolio</div>
-        <h1>กำลังเตรียมระบบล็อกอิน</h1>
+        <div className="auth-brand">ระบบยังไม่พร้อม</div>
+        <h1>กำลังเตรียมประตูเข้าสู่ระบบ</h1>
         <p>เว็บนี้ใช้ Google login อย่างเดียว แต่ยังขาด `apiUrl` ใน `auth-config.js`</p>
         <p className="auth-note">หลังตั้ง Worker URL แล้ว ผู้ใช้จะเห็นปุ่ม Google และเข้าใช้งานได้ทันที</p>
       </div>
@@ -270,10 +275,20 @@ function AuthForm() {
   }, [cfg.googleClientId]);
 
   return (
-    <div className="auth-shell">
+    <div className="auth-shell auth-shell-fantasy">
+      <section className="auth-hero-copy">
+        <div className="auth-kicker">SiamFolio</div>
+        <h1>เข้าสู่ดินแดนพอร์ตของคุณ</h1>
+        <p>ติดตาม DCA, กำไร, สินทรัพย์ และแผนสะสมระยะยาวในห้องบัญชีเดียว</p>
+        <div className="auth-runes">
+          <span>Portfolio</span>
+          <span>DCA</span>
+          <span>Cloud Sync</span>
+        </div>
+      </section>
       <div className="auth-card">
-        <div className="auth-brand">SiamFolio</div>
-        <h1>เข้าสู่ระบบ</h1>
+        <div className="auth-brand">Secure Gate</div>
+        <h1>เริ่มการเดินทาง</h1>
         <p>ใช้ Google เพื่อเข้าใช้งานและแยกข้อมูลพอร์ตของแต่ละบัญชีอัตโนมัติ</p>
         <div className={busy ? "auth-google-wrap is-busy" : "auth-google-wrap"} ref={buttonRef}>
           {!cfg.googleClientId && !message ? "กำลังเตรียมปุ่ม Google..." : null}
