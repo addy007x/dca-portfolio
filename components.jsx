@@ -2,7 +2,7 @@
 
 function Sidebar({ active, onNav, dcaDueCount = 0 }) {
   const authUser = window.useAuthUser?.();
-  const displayName = authUser?.name || "คุณภัทร";
+  const displayName = window.getAuthDisplayName?.(authUser) || "SiamFolio";
   const items = [
     { key: "dashboard", icon: "home", label: "หน้าแรก", labelShort: "หน้าแรก" },
     { key: "portfolio", icon: "wallet", label: "พอร์ตการลงทุน", labelShort: "พอร์ต" },
@@ -58,7 +58,7 @@ function Sidebar({ active, onNav, dcaDueCount = 0 }) {
 
 function Topbar({ ccy, onCcy, onAdd, priceStatus, onSettings, searchQuery, onSearch }) {
   const authUser = window.useAuthUser?.();
-  const displayName = authUser?.name || "คุณภัทร";
+  const displayName = window.getAuthDisplayName?.(authUser) || "SiamFolio";
   const [now, setNow] = React.useState(() => new Date());
   React.useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);

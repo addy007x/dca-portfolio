@@ -69,6 +69,13 @@ function getAuthUser() {
   return loadAuthSession()?.user || null;
 }
 
+function getAuthDisplayName(user = getAuthUser()) {
+  const name = (user?.name || "").trim();
+  if (name) return name;
+  const emailName = (user?.email || "").split("@")[0]?.trim();
+  return emailName || "SiamFolio";
+}
+
 function useAuthUser() {
   const [user, setUser] = React.useState(() => getAuthUser());
 
@@ -330,6 +337,7 @@ Object.assign(window, {
   isAuthConfigured,
   isSupabaseConfigured: isAuthConfigured,
   getAuthUser,
+  getAuthDisplayName,
   useAuthUser,
   signInWithGoogleCredential,
   scheduleCloudSync,
