@@ -162,8 +162,8 @@ function App() {
           <NotifPermissionButton/>
         </TweakSection>
 
-        <TweakSection label="Backend (Phase B)">
-          <BackendConfigPanel/>
+        <TweakSection label="Database">
+          <LocalDatabasePanel priceStatus={priceStatus}/>
         </TweakSection>
 
         <TweakSection label="ข้อมูล">
@@ -254,7 +254,76 @@ function importPortfolio() {
   input.click();
 }
 
-// ─────── Backend config panel (Tweaks > Backend) ───────
+// Local database panel (Settings > Database)
+function LocalDatabasePanel({ priceStatus }) {
+  const store = window.useStore();
+  const mode = window.useDatabaseMode ? window.useDatabaseMode() : "local";
+  const livePrices = store.settings.livePrices === true;
+  const [msg, setMsg] = React.useState("");
+
+  React.useEffect(() => {
+    if (mode === "local") window.setAutoSync?.(false);
+  }, [mode]);
+
+  const useLocal = () => {
+    window.setDatabaseMode?.("local");
+    setMsg("ใช้ฐานข้อมูลในเครื่องแล้ว");
+  };
+
+  const toggleLivePrices = () => {
+    const next = !livePrices;
+    window.updateSettings({ livePrices: next });
+    setMsg(next ? "เปิดอัปเดตราคาจาก API แล้ว" : "ปิด API ราคาแล้ว ใช้ราคาที่กรอกเอง");
+    if (next) setTimeout(() => priceStatus?.refresh?.(), 0);
+  };
+
+  const clearCloudConfig = () => {
+    window.setBackendConfig?.(null);
+    window.setAutoSync?.(false);
+    setMsg("ล้างการเชื่อมต่อ backend แล้ว");
+  };
+
+  return (
+    <div style={{display:"flex", flexDirection:"column", gap:8}}>
+      <div style={{
+        padding:"8px 10px",
+        border:"1px solid var(--line)",
+        borderRadius:8,
+        background:"var(--accent-soft)",
+      }}>
+        <div style={{fontSize:12, fontWeight:700, color:"var(--accent-ink)"}}>
+          ฐานข้อมูลในเครื่อง
+        </div>
+        <div style={{fontSize:10, color:"var(--muted)", marginTop:2}}>
+          บันทึกพอร์ต, DCA, รายการซื้อขาย และ Earn ไว้ใน browser ของเครื่องนี้
+        </div>
+      </div>
+
+      <div style={{display:"flex", alignItems:"center", justifyContent:"space-between",
+                   padding:"6px 10px", borderRadius:8, background:"var(--surface)",
+                   border:"1px solid var(--line)"}}>
+        <div>
+          <div style={{fontSize:12, fontWeight:600}}>Live price API</div>
+          <div style={{fontSize:10, color:"var(--muted)"}}>
+            {livePrices ? "ดึงราคาตลาดอัตโนมัติ" : "ปิดอยู่ ใช้ราคาที่กรอกเอง"}
+          </div>
+        </div>
+        <button type="button" className="twk-toggle" data-on={livePrices ? "1" : "0"}
+                role="switch" aria-checked={livePrices}
+                onClick={toggleLivePrices}><i /></button>
+      </div>
+
+      <div className="twk-action-row">
+        <button className="twk-btn secondary" onClick={useLocal}>ใช้ฐานข้อมูลนี้</button>
+        <button className="twk-btn secondary" onClick={clearCloudConfig}>ล้าง backend</button>
+      </div>
+
+      {msg && <div style={{fontSize:10, color:"var(--up)"}}>✓ {msg}</div>}
+    </div>
+  );
+}
+
+// ─────── Backend config panel (legacy cloud sync) ───────
 function BackendConfigPanel() {
   const current = window.useBackendStatus();
   const [url, setUrl] = React.useState(current?.url || "");

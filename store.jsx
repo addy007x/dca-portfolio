@@ -61,6 +61,7 @@ function buildSeed() {
       theme: "light",
       density: "comfortable",
       accent: "mint",
+      livePrices: false,
       notifyDCA: false, // user must opt-in
       seeded: true,
     },
@@ -73,10 +74,20 @@ function loadStore() {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.version === STORE_VERSION) return parsed;
+      if (parsed.version === STORE_VERSION) {
+        return {
+          ...parsed,
+          settings: { ...buildSeed().settings, ...(parsed.settings || {}) },
+        };
+      }
       // v1 → v2 migration: keep holdings/tx/earn, clear seeded DCAs
       if (parsed.version === 1) {
-        const migrated = { ...parsed, version: STORE_VERSION, dca: [] };
+        const migrated = {
+          ...parsed,
+          version: STORE_VERSION,
+          dca: [],
+          settings: { ...buildSeed().settings, ...(parsed.settings || {}) },
+        };
         saveStore(migrated);
         return migrated;
       }

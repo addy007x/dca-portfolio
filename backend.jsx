@@ -5,9 +5,26 @@
 // Config lives in localStorage key 'siamfolio.backend' as { url, key }.
 
 const BACKEND_KEY = "siamfolio.backend";
+const DATABASE_MODE_KEY = "siamfolio.databaseMode";
+
+function getDatabaseMode() {
+  return localStorage.getItem(DATABASE_MODE_KEY) === "cloud" ? "cloud" : "local";
+}
+
+function setDatabaseMode(mode) {
+  const next = mode === "cloud" ? "cloud" : "local";
+  localStorage.setItem(DATABASE_MODE_KEY, next);
+  if (next === "local") {
+    localStorage.removeItem(BACKEND_KEY);
+    setAutoSync(false);
+  }
+  window.dispatchEvent(new Event("siamfolio.database.changed"));
+  window.dispatchEvent(new Event("siamfolio.backend.changed"));
+}
 
 function getBackendConfig() {
   try {
+    if (getDatabaseMode() !== "cloud") return null;
     const raw = localStorage.getItem(BACKEND_KEY);
     if (!raw) return null;
     const cfg = JSON.parse(raw);
@@ -17,9 +34,15 @@ function getBackendConfig() {
 }
 
 function setBackendConfig(cfg) {
-  if (cfg) localStorage.setItem(BACKEND_KEY, JSON.stringify(cfg));
-  else localStorage.removeItem(BACKEND_KEY);
+  if (cfg) {
+    localStorage.setItem(DATABASE_MODE_KEY, "cloud");
+    localStorage.setItem(BACKEND_KEY, JSON.stringify(cfg));
+  } else {
+    localStorage.setItem(DATABASE_MODE_KEY, "local");
+    localStorage.removeItem(BACKEND_KEY);
+  }
   // Force re-render
+  window.dispatchEvent(new Event("siamfolio.database.changed"));
   window.dispatchEvent(new Event("siamfolio.backend.changed"));
 }
 
@@ -202,7 +225,24 @@ function useBackendStatus() {
   return cfg;
 }
 
+function useDatabaseMode() {
+  const [mode, setMode] = React.useState(getDatabaseMode());
+  React.useEffect(() => {
+    const fn = () => setMode(getDatabaseMode());
+    window.addEventListener("siamfolio.database.changed", fn);
+    window.addEventListener("siamfolio.backend.changed", fn);
+    window.addEventListener("storage", fn);
+    return () => {
+      window.removeEventListener("siamfolio.database.changed", fn);
+      window.removeEventListener("siamfolio.backend.changed", fn);
+      window.removeEventListener("storage", fn);
+    };
+  }, []);
+  return mode;
+}
+
 Object.assign(window, {
+  getDatabaseMode, setDatabaseMode, useDatabaseMode,
   getBackendConfig, setBackendConfig, isBackendConfigured,
   pingBackend, testBackendAuth,
   pullPortfolio, pushPortfolio, fetchDueDCAs,

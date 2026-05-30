@@ -220,8 +220,13 @@ function useLivePrices(holdings, intervalMs = 60000) {
   holdingsRef.current = holdings;
 
   const [status, setStatus] = React.useState({ loading: false, lastUpdate: 0, error: null, sources: {} });
+  const livePrices = window.getStore?.().settings?.livePrices === true;
 
   const refresh = React.useCallback(async () => {
+    if (window.getStore?.().settings?.livePrices !== true) {
+      setStatus({ loading: false, lastUpdate: 0, error: null, sources: { manual: true } });
+      return;
+    }
     const h = holdingsRef.current;
     if (!h || h.length === 0) return;
     setStatus(s => ({ ...s, loading: true, error: null }));
@@ -254,19 +259,24 @@ function useLivePrices(holdings, intervalMs = 60000) {
 
   // Initial fetch + interval
   React.useEffect(() => {
+    if (!livePrices) {
+      setStatus({ loading: false, lastUpdate: 0, error: null, sources: { manual: true } });
+      return;
+    }
     refresh();
     const id = setInterval(refresh, intervalMs);
     return () => clearInterval(id);
-  }, [refresh, intervalMs]);
+  }, [refresh, intervalMs, livePrices]);
 
   // Re-fetch when holdings count changes (e.g. new holding added)
   const lenRef = React.useRef(holdings.length);
   React.useEffect(() => {
+    if (!livePrices) return;
     if (holdings.length !== lenRef.current) {
       lenRef.current = holdings.length;
       refresh();
     }
-  }, [holdings.length, refresh]);
+  }, [holdings.length, refresh, livePrices]);
 
   return { ...status, refresh };
 }
