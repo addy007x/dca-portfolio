@@ -1,0 +1,10 @@
+.claude/
+backend/.wrangler/
+node_modules/
+.env
+.env.*
+*.log
+dist/
+build/
+.codex-temp-*
+.codex-write-test
