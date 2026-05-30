@@ -276,17 +276,25 @@ function AuthForm() {
 
   return (
     <div className="auth-shell auth-shell-fantasy">
-      <div className="auth-walker" aria-hidden="true">
-        <span className="auth-walker-sprite"></span>
-        <span className="auth-walker-shadow"></span>
-      </div>
+      <section className="auth-hero-copy">
+        <div className="auth-kicker">SiamFolio</div>
+        <h1>เข้าสู่ดินแดนพอร์ตของคุณ</h1>
+        <p>ติดตาม DCA, กำไร, สินทรัพย์ และแผนสะสมระยะยาวในห้องบัญชีเดียว</p>
+        <div className="auth-runes">
+          <span>Portfolio</span>
+          <span>DCA</span>
+          <span>Cloud Sync</span>
+        </div>
+      </section>
       <div className="auth-card">
         <div className="auth-brand">Secure Gate</div>
         <h1>เริ่มการเดินทาง</h1>
+        <p>ใช้ Google เพื่อเข้าใช้งานและแยกข้อมูลพอร์ตของแต่ละบัญชีอัตโนมัติ</p>
         <div className={busy ? "auth-google-wrap is-busy" : "auth-google-wrap"} ref={buttonRef}>
           {!cfg.googleClientId && !message ? "กำลังเตรียมปุ่ม Google..." : null}
         </div>
         {message && <div className="auth-message">{message}</div>}
+        <p className="auth-note">ถ้าเป็นการเข้าใช้ครั้งแรก ระบบจะสร้างบัญชีผ่าน Google ให้โดยอัตโนมัติ</p>
       </div>
     </div>
   );
