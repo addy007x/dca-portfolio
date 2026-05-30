@@ -1538,7 +1538,7 @@ button { font-family: inherit; cursor: pointer; }
   isolation: isolate;
   overflow: hidden;
   grid-template-columns: minmax(280px, 1fr) minmax(340px, 430px);
-  gap: clamp(28px, 7vw, 92px);
+  gap: clamp(18px, 4vw, 54px);
   place-items: center;
   align-items: center;
   padding: clamp(28px, 6vw, 76px);
@@ -1625,8 +1625,9 @@ button { font-family: inherit; cursor: pointer; }
 }
 .auth-shell-fantasy .auth-card {
   position: relative;
+  justify-self: start;
   width: min(430px, 100%);
-  padding: 30px;
+  padding: 28px 30px 30px;
   border: 1px solid rgba(255, 207, 121, .36);
   border-radius: 8px;
   background:
@@ -1655,6 +1656,7 @@ button { font-family: inherit; cursor: pointer; }
   color: #fff7df;
   font-size: 28px;
   letter-spacing: 0;
+  text-align: center;
 }
 .auth-shell-fantasy .auth-card p {
   color: rgba(255, 237, 205, .76);
@@ -1662,7 +1664,7 @@ button { font-family: inherit; cursor: pointer; }
 .auth-shell-fantasy .auth-google-wrap {
   justify-content: center;
   min-height: 48px;
-  margin-top: 4px;
+  margin-top: 8px;
   color: rgba(255, 237, 205, .72);
 }
 .auth-shell-fantasy .auth-message {
@@ -1673,6 +1675,52 @@ button { font-family: inherit; cursor: pointer; }
 .auth-shell-fantasy .auth-note {
   color: rgba(255, 224, 178, .58);
 }
+.auth-walker {
+  position: relative;
+  justify-self: end;
+  align-self: end;
+  width: min(36vw, 340px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: end center;
+  pointer-events: none;
+  animation: auth-walker-step 3.2s ease-in-out infinite;
+}
+.auth-walker-sprite {
+  width: 100%;
+  aspect-ratio: 1;
+  display: block;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 210, 121, .42);
+  background:
+    radial-gradient(circle at 50% 68%, rgba(255, 132, 26, .28), rgba(8, 4, 2, .12) 42%, transparent 66%),
+    url("assets/login-fantasy-dragon.png");
+  background-size: auto, 520% auto;
+  background-position: center, 4.5% 85%;
+  background-repeat: no-repeat;
+  box-shadow:
+    inset 0 0 26px rgba(255, 190, 73, .22),
+    0 22px 32px rgba(0, 0, 0, .46),
+    0 0 42px rgba(255, 94, 19, .24);
+  filter:
+    drop-shadow(0 18px 18px rgba(0, 0, 0, .52))
+    drop-shadow(0 0 24px rgba(255, 112, 24, .34));
+  transform-origin: 50% 100%;
+  animation:
+    auth-walker-bob .72s steps(2, end) infinite,
+    auth-walker-frame 1.44s steps(1, end) infinite;
+}
+.auth-walker-shadow {
+  position: absolute;
+  left: 24%;
+  right: 18%;
+  bottom: 4%;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, .36);
+  filter: blur(6px);
+  animation: auth-shadow-pulse .72s steps(2, end) infinite;
+}
 
 @media (max-width: 860px) {
   .auth-shell-fantasy {
@@ -1680,6 +1728,15 @@ button { font-family: inherit; cursor: pointer; }
     align-content: center;
     gap: 22px;
     padding: 24px;
+  }
+  .auth-walker {
+    justify-self: center;
+    width: min(62vw, 260px);
+    order: -1;
+    margin-bottom: -20px;
+  }
+  .auth-shell-fantasy .auth-card {
+    justify-self: center;
   }
   .auth-hero-copy {
     justify-self: center;
@@ -1691,6 +1748,25 @@ button { font-family: inherit; cursor: pointer; }
   .auth-runes {
     justify-content: center;
   }
+}
+
+@keyframes auth-walker-step {
+  0%, 100% { transform: translateX(-10px); }
+  50% { transform: translateX(12px); }
+}
+@keyframes auth-walker-bob {
+  0% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+  100% { transform: translateY(0) rotate(-1deg); }
+}
+@keyframes auth-walker-frame {
+  0%, 100% { background-position: center, 4.5% 85%; }
+  33% { background-position: center, 20% 85%; }
+  66% { background-position: center, 35% 85%; }
+}
+@keyframes auth-shadow-pulse {
+  0%, 100% { opacity: .62; transform: scaleX(1); }
+  50% { opacity: .38; transform: scaleX(.82); }
 }
 
 /* ── Mascot beach scene animations ── */
