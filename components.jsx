@@ -1,6 +1,8 @@
 // Sidebar + Topbar + small shared bits
 
 function Sidebar({ active, onNav, dcaDueCount = 0 }) {
+  const authUser = window.useAuthUser?.();
+  const displayName = authUser?.name || "คุณภัทร";
   const items = [
     { key: "dashboard", icon: "home", label: "หน้าแรก", labelShort: "หน้าแรก" },
     { key: "portfolio", icon: "wallet", label: "พอร์ตการลงทุน", labelShort: "พอร์ต" },
@@ -13,7 +15,11 @@ function Sidebar({ active, onNav, dcaDueCount = 0 }) {
   return (
     <aside className="side">
       <div className="side-brand">
-        <div className="side-mark">฿</div>
+        <div className={authUser?.picture ? "side-mark side-mark-photo" : "side-mark"}>
+          {authUser?.picture
+            ? <img src={authUser.picture} alt={displayName} referrerPolicy="no-referrer"/>
+            : "฿"}
+        </div>
         <div>
           <div className="side-name">SiamFolio</div>
           <div style={{fontSize:11, color:"var(--muted)"}}>DCA Portfolio Tracker</div>
@@ -34,9 +40,13 @@ function Sidebar({ active, onNav, dcaDueCount = 0 }) {
       </nav>
 
       <div className="side-foot">
-        <div className="avatar">ภ</div>
+        <div className={authUser?.picture ? "avatar avatar-photo" : "avatar"}>
+          {authUser?.picture
+            ? <img src={authUser.picture} alt={displayName} referrerPolicy="no-referrer"/>
+            : (displayName || "S").slice(0, 1)}
+        </div>
         <div style={{minWidth:0}}>
-          <div style={{fontWeight:600}}>คุณภัทร</div>
+          <div style={{fontWeight:600, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{displayName}</div>
           <div style={{color:"var(--muted)", fontSize:11}}>
             สถานะ: <span style={{color:"var(--up)", fontWeight:600}}>● ออนไลน์</span>
           </div>
@@ -47,6 +57,8 @@ function Sidebar({ active, onNav, dcaDueCount = 0 }) {
 }
 
 function Topbar({ ccy, onCcy, onAdd, priceStatus, onSettings, searchQuery, onSearch }) {
+  const authUser = window.useAuthUser?.();
+  const displayName = authUser?.name || "คุณภัทร";
   const [now, setNow] = React.useState(() => new Date());
   React.useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -75,7 +87,7 @@ function Topbar({ ccy, onCcy, onAdd, priceStatus, onSettings, searchQuery, onSea
   return (
     <div className="topbar">
       <div className="greeting">
-        <h1>สวัสดีค่ะ คุณภัทร 👋</h1>
+        <h1>สวัสดีค่ะ {displayName} 👋</h1>
         <p>{dateStr} · <span className="num" style={{fontVariantNumeric:"tabular-nums"}}>{timeStr}</span> · <span className={`price-status ${statusClass}`}
               onClick={() => priceStatus?.refresh()}
               title="คลิกเพื่อรีเฟรชราคา">{statusLabel}</span></p>

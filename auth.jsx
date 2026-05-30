@@ -65,6 +65,26 @@ function saveAuthSession(session) {
   window.dispatchEvent(new Event("siamfolio.auth.changed"));
 }
 
+function getAuthUser() {
+  return loadAuthSession()?.user || null;
+}
+
+function useAuthUser() {
+  const [user, setUser] = React.useState(() => getAuthUser());
+
+  React.useEffect(() => {
+    const refresh = () => setUser(getAuthUser());
+    window.addEventListener("siamfolio.auth.changed", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("siamfolio.auth.changed", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  return user;
+}
+
 async function authFetch(path, opts = {}) {
   const cfg = getAuthConfig();
   if (!cfg.apiUrl) throw new Error("Auth API is not configured");
@@ -309,6 +329,8 @@ Object.assign(window, {
   resolveAuthConfig,
   isAuthConfigured,
   isSupabaseConfigured: isAuthConfigured,
+  getAuthUser,
+  useAuthUser,
   signInWithGoogleCredential,
   scheduleCloudSync,
   pushCloudPortfolio,
