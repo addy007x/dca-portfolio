@@ -36,6 +36,20 @@ function getSupabaseClient() {
   return _supabaseClient;
 }
 
+function getAuthRedirectUrl() {
+  return window.location.origin + window.location.pathname;
+}
+
+async function signInWithGoogle() {
+  const client = getSupabaseClient();
+  if (!client) throw new Error("Supabase is not configured");
+  const { error } = await client.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: getAuthRedirectUrl() },
+  });
+  if (error) throw error;
+}
+
 function serializePortfolio(s) {
   return {
     version: s.version,
@@ -205,12 +219,28 @@ function AuthForm() {
     }
   };
 
+  const handleGoogle = async () => {
+    setBusy(true);
+    setMessage("");
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      setMessage(error.message);
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="auth-shell">
       <form className="auth-card" onSubmit={submit}>
         <div className="auth-brand">SiamFolio</div>
         <h1>{mode === "signup" ? "สมัครใช้งาน" : "เข้าสู่ระบบ"}</h1>
         <p>ข้อมูลพอร์ตจะแยกตามบัญชีผู้ใช้ และ sync กับฐานข้อมูลกลาง</p>
+        <button type="button" className="auth-google" disabled={busy} onClick={handleGoogle}>
+          <span className="auth-google-mark">G</span>
+          เข้าสู่ระบบด้วย Google
+        </button>
+        <div className="auth-divider"><span>หรือ</span></div>
         <input className="auth-input" type="email" value={email}
                onChange={e => setEmail(e.target.value)} placeholder="email" required />
         <input className="auth-input" type="password" value={password}
@@ -278,6 +308,7 @@ Object.assign(window, {
   saveSupabaseConfig,
   getSupabaseClient,
   isSupabaseConfigured,
+  signInWithGoogle,
   scheduleCloudSync,
   pushCloudPortfolio,
   pullCloudPortfolio,
