@@ -1459,6 +1459,15 @@ button { font-family: inherit; cursor: pointer; }
   opacity: .55;
   cursor: not-allowed;
 }
+.auth-google-wrap {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.auth-google-wrap.is-busy {
+  opacity: .55;
+  pointer-events: none;
+}
 .auth-google-mark {
   width: 22px;
   height: 22px;

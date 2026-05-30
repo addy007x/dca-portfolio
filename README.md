@@ -1,68 +1,63 @@
 # SiamFolio DCA Portfolio Tracker
 
-เว็บแอปสำหรับติดตามพอร์ต DCA, กำไร/ขาดทุน, รายการซื้อขาย, ภาษี และการแจ้งเตือนลงทุนซ้ำ
+A portfolio tracker for DCA holdings, transactions, earnings, tax notes, reminders, and live price refreshes.
 
-## เปิดใช้งานบนเครื่อง
+## Run Locally
 
-วิธีง่ายสุดบน Windows:
+On Windows:
 
 ```bat
 open-dca.cmd
 ```
 
-จากนั้นเปิด:
+Then open:
 
 ```text
 http://127.0.0.1:5173/
 ```
 
-อย่าปิดหน้าต่าง command ระหว่างใช้งาน เพราะหน้าต่างนั้นเป็นตัวเสิร์ฟไฟล์เว็บในเครื่อง
+Keep the command window open while using the local app.
 
-## อัปขึ้น GitHub อัตโนมัติ
+## GitHub Pages
 
-ถ้าต้องการให้แก้ไฟล์แล้วอัปขึ้น GitHub เอง ให้เปิด:
-
-```bat
-auto-push.cmd
-```
-
-ปล่อยหน้าต่างนี้ค้างไว้ระหว่างเขียนโค้ด เมื่อมีไฟล์เปลี่ยนแปลง ระบบจะรอให้แก้เสร็จประมาณ 12 วินาที แล้ว commit + push ขึ้น `main` ให้อัตโนมัติ
-
-## เปิดใช้งานบนเว็บ
-
-หลัง push ขึ้น GitHub แล้ว GitHub Pages จะ deploy เว็บที่:
+After pushing to GitHub, the public app is served from:
 
 ```text
 https://addy007x.github.io/dca-portfolio/
 ```
 
-## ฐานข้อมูล
+## Google Login
 
-ค่าเริ่มต้นของแอปใช้ฐานข้อมูลใน browser ของเครื่องผู้ใช้เอง ไม่ต้องเชื่อม Cloudflare Worker หรือ API backend ข้อมูลจะอยู่ใน browser นั้นจนกว่าจะล้างข้อมูลเว็บหรือ import/export JSON เอง
+The public app uses Google login plus the Cloudflare Worker backend. Visitors only press **Sign in with Google**. They do not enter Supabase URL, publishable keys, or backend keys.
 
-การอัปเดตราคาจาก API ถูกปิดไว้เป็นค่าเริ่มต้น ถ้าต้องการราคาตลาดอัตโนมัติให้เปิด `Live price API` ใน Settings > Database
+Each Google account saves its own portfolio snapshot in D1 table `portfolio_snapshots`.
 
-## ระบบล็อกอินหลายคน
+Setup notes:
 
-แอปรองรับ Supabase Auth + database snapshot ต่อผู้ใช้หนึ่งคนแล้ว
-
-1. สร้างโปรเจกต์ใน Supabase
-2. เปิด SQL Editor แล้วรันไฟล์ `supabase/schema.sql`
-3. ไปที่ Project Settings > API แล้ว copy `Project URL` และ `anon public key`
-4. ไปที่ Authentication > URL Configuration แล้วตั้ง Site URL เป็น `https://addy007x.github.io/dca-portfolio/`
-5. ใส่ค่าลงใน `supabase-config.js`
-6. push ขึ้น GitHub
-
-เมื่อล็อกอินแล้ว แอปจะโหลด/บันทึกข้อมูลในตาราง `portfolio_snapshots` โดยแยกตาม `user_id` และใช้ Row Level Security เพื่อกันข้อมูลของแต่ละบัญชีไม่ให้ปนกัน
-
-## โครงสร้างหลัก
-
-- `index.html` - หน้าเริ่มต้นของแอป
-- `app.jsx`, `views.jsx`, `dashboard.jsx`, `detail.jsx`, `tax.jsx` - หน้าจอและ flow หลัก
-- `components.jsx`, `modals.jsx`, `charts.jsx`, `icons.jsx` - UI components
-- `store.jsx`, `mock-data.jsx`, `api.jsx`, `backend.jsx`, `reminders.jsx` - ข้อมูลและการเชื่อมต่อ
-- `backend/` - Cloudflare Worker + D1 backend
+- `GOOGLE_SIGNIN.md`
+- `backend/schema.sql`
+- `backend/worker.js`
 
 ## Backend
 
-ดูรายละเอียดการ deploy backend ได้ที่ `backend/README.md`
+The Cloudflare Worker lives in `backend/`.
+
+Deploy basics:
+
+```powershell
+cd backend
+wrangler secret put GOOGLE_CLIENT_ID
+wrangler d1 execute siamfolio --file=schema.sql
+wrangler deploy
+```
+
+`auth-config.js` only needs the Worker URL. The app reads the Google Client ID from the Worker.
+
+## Main Files
+
+- `index.html` - app entry point
+- `auth-config.js` - public app auth config
+- `auth.jsx` - Google login and cloud sync gate
+- `app.jsx`, `views.jsx`, `dashboard.jsx`, `detail.jsx`, `tax.jsx` - main UI
+- `store.jsx`, `api.jsx`, `backend.jsx`, `reminders.jsx` - data and integrations
+- `backend/` - Cloudflare Worker + D1 backend

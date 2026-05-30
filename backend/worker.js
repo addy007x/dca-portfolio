@@ -1,22 +1,22 @@
-// SiamFolio Backend — Cloudflare Worker
+// SiamFolio Backend - Cloudflare Worker
 //
-// Single-user personal portfolio API:
-//   GET  /api/prices/crypto?symbols=BTC,ETH         — CoinGecko proxy
-//   GET  /api/prices/stocks?symbols=NVDA,AAPL.BK    — Yahoo proxy (CORS-fixed)
-//   GET  /api/prices/fx?from=USD&to=THB             — Frankfurter proxy
-//   GET  /api/portfolio                              — Full snapshot from D1
-//   PUT  /api/portfolio                              — Replace snapshot
-//   POST /api/holdings                               — Upsert holding
-//   DELETE /api/holdings/:id
-//   POST /api/transactions                           — Insert tx
-//   DELETE /api/transactions/:id
-//   POST /api/dca                                    — Upsert DCA
-//   DELETE /api/dca/:id
-//   GET  /api/dca/due                                — DCAs flagged 'due' by cron
+// Public endpoints:
+//   GET  /api/prices/crypto?symbols=BTC,ETH
+//   GET  /api/prices/stocks?symbols=NVDA,AAPL.BK
+//   GET  /api/prices/fx?from=USD&to=THB
+//   GET  /api/health
 //
-// Auth: shared secret in X-Api-Key header. Set API_KEY env var on the Worker.
-// CORS: allows any origin (single-user, low risk).
-// Cron: daily 02:00 UTC = 09:00 ICT — flags due DCAs.
+// Google session endpoints:
+//   GET  /api/auth/config
+//   POST /api/auth/google
+//   GET  /api/auth/me
+//   POST /api/auth/logout
+//
+// Per-user portfolio endpoints:
+//   GET  /api/portfolio
+//   PUT  /api/portfolio
+//
+// Legacy single-user endpoints still accept X-Api-Key when API_KEY is set.
 
 const COINGECKO_IDS = {
   BTC: "bitcoin", ETH: "ethereum", SOL: "solana", XAUT: "tether-gold",
@@ -26,10 +26,12 @@ const COINGECKO_IDS = {
   NEAR: "near", FIL: "filecoin", APT: "aptos", ARB: "arbitrum",
 };
 
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Api-Key",
+  "Access-Control-Allow-Headers": "Content-Type, X-Api-Key, Authorization",
   "Access-Control-Max-Age": "86400",
 };
 
@@ -44,15 +46,151 @@ function error(message, status = 400) {
   return json({ error: message }, status);
 }
 
-function requireAuth(req, env) {
+function requireApiKey(req, env) {
   const key = req.headers.get("X-Api-Key");
-  if (!env.API_KEY) return null; // not configured — open mode
+  if (!env.API_KEY) return null;
   const stored = env.API_KEY.trim();
   if (!key || key.trim() !== stored) return error("Unauthorized", 401);
   return null;
 }
 
-// ─────── Cache helpers (Workers KV optional, falls back to in-memory) ───────
+function getBearerToken(req) {
+  const header = req.headers.get("Authorization") || "";
+  if (!header.toLowerCase().startsWith("bearer ")) return "";
+  return header.slice(7).trim();
+}
+
+function bytesToHex(buffer) {
+  return [...new Uint8Array(buffer)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function sha256Hex(text) {
+  const bytes = new TextEncoder().encode(text);
+  return bytesToHex(await crypto.subtle.digest("SHA-256", bytes));
+}
+
+function randomToken() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+async function verifyGoogleCredential(credential, env) {
+  if (!credential || typeof credential !== "string") throw new Error("Missing Google credential");
+  if (!env.GOOGLE_CLIENT_ID) throw new Error("GOOGLE_CLIENT_ID is not configured on the Worker");
+
+  const response = await fetch(
+    "https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(credential),
+    { headers: { "Accept": "application/json" } }
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error_description || "Google token verification failed");
+  if (data.aud !== env.GOOGLE_CLIENT_ID) throw new Error("Google Client ID does not match");
+  if (data.email_verified !== true && data.email_verified !== "true") throw new Error("Google email is not verified");
+  if (!data.sub || !data.email) throw new Error("Google profile is incomplete");
+
+  return {
+    id: data.sub,
+    email: data.email,
+    name: data.name || data.email,
+    picture: data.picture || "",
+  };
+}
+
+async function createSession(env, user) {
+  const now = Date.now();
+  const expiresAt = now + SESSION_TTL_MS;
+  const token = randomToken();
+  const tokenHash = await sha256Hex(token);
+
+  await env.DB.prepare(
+    `INSERT INTO users(id,email,name,picture,created_at,last_login_at)
+     VALUES(?,?,?,?,?,?)
+     ON CONFLICT(id) DO UPDATE SET
+       email=excluded.email,
+       name=excluded.name,
+       picture=excluded.picture,
+       last_login_at=excluded.last_login_at`
+  ).bind(user.id, user.email, user.name, user.picture, now, now).run();
+
+  await env.DB.prepare(
+    `INSERT INTO user_sessions(token_hash,user_id,email,name,picture,expires_at,created_at)
+     VALUES(?,?,?,?,?,?,?)`
+  ).bind(tokenHash, user.id, user.email, user.name, user.picture, expiresAt, now).run();
+
+  return { token, expiresAt, user };
+}
+
+async function getSessionUser(req, env) {
+  const token = getBearerToken(req);
+  if (!token || !env.DB) return null;
+  const tokenHash = await sha256Hex(token);
+  const row = await env.DB.prepare(
+    `SELECT user_id,email,name,picture,expires_at
+     FROM user_sessions
+     WHERE token_hash = ? AND expires_at > ?`
+  ).bind(tokenHash, Date.now()).first();
+  if (!row) return null;
+  return {
+    id: row.user_id,
+    email: row.email,
+    name: row.name,
+    picture: row.picture,
+  };
+}
+
+async function handleGoogleAuth(req, env) {
+  if (!env.DB) return error("D1 database not bound", 500);
+  const body = await req.json().catch(() => ({}));
+  const user = await verifyGoogleCredential(body.credential, env);
+  return json(await createSession(env, user));
+}
+
+async function handleMe(req, env) {
+  const user = await getSessionUser(req, env);
+  if (!user) return error("Unauthorized", 401);
+  return json({ user });
+}
+
+async function handleLogout(req, env) {
+  if (env.DB) {
+    const token = getBearerToken(req);
+    if (token) {
+      await env.DB.prepare("DELETE FROM user_sessions WHERE token_hash = ?")
+        .bind(await sha256Hex(token))
+        .run();
+    }
+  }
+  return json({ ok: true });
+}
+
+async function getUserPortfolio(env, user) {
+  const row = await env.DB.prepare("SELECT data FROM portfolio_snapshots WHERE user_id = ?")
+    .bind(user.id)
+    .first();
+  if (!row?.data) return json({});
+  try {
+    return json(JSON.parse(row.data));
+  } catch (_) {
+    return json({});
+  }
+}
+
+async function putUserPortfolio(req, env, user) {
+  const body = await req.json();
+  await env.DB.prepare(
+    `INSERT INTO portfolio_snapshots(user_id,data,updated_at)
+     VALUES(?,?,?)
+     ON CONFLICT(user_id) DO UPDATE SET
+       data=excluded.data,
+       updated_at=excluded.updated_at`
+  ).bind(user.id, JSON.stringify(body), Date.now()).run();
+  return json({ ok: true });
+}
+
+// Cache helpers. Workers KV is optional; in-memory cache covers warm isolates.
 const memCache = new Map();
 async function cacheGet(env, key) {
   if (env.CACHE) {
@@ -63,6 +201,7 @@ async function cacheGet(env, key) {
   if (m && Date.now() - m.t < m.ttl) return m.v;
   return null;
 }
+
 async function cacheSet(env, key, value, ttlSec) {
   if (env.CACHE) {
     await env.CACHE.put(key, JSON.stringify(value), { expirationTtl: ttlSec });
@@ -70,7 +209,7 @@ async function cacheSet(env, key, value, ttlSec) {
   memCache.set(key, { v: value, t: Date.now(), ttl: ttlSec * 1000 });
 }
 
-// ─────── Price proxies ───────
+// Price proxies
 async function handleCrypto(url, env) {
   const symbols = (url.searchParams.get("symbols") || "").split(",").filter(Boolean);
   const ids = symbols.map(s => COINGECKO_IDS[s.toUpperCase()]).filter(Boolean);
@@ -139,7 +278,7 @@ async function handleFX(url, env) {
   return json(out);
 }
 
-// ─────── D1 portfolio CRUD ───────
+// Legacy single-user D1 portfolio CRUD
 async function getPortfolio(env) {
   const [holdings, transactions, dca, earn, dcaLog] = await Promise.all([
     env.DB.prepare("SELECT * FROM holdings ORDER BY rowid").all(),
@@ -148,7 +287,6 @@ async function getPortfolio(env) {
     env.DB.prepare("SELECT * FROM earn_positions ORDER BY rowid").all(),
     env.DB.prepare("SELECT * FROM dca_log WHERE status IN ('due','notified') ORDER BY created_at DESC LIMIT 20").all(),
   ]);
-  // Decode spark JSON
   const holdingsOut = (holdings.results || []).map(h => ({
     ...h,
     spark: h.spark ? JSON.parse(h.spark) : [],
@@ -168,7 +306,6 @@ async function putPortfolio(req, env) {
   const body = await req.json();
   const { holdings = [], transactions = [], dca = [], earn = [] } = body;
   const stmts = [];
-  // Wipe + insert. D1 batch handles transaction.
   stmts.push(env.DB.prepare("DELETE FROM holdings"));
   stmts.push(env.DB.prepare("DELETE FROM transactions"));
   stmts.push(env.DB.prepare("DELETE FROM dca_schedules"));
@@ -208,23 +345,35 @@ async function getDueDCAs(env) {
   return json({ due: r.results || [] });
 }
 
-// ─────── Router ───────
+// Router
 async function handleRequest(req, env, ctx) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
   const url = new URL(req.url);
   const path = url.pathname;
 
-  // Public price endpoints (no auth required — they're proxies)
   if (path === "/api/prices/crypto") return handleCrypto(url, env);
   if (path === "/api/prices/stocks") return handleStocks(url, env);
   if (path === "/api/prices/fx") return handleFX(url, env);
-  if (path === "/api/health") return json({ ok: true, version: "1.0", time: new Date().toISOString() });
+  if (path === "/api/health") return json({ ok: true, version: "2.0", time: new Date().toISOString() });
 
-  // Authenticated endpoints
-  const authErr = requireAuth(req, env);
-  if (authErr) return authErr;
+  if (path === "/api/auth/config" && req.method === "GET") {
+    return json({ googleClientId: env.GOOGLE_CLIENT_ID || "" });
+  }
+  if (path === "/api/auth/google" && req.method === "POST") return handleGoogleAuth(req, env);
+  if (path === "/api/auth/me" && req.method === "GET") return handleMe(req, env);
+  if (path === "/api/auth/logout" && req.method === "POST") return handleLogout(req, env);
 
   if (!env.DB) return error("D1 database not bound", 500);
+
+  const hasBearer = !!getBearerToken(req);
+  const user = hasBearer ? await getSessionUser(req, env) : null;
+  if (hasBearer && !user) return error("Unauthorized", 401);
+
+  if (user && path === "/api/portfolio" && req.method === "GET") return getUserPortfolio(env, user);
+  if (user && path === "/api/portfolio" && req.method === "PUT") return putUserPortfolio(req, env, user);
+
+  const authErr = requireApiKey(req, env);
+  if (authErr) return authErr;
 
   if (path === "/api/portfolio" && req.method === "GET") return getPortfolio(env);
   if (path === "/api/portfolio" && req.method === "PUT") return putPortfolio(req, env);
@@ -233,10 +382,7 @@ async function handleRequest(req, env, ctx) {
   return error("Not found: " + path, 404);
 }
 
-// ─────── Cron handler ───────
-// Runs daily. Scans DCA schedules; for each due/overdue + not paused, log a 'due' entry.
-// Does NOT auto-execute trades (no broker integration) — just creates reminder records
-// that the frontend reads on next visit.
+// Cron handler. Scans legacy DCA schedules and logs due reminders.
 async function handleCron(env) {
   if (!env.DB) return;
   const today = new Date().toISOString().slice(0, 10);

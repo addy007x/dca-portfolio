@@ -318,7 +318,7 @@ function LocalDatabasePanel({ priceStatus }) {
         <button className="twk-btn secondary" onClick={clearCloudConfig}>ล้าง backend</button>
       </div>
 
-      {window.isSupabaseConfigured?.() && (
+      {(window.isAuthConfigured?.() || window.isSupabaseConfigured?.()) && (
         <button className="twk-btn secondary" style={{marginTop:2, color:"var(--down)"}}
                 onClick={() => window.signOutSupabase?.()}>
           ออกจากระบบ

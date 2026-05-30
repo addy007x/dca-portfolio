@@ -67,3 +67,31 @@ CREATE TABLE IF NOT EXISTS dca_log (
   created_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_log_status ON dca_log(status, created_at);
+
+-- Google login users and per-user portfolio snapshots.
+CREATE TABLE IF NOT EXISTS users (
+  id            TEXT PRIMARY KEY,
+  email         TEXT,
+  name          TEXT,
+  picture       TEXT,
+  created_at    INTEGER,
+  last_login_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS user_sessions (
+  token_hash TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL,
+  email      TEXT,
+  name       TEXT,
+  picture    TEXT,
+  expires_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_exp ON user_sessions(expires_at);
+
+CREATE TABLE IF NOT EXISTS portfolio_snapshots (
+  user_id    TEXT PRIMARY KEY,
+  data       TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);

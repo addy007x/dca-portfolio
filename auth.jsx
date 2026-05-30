@@ -1,53 +1,80 @@
-// Supabase Auth + per-user portfolio snapshot sync.
+// Google Auth + Cloudflare Worker-backed per-user portfolio sync.
 
-const SUPABASE_CONFIG_STORAGE = "siamfolio.supabaseConfig";
+const AUTH_SESSION_KEY = "siamfolio.googleSession";
 const CLOUD_SYNC_DELAY_MS = 1200;
 
-let _supabaseClient = null;
 let _cloudSyncTimer = null;
 let _cloudSyncPaused = false;
-let _cloudSession = null;
+let _authSession = null;
+let _resolvedGoogleClientId = "";
+let _authConfigPromise = null;
 
-function getSupabaseConfig() {
+function getAuthConfig() {
+  const cfg = window.AUTH_CONFIG || {};
+  return {
+    apiUrl: (cfg.apiUrl || "").replace(/\/$/, ""),
+    googleClientId: cfg.googleClientId || _resolvedGoogleClientId || "",
+  };
+}
+
+function isAuthConfigured() {
+  const cfg = getAuthConfig();
+  return !!cfg.apiUrl;
+}
+
+async function resolveAuthConfig() {
+  const cfg = getAuthConfig();
+  if (cfg.googleClientId) return cfg;
+  if (!cfg.apiUrl) throw new Error("Auth API is not configured");
+  if (!_authConfigPromise) {
+    _authConfigPromise = fetch(cfg.apiUrl + "/api/auth/config")
+      .then(async res => {
+        if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+        return res.json();
+      })
+      .then(data => {
+        _resolvedGoogleClientId = data.googleClientId || "";
+        if (!_resolvedGoogleClientId) throw new Error("Google Client ID is not configured on the Worker");
+        return getAuthConfig();
+      })
+      .catch(error => {
+        _authConfigPromise = null;
+        throw error;
+      });
+  }
+  return _authConfigPromise;
+}
+
+function loadAuthSession() {
+  if (_authSession) return _authSession;
   try {
-    const saved = JSON.parse(localStorage.getItem(SUPABASE_CONFIG_STORAGE) || "null");
-    if (saved?.url && saved?.anonKey) return saved;
+    const saved = JSON.parse(localStorage.getItem(AUTH_SESSION_KEY) || "null");
+    if (saved?.token && saved?.user && (!saved.expiresAt || saved.expiresAt > Date.now())) {
+      _authSession = saved;
+      return saved;
+    }
   } catch (_) {}
-  return window.SUPABASE_CONFIG || { url: "", anonKey: "" };
+  localStorage.removeItem(AUTH_SESSION_KEY);
+  return null;
 }
 
-function isSupabaseConfigured() {
-  const cfg = getSupabaseConfig();
-  return !!(cfg.url && cfg.anonKey && window.supabase?.createClient);
-}
-
-function saveSupabaseConfig(cfg) {
-  localStorage.setItem(SUPABASE_CONFIG_STORAGE, JSON.stringify(cfg));
-  _supabaseClient = null;
+function saveAuthSession(session) {
+  _authSession = session;
+  if (session) localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+  else localStorage.removeItem(AUTH_SESSION_KEY);
   window.dispatchEvent(new Event("siamfolio.auth.changed"));
-  setTimeout(() => location.reload(), 0);
 }
 
-function getSupabaseClient() {
-  if (_supabaseClient) return _supabaseClient;
-  if (!isSupabaseConfigured()) return null;
-  const cfg = getSupabaseConfig();
-  _supabaseClient = window.supabase.createClient(cfg.url, cfg.anonKey);
-  return _supabaseClient;
-}
-
-function getAuthRedirectUrl() {
-  return window.location.origin + window.location.pathname;
-}
-
-async function signInWithGoogle() {
-  const client = getSupabaseClient();
-  if (!client) throw new Error("Supabase is not configured");
-  const { error } = await client.auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo: getAuthRedirectUrl() },
-  });
-  if (error) throw error;
+async function authFetch(path, opts = {}) {
+  const cfg = getAuthConfig();
+  if (!cfg.apiUrl) throw new Error("Auth API is not configured");
+  const headers = { ...(opts.headers || {}) };
+  const session = loadAuthSession();
+  if (session?.token) headers.Authorization = `Bearer ${session.token}`;
+  if (opts.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
+  const res = await fetch(cfg.apiUrl + path, { ...opts, headers });
+  if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+  return res.json();
 }
 
 function serializePortfolio(s) {
@@ -66,44 +93,32 @@ function serializePortfolio(s) {
   };
 }
 
+async function signInWithGoogleCredential(credential) {
+  const data = await authFetch("/api/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ credential }),
+  });
+  saveAuthSession(data);
+  return data;
+}
+
 async function pullCloudPortfolio() {
-  const client = getSupabaseClient();
-  const user = _cloudSession?.user;
-  if (!client || !user) throw new Error("Not signed in");
-
-  const { data, error } = await client
-    .from("portfolio_snapshots")
-    .select("data, updated_at")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data || null;
+  return authFetch("/api/portfolio");
 }
 
 async function pushCloudPortfolio() {
-  const client = getSupabaseClient();
-  const user = _cloudSession?.user;
-  if (!client || !user) return;
-
-  const payload = {
-    user_id: user.id,
-    data: serializePortfolio(window.getStore()),
-    updated_at: new Date().toISOString(),
-  };
-
-  const { error } = await client
-    .from("portfolio_snapshots")
-    .upsert(payload, { onConflict: "user_id" });
-
-  if (error) throw error;
+  if (!loadAuthSession()) return;
+  await authFetch("/api/portfolio", {
+    method: "PUT",
+    body: JSON.stringify(serializePortfolio(window.getStore())),
+  });
   window.dispatchEvent(new CustomEvent("siamfolio.cloudsync", {
     detail: { ok: true, at: Date.now() },
   }));
 }
 
 function scheduleCloudSync() {
-  if (_cloudSyncPaused || !_cloudSession?.user || !getSupabaseClient()) return;
+  if (_cloudSyncPaused || !loadAuthSession()) return;
   clearTimeout(_cloudSyncTimer);
   _cloudSyncTimer = setTimeout(async () => {
     try {
@@ -118,146 +133,132 @@ function scheduleCloudSync() {
 
 async function loadCloudIntoStore() {
   const snapshot = await pullCloudPortfolio();
-  if (snapshot?.data) {
+  if (snapshot && Object.keys(snapshot).length > 0) {
     _cloudSyncPaused = true;
     try {
       window.updateStore(s => ({
         ...s,
-        ...snapshot.data,
-        settings: { ...s.settings, ...(snapshot.data.settings || {}) },
+        ...snapshot,
+        settings: { ...s.settings, ...(snapshot.settings || {}) },
       }));
     } finally {
       _cloudSyncPaused = false;
     }
     return "loaded";
   }
-
   await pushCloudPortfolio();
   return "created";
 }
 
 function useAuthSession() {
-  const [state, setState] = React.useState({ loading: true, session: null, error: null });
+  const [state, setState] = React.useState(() => ({
+    loading: false,
+    session: loadAuthSession(),
+    error: null,
+  }));
 
   React.useEffect(() => {
-    const client = getSupabaseClient();
-    if (!client) {
-      setState({ loading: false, session: null, error: null });
-      return;
-    }
-
-    let alive = true;
-    client.auth.getSession().then(({ data, error }) => {
-      if (!alive) return;
-      _cloudSession = data?.session || null;
-      setState({ loading: false, session: _cloudSession, error });
-    });
-
-    const { data: sub } = client.auth.onAuthStateChange((_event, session) => {
-      _cloudSession = session;
-      setState({ loading: false, session, error: null });
-    });
-
+    const refresh = () => setState({ loading: false, session: loadAuthSession(), error: null });
+    window.addEventListener("siamfolio.auth.changed", refresh);
+    window.addEventListener("storage", refresh);
     return () => {
-      alive = false;
-      sub?.subscription?.unsubscribe?.();
+      window.removeEventListener("siamfolio.auth.changed", refresh);
+      window.removeEventListener("storage", refresh);
     };
   }, []);
 
   return state;
 }
 
-function SupabaseSetupPanel() {
-  const cfg = getSupabaseConfig();
-  const [url, setUrl] = React.useState(cfg.url || "");
-  const [anonKey, setAnonKey] = React.useState(cfg.anonKey || "");
-
+function AuthSetupPanel() {
   return (
     <div className="auth-shell">
       <div className="auth-card">
         <div className="auth-brand">SiamFolio</div>
-        <h1>ตั้งค่า Supabase ก่อน</h1>
-        <p>ใส่ Project URL และ anon public key เพื่อเปิดระบบล็อกอินหลายคน</p>
-        <input className="auth-input" value={url} onChange={e => setUrl(e.target.value)}
-               placeholder="https://xxxx.supabase.co" />
-        <input className="auth-input" value={anonKey} onChange={e => setAnonKey(e.target.value)}
-               placeholder="Supabase anon public key" />
-        <button className="auth-button" disabled={!url || !anonKey}
-                onClick={() => saveSupabaseConfig({ url, anonKey })}>
-          บันทึกใน browser นี้
-        </button>
-        <p className="auth-note">ถ้าจะให้ทุกคนใช้บนเว็บเดียวกัน ให้ใส่ค่านี้ใน `supabase-config.js` แล้ว push ขึ้น GitHub</p>
+        <h1>กำลังเตรียมระบบล็อกอิน</h1>
+        <p>เว็บนี้ใช้ Google login อย่างเดียว แต่ยังขาด `apiUrl` ใน `auth-config.js`</p>
+        <p className="auth-note">หลังตั้ง Worker URL แล้ว ผู้ใช้จะเห็นปุ่ม Google และเข้าใช้งานได้ทันที</p>
       </div>
     </div>
   );
 }
 
 function AuthForm() {
-  const client = getSupabaseClient();
-  const [mode, setMode] = React.useState("signin");
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
+  const buttonRef = React.useRef(null);
+  const [cfg, setCfg] = React.useState(() => getAuthConfig());
   const [busy, setBusy] = React.useState(false);
   const [message, setMessage] = React.useState("");
 
-  const submit = async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    setMessage("");
-    try {
-      const result = mode === "signup"
-        ? await client.auth.signUp({ email, password })
-        : await client.auth.signInWithPassword({ email, password });
-      if (result.error) throw result.error;
-      if (mode === "signup" && !result.data.session) {
-        setMessage("สมัครแล้ว ตรวจอีเมลเพื่อยืนยันบัญชีก่อนเข้าสู่ระบบ");
-      }
-    } catch (error) {
-      setMessage(error.message);
-    } finally {
-      setBusy(false);
-    }
-  };
+  React.useEffect(() => {
+    let alive = true;
+    resolveAuthConfig()
+      .then(nextCfg => {
+        if (alive) setCfg(nextCfg);
+      })
+      .catch(error => {
+        if (alive) setMessage(error.message);
+      });
+    return () => { alive = false; };
+  }, []);
 
-  const handleGoogle = async () => {
-    setBusy(true);
-    setMessage("");
-    try {
-      await signInWithGoogle();
-    } catch (error) {
-      setMessage(error.message);
-      setBusy(false);
-    }
-  };
+  React.useEffect(() => {
+    let cancelled = false;
+    let timer = null;
+
+    const renderGoogleButton = () => {
+      if (cancelled || !buttonRef.current || !cfg.googleClientId) return;
+      if (!window.google?.accounts?.id) {
+        timer = setTimeout(renderGoogleButton, 120);
+        return;
+      }
+      buttonRef.current.innerHTML = "";
+      window.google.accounts.id.initialize({
+        client_id: cfg.googleClientId,
+        callback: async (response) => {
+          setBusy(true);
+          setMessage("");
+          try {
+            await signInWithGoogleCredential(response.credential);
+          } catch (error) {
+            setMessage(error.message);
+            setBusy(false);
+          }
+        },
+      });
+      window.google.accounts.id.renderButton(buttonRef.current, {
+        theme: "outline",
+        size: "large",
+        type: "standard",
+        text: "signin_with",
+        shape: "rectangular",
+        width: 320,
+      });
+    };
+
+    renderGoogleButton();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [cfg.googleClientId]);
 
   return (
     <div className="auth-shell">
-      <form className="auth-card" onSubmit={submit}>
+      <div className="auth-card">
         <div className="auth-brand">SiamFolio</div>
-        <h1>{mode === "signup" ? "สมัครใช้งาน" : "เข้าสู่ระบบ"}</h1>
-        <p>ข้อมูลพอร์ตจะแยกตามบัญชีผู้ใช้ และ sync กับฐานข้อมูลกลาง</p>
-        <button type="button" className="auth-google" disabled={busy} onClick={handleGoogle}>
-          <span className="auth-google-mark">G</span>
-          เข้าสู่ระบบด้วย Google
-        </button>
-        <div className="auth-divider"><span>หรือ</span></div>
-        <input className="auth-input" type="email" value={email}
-               onChange={e => setEmail(e.target.value)} placeholder="email" required />
-        <input className="auth-input" type="password" value={password}
-               onChange={e => setPassword(e.target.value)} placeholder="password" minLength="6" required />
+        <h1>เข้าสู่ระบบ</h1>
+        <p>ใช้ Google เพื่อเข้าใช้งานและแยกข้อมูลพอร์ตของแต่ละบัญชีอัตโนมัติ</p>
+        <div className={busy ? "auth-google-wrap is-busy" : "auth-google-wrap"} ref={buttonRef}>
+          {!cfg.googleClientId && !message ? "กำลังเตรียมปุ่ม Google..." : null}
+        </div>
         {message && <div className="auth-message">{message}</div>}
-        <button className="auth-button" disabled={busy}>
-          {busy ? "กำลังทำงาน..." : mode === "signup" ? "สมัครใช้งาน" : "เข้าสู่ระบบ"}
-        </button>
-        <button type="button" className="auth-link" onClick={() => setMode(mode === "signup" ? "signin" : "signup")}>
-          {mode === "signup" ? "มีบัญชีแล้ว เข้าสู่ระบบ" : "ยังไม่มีบัญชี สมัครใหม่"}
-        </button>
-      </form>
+        <p className="auth-note">ถ้าเป็นการเข้าใช้ครั้งแรก ระบบจะสร้างบัญชีผ่าน Google ให้โดยอัตโนมัติ</p>
+      </div>
     </div>
   );
 }
 
-function SupabaseAuthGate({ children }) {
+function AuthGate({ children }) {
   const auth = useAuthSession();
   const [syncState, setSyncState] = React.useState("idle");
   const [syncError, setSyncError] = React.useState("");
@@ -278,8 +279,7 @@ function SupabaseAuthGate({ children }) {
     return () => { alive = false; };
   }, [auth.session?.user?.id]);
 
-  if (!isSupabaseConfigured()) return <SupabaseSetupPanel/>;
-  if (auth.loading) return <div className="auth-shell"><div className="auth-card"><p>กำลังโหลด...</p></div></div>;
+  if (!isAuthConfigured()) return <AuthSetupPanel/>;
   if (!auth.session) return <AuthForm/>;
   if (syncState === "loading") return <div className="auth-shell"><div className="auth-card"><p>กำลังโหลดข้อมูลพอร์ต...</p></div></div>;
   if (syncState === "error") {
@@ -297,21 +297,22 @@ function SupabaseAuthGate({ children }) {
 }
 
 async function signOutSupabase() {
-  const client = getSupabaseClient();
-  if (!client) return;
-  await pushCloudPortfolio().catch(() => {});
-  await client.auth.signOut();
+  try {
+    await pushCloudPortfolio();
+    await authFetch("/api/auth/logout", { method: "POST" });
+  } catch (_) {}
+  saveAuthSession(null);
 }
 
 Object.assign(window, {
-  getSupabaseConfig,
-  saveSupabaseConfig,
-  getSupabaseClient,
-  isSupabaseConfigured,
-  signInWithGoogle,
+  getAuthConfig,
+  resolveAuthConfig,
+  isAuthConfigured,
+  isSupabaseConfigured: isAuthConfigured,
+  signInWithGoogleCredential,
   scheduleCloudSync,
   pushCloudPortfolio,
   pullCloudPortfolio,
   signOutSupabase,
-  SupabaseAuthGate,
+  SupabaseAuthGate: AuthGate,
 });
