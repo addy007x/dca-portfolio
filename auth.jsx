@@ -2,8 +2,10 @@
 
 const AUTH_SESSION_KEY = "siamfolio.googleSession";
 const CLOUD_SYNC_DELAY_MS = 1200;
+const AUTH_RELOAD_DELAY_MS = 5000;
 
 let _cloudSyncTimer = null;
+let _authReloadTimer = null;
 let _cloudSyncPaused = false;
 let _authSession = null;
 let _resolvedGoogleClientId = "";
@@ -58,11 +60,19 @@ function loadAuthSession() {
   return null;
 }
 
-function saveAuthSession(session) {
+function saveAuthSession(session, options = {}) {
   _authSession = session;
   if (session) localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
   else localStorage.removeItem(AUTH_SESSION_KEY);
+  if (options.silent) return;
   window.dispatchEvent(new Event("siamfolio.auth.changed"));
+}
+
+function reloadAfterAuthDelay() {
+  clearTimeout(_authReloadTimer);
+  _authReloadTimer = setTimeout(() => {
+    location.reload();
+  }, AUTH_RELOAD_DELAY_MS);
 }
 
 function getAuthUser() {
@@ -120,12 +130,12 @@ function serializePortfolio(s) {
   };
 }
 
-async function signInWithGoogleCredential(credential) {
+async function signInWithGoogleCredential(credential, options = {}) {
   const data = await authFetch("/api/auth/google", {
     method: "POST",
     body: JSON.stringify({ credential }),
   });
-  saveAuthSession(data);
+  saveAuthSession(data, options);
   return data;
 }
 
@@ -250,7 +260,9 @@ function AuthForm() {
           setBusy(true);
           setMessage("");
           try {
-            await signInWithGoogleCredential(response.credential);
+            await signInWithGoogleCredential(response.credential, { silent: true });
+            setMessage("เข้าสู่ระบบสำเร็จ กำลังรีเฟรชใน 5 วินาที...");
+            reloadAfterAuthDelay();
           } catch (error) {
             setMessage(error.message);
             setBusy(false);
@@ -343,7 +355,8 @@ async function signOutSupabase() {
     await pushCloudPortfolio();
     await authFetch("/api/auth/logout", { method: "POST" });
   } catch (_) {}
-  saveAuthSession(null);
+  saveAuthSession(null, { silent: true });
+  reloadAfterAuthDelay();
 }
 
 Object.assign(window, {
