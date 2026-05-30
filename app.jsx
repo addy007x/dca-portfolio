@@ -260,6 +260,7 @@ function LocalDatabasePanel({ priceStatus }) {
   const mode = window.useDatabaseMode ? window.useDatabaseMode() : "local";
   const livePrices = store.settings.livePrices === true;
   const [msg, setMsg] = React.useState("");
+  const [signingOut, setSigningOut] = React.useState(false);
 
   React.useEffect(() => {
     if (mode === "local") window.setAutoSync?.(false);
@@ -281,6 +282,13 @@ function LocalDatabasePanel({ priceStatus }) {
     window.setBackendConfig?.(null);
     window.setAutoSync?.(false);
     setMsg("ล้างการเชื่อมต่อ backend แล้ว");
+  };
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    setMsg("กำลังออกจากระบบ...");
+    await window.signOutSupabase?.();
+    setMsg("ออกจากระบบสำเร็จ กำลังรีเฟรชใน 5 วินาที...");
   };
 
   return (
@@ -320,8 +328,9 @@ function LocalDatabasePanel({ priceStatus }) {
 
       {(window.isAuthConfigured?.() || window.isSupabaseConfigured?.()) && (
         <button className="twk-btn secondary" style={{marginTop:2, color:"var(--down)"}}
-                onClick={() => window.signOutSupabase?.()}>
-          ออกจากระบบ
+                disabled={signingOut}
+                onClick={handleSignOut}>
+          {signingOut ? "กำลังออกจากระบบ..." : "ออกจากระบบ"}
         </button>
       )}
       {msg && <div style={{fontSize:10, color:"var(--up)"}}>✓ {msg}</div>}
