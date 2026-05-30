@@ -42,6 +42,19 @@ https://addy007x.github.io/dca-portfolio/
 
 การอัปเดตราคาจาก API ถูกปิดไว้เป็นค่าเริ่มต้น ถ้าต้องการราคาตลาดอัตโนมัติให้เปิด `Live price API` ใน Settings > Database
 
+## ระบบล็อกอินหลายคน
+
+แอปรองรับ Supabase Auth + database snapshot ต่อผู้ใช้หนึ่งคนแล้ว
+
+1. สร้างโปรเจกต์ใน Supabase
+2. เปิด SQL Editor แล้วรันไฟล์ `supabase/schema.sql`
+3. ไปที่ Project Settings > API แล้ว copy `Project URL` และ `anon public key`
+4. ไปที่ Authentication > URL Configuration แล้วตั้ง Site URL เป็น `https://addy007x.github.io/dca-portfolio/`
+5. ใส่ค่าลงใน `supabase-config.js`
+6. push ขึ้น GitHub
+
+เมื่อล็อกอินแล้ว แอปจะโหลด/บันทึกข้อมูลในตาราง `portfolio_snapshots` โดยแยกตาม `user_id` และใช้ Row Level Security เพื่อกันข้อมูลของแต่ละบัญชีไม่ให้ปนกัน
+
 ## โครงสร้างหลัก
 
 - `index.html` - หน้าเริ่มต้นของแอป

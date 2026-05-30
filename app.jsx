@@ -318,6 +318,12 @@ function LocalDatabasePanel({ priceStatus }) {
         <button className="twk-btn secondary" onClick={clearCloudConfig}>ล้าง backend</button>
       </div>
 
+      {window.isSupabaseConfigured?.() && (
+        <button className="twk-btn secondary" style={{marginTop:2, color:"var(--down)"}}
+                onClick={() => window.signOutSupabase?.()}>
+          ออกจากระบบ
+        </button>
+      )}
       {msg && <div style={{fontSize:10, color:"var(--up)"}}>✓ {msg}</div>}
     </div>
   );
@@ -491,4 +497,8 @@ function BackendConfigPanel() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <SupabaseAuthGate>
+    <App/>
+  </SupabaseAuthGate>
+);

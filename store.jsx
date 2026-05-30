@@ -132,6 +132,9 @@ function updateStore(updater) {
   if (typeof window.scheduleSync === "function") {
     try { window.scheduleSync(); } catch (_) {}
   }
+  if (typeof window.scheduleCloudSync === "function") {
+    try { window.scheduleCloudSync(); } catch (_) {}
+  }
 }
 
 // React hook — subscribes to all changes
