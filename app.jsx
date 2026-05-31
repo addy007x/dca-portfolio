@@ -16,10 +16,34 @@ function applyAccent(key) {
   r.setProperty("--accent-soft", a.soft);
 }
 
+const APP_VIEW_KINDS = ["dashboard","portfolio","dca","earn","history","tax","bench"];
+const APP_ACTION_KINDS = ["add-tx","settings"];
+
+function hashKind() {
+  const raw = decodeURIComponent((location.hash || "").replace(/^#/, "")).split(/[/?&]/)[0];
+  return raw;
+}
+
+function viewFromHash() {
+  const raw = hashKind();
+  const kind = APP_VIEW_KINDS.includes(raw) ? raw : "dashboard";
+  return { kind, asset: null };
+}
+
+function actionFromHash() {
+  const raw = hashKind();
+  return APP_ACTION_KINDS.includes(raw) ? raw : "";
+}
+
+function setRouteHash(kind) {
+  const next = "#" + (APP_VIEW_KINDS.includes(kind) ? kind : "dashboard");
+  if (location.hash !== next) history.pushState(null, "", next);
+}
+
 function App() {
   const store = useStore();
   const s = store.settings;
-  const [view, setView] = React.useState({ kind: "dashboard", asset: null });
+  const [view, setView] = React.useState(() => viewFromHash());
   const [showHoldingModal, setShowHoldingModal] = React.useState(false);
   const [showTxModal, setShowTxModal] = React.useState(false);
   const [showDcaModal, setShowDcaModal] = React.useState(false);
@@ -46,6 +70,30 @@ function App() {
     return () => cancelAnimationFrame(id);
   }, []);
 
+  React.useEffect(() => {
+    const syncRoute = () => {
+      const action = actionFromHash();
+      if (action === "add-tx") {
+        setView({ kind: "dashboard", asset: null });
+        setShowTxModal(true);
+        return;
+      }
+      if (action === "settings") {
+        setView({ kind: "dashboard", asset: null });
+        setTimeout(() => window.postMessage({ type: "__activate_edit_mode" }, "*"), 80);
+        return;
+      }
+      setView(viewFromHash());
+    };
+    syncRoute();
+    window.addEventListener("hashchange", syncRoute);
+    window.addEventListener("popstate", syncRoute);
+    return () => {
+      window.removeEventListener("hashchange", syncRoute);
+      window.removeEventListener("popstate", syncRoute);
+    };
+  }, []);
+
   // Live price feed — refreshes every 60s
   const priceStatus = useLivePrices(store.holdings, 60000);
 
@@ -53,9 +101,9 @@ function App() {
     setView({ kind: "detail", asset });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-  const onBack = () => setView({ kind: "dashboard", asset: null });
+  const onBack = () => goTo("dashboard");
 
-  const navKinds = ["dashboard","portfolio","dca","earn","history","tax","bench"];
+  const navKinds = APP_VIEW_KINDS;
   const activeNav = navKinds.includes(view.kind) ? view.kind : (view.kind === "detail" ? "portfolio" : "dashboard");
 
   // Find current asset state (may have changed since opening detail)
@@ -63,7 +111,12 @@ function App() {
     ? store.holdings.find(h => h.id === view.asset.id) || view.asset
     : null;
 
-  const goTo = (k) => { setView({ kind: k, asset: null }); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const goTo = (k) => {
+    const kind = APP_VIEW_KINDS.includes(k) ? k : "dashboard";
+    setRouteHash(kind);
+    setView({ kind, asset: null });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const openDcaModal = () => { setEditDCA(null); setShowDcaModal(true); };
   const openEditDCA = (d) => { setEditDCA(d); setShowDcaModal(true); };

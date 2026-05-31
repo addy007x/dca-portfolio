@@ -180,14 +180,19 @@ button, input { font: inherit; }
 }
 .icon-btn, .add-btn {
   height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: 16px;
   font-weight: 800;
+  text-decoration: none;
 }
 .icon-btn {
   width: 52px;
   background: var(--panel);
   border: 1px solid var(--line);
+  color: var(--ink);
 }
 .add-btn {
   padding: 0 22px;
@@ -321,13 +326,13 @@ button, input { font: inherit; }
     <div>
       <div class="menu-title">เมนูหลัก</div>
       <nav class="nav">
-        <a class="active" href="#"><i>⌂</i><span>หน้าแรก</span></a>
-        <a href="#"><i>▣</i><span>พอร์ตการลงทุน</span></a>
-        <a href="#"><i>▥</i><span>DCA Schedule</span></a>
-        <a href="#"><i>◷</i><span>Earn</span></a>
-        <a href="#"><i>↺</i><span>ประวัติธุรกรรม</span></a>
-        <a href="#"><i>▤</i><span>รายงานภาษี</span></a>
-        <a href="#"><i>↗</i><span>เปรียบเทียบ</span></a>
+        <a class="active" href="./index.html#dashboard"><i>⌂</i><span>หน้าแรก</span></a>
+        <a href="./index.html#portfolio"><i>▣</i><span>พอร์ตการลงทุน</span></a>
+        <a href="./index.html#dca"><i>▥</i><span>DCA Schedule</span></a>
+        <a href="./index.html#earn"><i>◷</i><span>Earn</span></a>
+        <a href="./index.html#history"><i>↺</i><span>ประวัติธุรกรรม</span></a>
+        <a href="./index.html#tax"><i>▤</i><span>รายงานภาษี</span></a>
+        <a href="./index.html#bench"><i>↗</i><span>เปรียบเทียบ</span></a>
       </nav>
     </div>
 
@@ -349,21 +354,21 @@ button, input { font: inherit; }
       <div class="controls">
         <div class="toggle"><button class="active">฿ THB</button><button>$ USD</button></div>
         <input class="search" placeholder="ค้นหา ticker...">
-        <button class="icon-btn" aria-label="ตั้งค่า">⚙</button>
-        <button class="add-btn">+ เพิ่มธุรกรรม</button>
+        <a class="icon-btn" href="./index.html#settings" aria-label="ตั้งค่า">⚙</a>
+        <a class="add-btn" href="./index.html#add-tx">+ เพิ่มธุรกรรม</a>
       </div>
     </header>
 
     <section class="wire-grid" aria-label="โครงกรอบหน้า Dashboard">
-      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 1"></a>
-      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 2"></a>
-      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 3"></a>
-      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 4"></a>
-      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 5"></a>
-      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 6"></a>
-      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 7"></a>
-      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 8"></a>
-      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 9"></a>
+      <a class="wire-card reveal" href="./index.html#dashboard" aria-label="ไปหน้า Dashboard เดิม"></a>
+      <a class="wire-card reveal" href="./index.html#portfolio" aria-label="ไปหน้าพอร์ตการลงทุนเดิม"></a>
+      <a class="wire-card reveal" href="./index.html#dashboard" aria-label="ไปหน้ากำไรขาดทุนเดิม"></a>
+      <a class="wire-card reveal" href="./index.html#dca" aria-label="ไปหน้า DCA เดิม"></a>
+      <a class="wire-card reveal" href="./index.html#portfolio" aria-label="ไปหน้าจำนวนสินทรัพย์เดิม"></a>
+      <a class="wire-card reveal" href="./index.html#dashboard" aria-label="ไปหน้ากราฟพอร์ตย้อนหลังเดิม"></a>
+      <a class="wire-card reveal" href="./index.html#portfolio" aria-label="ไปหน้าการจัดสรรสินทรัพย์เดิม"></a>
+      <a class="wire-card reveal" href="./index.html#earn" aria-label="ไปหน้า Earn เดิม"></a>
+      <a class="wire-card reveal" href="./index.html#history" aria-label="ไปหน้าประวัติธุรกรรมเดิม"></a>
     </section>
   </main>
 </div>
