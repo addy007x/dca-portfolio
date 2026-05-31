@@ -149,7 +149,7 @@ function Donut({ segments, size = 140, thickness = 18 }) {
   );
 }
 
-function AllocationDonut({ segments, size = 236, thickness = 32, totalDisplay = "" }) {
+function AllocationDonut({ segments, size = 236, thickness = 32, totalDisplay = "", selectedKey = null, onSelect }) {
   const [hover, setHover] = React.useState(null);
   const total = segments.reduce((sum, s) => sum + s.value, 0);
   if (!segments.length || total <= 0) return null;
@@ -168,7 +168,8 @@ function AllocationDonut({ segments, size = 236, thickness = 32, totalDisplay = 
     offset += len;
     return arc;
   });
-  const active = arcs[hover ?? 0];
+  const selectedIndex = selectedKey ? arcs.findIndex(s => s.key === selectedKey) : -1;
+  const active = arcs[hover ?? (selectedIndex >= 0 ? selectedIndex : 0)];
   const tipRadius = r + thickness * 0.65;
   const tipAngle = active.mid * Math.PI / 180;
   const tipX = size / 2 + Math.cos(tipAngle) * tipRadius;
@@ -193,7 +194,8 @@ function AllocationDonut({ segments, size = 236, thickness = 32, totalDisplay = 
                     className="alloc-donut-slice"
                     style={{opacity: hover == null || isActive ? 1 : .42}}
                     onMouseEnter={() => setHover(s.i)}
-                    onMouseLeave={() => setHover(null)}/>
+                    onMouseLeave={() => setHover(null)}
+                    onClick={() => onSelect?.(s.key)}/>
           );
         })}
       </svg>

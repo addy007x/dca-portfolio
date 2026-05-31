@@ -776,6 +776,20 @@ button { font-family: inherit; cursor: pointer; }
   gap: 9px;
   min-width: 0;
   font-size: 13px;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  padding: 4px 5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background .16s ease, border-color .16s ease;
+}
+.alloc-legend-item:hover,
+.alloc-legend-item.is-selected {
+  background: var(--surface-2);
+  border-color: var(--line);
 }
 .alloc-legend-main {
   display: grid;

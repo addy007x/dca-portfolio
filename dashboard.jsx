@@ -259,12 +259,22 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
   const store = window.useStore();
   const M = window.MOCK; // still used for portfolio history baseline
   const allHoldings = store.holdings;
-  const holdings = searchQuery
+  const [selectedAllocKey, setSelectedAllocKey] = React.useState(null);
+  const searchedHoldings = searchQuery
     ? allHoldings.filter(h =>
         h.ticker.toUpperCase().includes(searchQuery.toUpperCase()) ||
         (h.name || "").toUpperCase().includes(searchQuery.toUpperCase())
       )
     : allHoldings;
+  const activeAllocKey = selectedAllocKey && allHoldings.some(h => (h.id || h.ticker) === selectedAllocKey)
+    ? selectedAllocKey
+    : null;
+  const selectedAllocHolding = activeAllocKey
+    ? allHoldings.find(h => (h.id || h.ticker) === activeAllocKey)
+    : null;
+  const holdings = activeAllocKey
+    ? searchedHoldings.filter(h => (h.id || h.ticker) === activeAllocKey)
+    : searchedHoldings;
   const dcaList = store.dca;
   const earnList = store.earn;
   const benchmarks = store.benchmarks || M.BENCHMARKS;
@@ -341,7 +351,7 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
     : "ไม่มีรายการ";
 
   // ─────── Empty portfolio? Show onboarding ───────
-  if (holdings.length === 0) {
+  if (allHoldings.length === 0) {
     return (
       <section className="card" style={{padding:40, textAlign:"center"}}>
         <div className="empty-state">
@@ -540,21 +550,27 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
                 thickness={34}
                 segments={assetAllocSegs}
                 totalDisplay={`${ccySym}${Math.round(cv(totals.mvTHB)).toLocaleString()}`}
+                selectedKey={activeAllocKey}
+                onSelect={(key) => setSelectedAllocKey(current => current === key ? null : key)}
               />
             </div>
 
             <div className="alloc-legend-grid">
               {assetAllocSegs.slice(0, 6).map(s => {
                 const pct = totals.mvTHB > 0 ? (s.value / totals.mvTHB) * 100 : 0;
+                const isSelected = activeAllocKey === s.key;
                 return (
-                  <div className="alloc-legend-item" key={s.key}>
+                  <button type="button"
+                          className={isSelected ? "alloc-legend-item is-selected" : "alloc-legend-item"}
+                          key={s.key}
+                          onClick={() => setSelectedAllocKey(current => current === s.key ? null : s.key)}>
                     <AssetIcon ticker={s.ticker} classKey={s.classKey} size={26}/>
                     <div className="alloc-legend-main">
                       <span>{s.ticker}</span>
                       <b>{pct.toFixed(2)}%</b>
                     </div>
                     <span className="alloc-legend-color" style={{background:s.color}}></span>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -567,9 +583,18 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
         <div className="card-head" style={{padding:"18px 22px 12px", marginBottom:0}}>
           <div>
             <div className="card-title">สินทรัพย์ที่ถืออยู่</div>
-            <div className="card-sub">{holdings.length} รายการ · คลิกเพื่อดูรายละเอียด · ราคาอัพเดตอัตโนมัติทุก 60 วินาที</div>
+            <div className="card-sub">
+              {holdings.length} รายการ
+              {selectedAllocHolding ? ` · กรอง ${selectedAllocHolding.ticker}` : ""}
+              {" · คลิกเพื่อดูรายละเอียด · ราคาอัพเดตอัตโนมัติทุก 60 วินาที"}
+            </div>
           </div>
           <div className="card-act">
+            {selectedAllocHolding && (
+              <button className="btn sm" onClick={() => setSelectedAllocKey(null)}>
+                ล้างตัวกรอง
+              </button>
+            )}
             <button className="btn sm" onClick={onAddHolding}>
               <Ico name="plus" size={13}/> เพิ่มสินทรัพย์
             </button>
@@ -585,6 +610,12 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
           <div style={{textAlign:"right"}}>7 วัน</div>
           <div></div>
         </div>
+
+        {holdings.length === 0 && (
+          <div style={{padding:"24px", color:"var(--muted)", fontSize:13, textAlign:"center"}}>
+            ไม่พบสินทรัพย์ที่ตรงกับตัวกรอง
+          </div>
+        )}
 
         {holdings.map(h => {
           const mvNative = h.qty * h.price;
