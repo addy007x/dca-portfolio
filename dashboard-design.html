@@ -202,15 +202,25 @@ button, input { font: inherit; }
   align-items: stretch;
 }
 .wire-card {
+  display: block;
   min-width: 0;
   min-height: 0;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
   box-shadow: var(--shadow);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
 }
 .wire-card:hover {
   border-color: var(--line-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 20px 48px rgba(65, 48, 31, .12);
+}
+.wire-card:focus-visible {
+  outline: 3px solid rgba(17, 16, 14, .22);
+  outline-offset: 3px;
 }
 .reveal {
   opacity: 0;
@@ -308,15 +318,15 @@ button, input { font: inherit; }
     </header>
 
     <section class="wire-grid" aria-label="โครงกรอบหน้า Dashboard">
-      <article class="wire-card reveal" aria-label="กรอบเปล่า 1"></article>
-      <article class="wire-card reveal" aria-label="กรอบเปล่า 2"></article>
-      <article class="wire-card reveal" aria-label="กรอบเปล่า 3"></article>
-      <article class="wire-card reveal" aria-label="กรอบเปล่า 4"></article>
-      <article class="wire-card reveal" aria-label="กรอบเปล่า 5"></article>
-      <article class="wire-card reveal" aria-label="กรอบเปล่า 6"></article>
-      <article class="wire-card reveal" aria-label="กรอบเปล่า 7"></article>
-      <article class="wire-card reveal" aria-label="กรอบเปล่า 8"></article>
-      <article class="wire-card reveal" aria-label="กรอบเปล่า 9"></article>
+      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 1"></a>
+      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 2"></a>
+      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 3"></a>
+      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 4"></a>
+      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 5"></a>
+      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 6"></a>
+      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 7"></a>
+      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 8"></a>
+      <a class="wire-card reveal" href="./index.html" aria-label="ไปหน้า Dashboard เดิม 9"></a>
     </section>
   </main>
 </div>
