@@ -817,9 +817,10 @@ function EarnPanel({ ccy, positions, FX, holdings, askConfirm, onAdd }) {
     return price > 0 ? earnedNative * price : earnedNative; // fallback: treat as USD
   };
 
-  const totalUSD = positions.reduce((s, p) => s + p.qty * (getPrice(p.sym) || (p.sym.includes("USD") ? 1 : 0)), 0);
-  const stakedDisp = ccy === "THB" ? totalUSD * FX : totalUSD;
   const earnedTodayUSD = positions.reduce((s, p) => s + calcEarnedTodayUSD(p), 0);
+  const totalUSD = positions.reduce((s, p) => s + p.qty * (getPrice(p.sym) || (p.sym.includes("USD") ? 1 : 0)), 0);
+  const totalWithEarnedUSD = totalUSD + earnedTodayUSD;
+  const stakedDisp = ccy === "THB" ? totalWithEarnedUSD * FX : totalWithEarnedUSD;
   const earnedTodayDisp = ccy === "THB" ? earnedTodayUSD * FX : earnedTodayUSD;
 
   const usdtPos = positions.find(p => p.sym === "USDT");

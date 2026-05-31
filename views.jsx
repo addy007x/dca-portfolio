@@ -313,6 +313,7 @@ function EarnView({ ccy, onAddEarn }) {
 
   const totalUSD = positions.reduce((s, p) => s + p.qty * Math.max(getPrice(p.sym), 1), 0);
   const earnedTodayUSD = positions.reduce((s, p) => s + calcEarnedTodayUSD(p), 0);
+  const totalWithEarnedUSD = totalUSD + earnedTodayUSD;
   const totalAnnualUSD = positions.reduce((s, p) => s + p.qty * getPrice(p.sym) * p.apy / 100, 0);
 
   const usdtBal = (positions.find(p => p.sym === "USDT") || {}).qty || 0;
@@ -333,8 +334,8 @@ function EarnView({ ccy, onAddEarn }) {
       <div className="kpi-grid" style={{marginBottom:20}}>
         <div className="kpi">
           <div className="label">ยอดรวม Earn</div>
-          <div className="value">{ccySym}{ccy === "THB" ? Math.round(totalUSD*FX).toLocaleString() : fmtNum(totalUSD,2)}</div>
-          <div className="delta" style={{color:"var(--muted)"}}>มูลค่าตลาด</div>
+          <div className="value">{ccySym}{ccy === "THB" ? Math.round(totalWithEarnedUSD*FX).toLocaleString() : fmtNum(totalWithEarnedUSD,2)}</div>
+          <div className="delta" style={{color:"var(--muted)"}}>มูลค่าตลาด + ดอกเบี้ยวันนี้</div>
         </div>
         <div className="kpi">
           <div className="label">ได้รับวันนี้</div>
