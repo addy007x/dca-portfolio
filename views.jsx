@@ -313,6 +313,8 @@ function EarnView({ ccy, onAddEarn }) {
 
   const totalUSD = positions.reduce((s, p) => s + p.qty * Math.max(getPrice(p.sym), 1), 0);
   const earnedTodayUSD = positions.reduce((s, p) => s + calcEarnedTodayUSD(p), 0);
+  const savedEarnedUSD = positions.reduce((s, p) => s + (Number(p.earnedToday) || 0), 0);
+  const accumulatedEarnedUSD = savedEarnedUSD + earnedTodayUSD;
   const totalWithEarnedUSD = totalUSD + earnedTodayUSD;
   const totalAnnualUSD = positions.reduce((s, p) => s + p.qty * getPrice(p.sym) * p.apy / 100, 0);
 
@@ -348,9 +350,9 @@ function EarnView({ ccy, onAddEarn }) {
           </div>
         </div>
         <div className="kpi">
-          <div className="label">คาดการณ์/ปี</div>
-          <div className="value">{ccySym}{ccy === "THB" ? Math.round(totalAnnualUSD*FX).toLocaleString() : fmtNum(totalAnnualUSD,2)}</div>
-          <div className="delta" style={{color:"var(--accent-ink)"}}>ตาม APY ปัจจุบัน</div>
+          <div className="label">ดอกเบี้ยสะสม</div>
+          <div className="value">{ccySym}{ccy === "THB" ? fmtNum(accumulatedEarnedUSD*FX,2) : fmtNum(accumulatedEarnedUSD,4)}</div>
+          <div className="delta" style={{color:"var(--accent-ink)"}}>รวมที่บันทึก + วันนี้</div>
         </div>
         <div className="kpi">
           <div className="label">สินทรัพย์</div>
