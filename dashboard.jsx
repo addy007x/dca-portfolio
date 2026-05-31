@@ -311,12 +311,26 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
   const scale = totals.mvTHB > 0 && baselineLast > 0 ? totals.mvTHB / baselineLast : 1;
   const histDisp = histTHB.map(v => cv(v * scale));
 
-  const allocSegs = [
-    { key:"us", label:"หุ้น US", color:"var(--c-us)", value: totals.byClass.us },
-    { key:"th", label:"หุ้นไทย", color:"var(--c-th)", value: totals.byClass.th },
-    { key:"crypto", label:"คริปโต", color:"var(--c-crypto)", value: totals.byClass.crypto },
-    { key:"gold", label:"ทองคำ", color:"var(--c-gold)", value: totals.byClass.gold },
-  ].filter(s => s.value > 0);
+  const allocPalette = [
+    "#f2b94b", "#5aa7ff", "#ff8a5c", "#87d37c", "#b88cff", "#ffc857",
+    "#45c4b0", "#ff6f91", "#6f8cff", "#d6a85f", "#77dd77", "#ffb347",
+  ];
+  const assetAllocSegs = allHoldings
+    .map((h, i) => {
+      const mvNative = h.qty * h.price;
+      const mvTHB = h.ccy === "THB" ? mvNative : mvNative * FX;
+      return {
+        key: h.id || h.ticker,
+        ticker: h.ticker,
+        name: h.name,
+        classKey: h.classKey,
+        value: mvTHB,
+        color: allocPalette[i % allocPalette.length],
+        valueDisplay: `${ccySym}${Math.round(cv(mvTHB)).toLocaleString()}`,
+      };
+    })
+    .filter(s => s.value > 0)
+    .sort((a, b) => b.value - a.value);
 
   // Find next DCA
   const nextDCA = dcaList
@@ -515,33 +529,31 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
           <div className="card-head">
             <div>
               <div className="card-title">การจัดสรรสินทรัพย์</div>
-              <div className="card-sub">แยกตามประเภท</div>
+              <div className="card-sub">แยกตามรายสินทรัพย์</div>
             </div>
           </div>
 
           <div className="alloc">
-            <div style={{display:"flex", alignItems:"center", gap:18, padding:"4px 0 8px"}}>
-              <Donut size={130} thickness={20} segments={allocSegs}/>
-              <div style={{flex:1, minWidth:0}}>
-                <div style={{fontSize:12, color:"var(--muted)"}}>{allocSegs.length} ประเภทสินทรัพย์</div>
-                <div className="num" style={{fontSize:26, fontWeight:700, letterSpacing:"-0.015em", marginTop:2}}>
-                  {ccySym}{Math.round(cv(totals.mvTHB)).toLocaleString()}
-                </div>
-                <div style={{fontSize:12, color:"var(--muted)"}}>มูลค่ารวม</div>
-              </div>
+            <div className="alloc-donut-card">
+              <AllocationDonut
+                size={236}
+                thickness={34}
+                segments={assetAllocSegs}
+                totalDisplay={`${ccySym}${Math.round(cv(totals.mvTHB)).toLocaleString()}`}
+              />
             </div>
 
-            <div className="alloc-rows">
-              {allocSegs.map(s => {
+            <div className="alloc-legend-grid">
+              {assetAllocSegs.slice(0, 6).map(s => {
                 const pct = totals.mvTHB > 0 ? (s.value / totals.mvTHB) * 100 : 0;
                 return (
-                  <div className="alloc-row" key={s.key}>
-                    <span className="alloc-dot" style={{background:s.color}}></span>
-                    <span style={{minWidth:60}}>{s.label}</span>
-                    <div className="alloc-bar">
-                      <div className="alloc-fill" style={{width: pct + "%", background: s.color}}></div>
+                  <div className="alloc-legend-item" key={s.key}>
+                    <AssetIcon ticker={s.ticker} classKey={s.classKey} size={26}/>
+                    <div className="alloc-legend-main">
+                      <span>{s.ticker}</span>
+                      <b>{pct.toFixed(2)}%</b>
                     </div>
-                    <span className="alloc-pct">{pct.toFixed(1)}%</span>
+                    <span className="alloc-legend-color" style={{background:s.color}}></span>
                   </div>
                 );
               })}

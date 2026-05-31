@@ -149,6 +149,71 @@ function Donut({ segments, size = 140, thickness = 18 }) {
   );
 }
 
+function AllocationDonut({ segments, size = 236, thickness = 32, totalDisplay = "" }) {
+  const [hover, setHover] = React.useState(null);
+  const total = segments.reduce((sum, s) => sum + s.value, 0);
+  if (!segments.length || total <= 0) return null;
+
+  const r = (size - thickness) / 2;
+  const c = 2 * Math.PI * r;
+  const gap = Math.min(6, c * 0.012);
+  let offset = 0;
+  let angle = -90;
+  const arcs = segments.map((s, i) => {
+    const pct = s.value / total;
+    const len = pct * c;
+    const mid = angle + pct * 180;
+    angle += pct * 360;
+    const arc = { ...s, i, pct, len, offset, mid };
+    offset += len;
+    return arc;
+  });
+  const active = arcs[hover ?? 0];
+  const tipRadius = r + thickness * 0.65;
+  const tipAngle = active.mid * Math.PI / 180;
+  const tipX = size / 2 + Math.cos(tipAngle) * tipRadius;
+  const tipY = size / 2 + Math.sin(tipAngle) * tipRadius;
+
+  return (
+    <div className="alloc-donut-stage" style={{width:size, height:size}}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="alloc-donut-svg">
+        <circle cx={size/2} cy={size/2} r={r} fill="none"
+                stroke="var(--surface-2)" strokeWidth={thickness}/>
+        {arcs.map(s => {
+          const dash = Math.max(0, s.len - gap);
+          const rest = c - dash;
+          const isActive = active.i === s.i;
+          return (
+            <circle key={s.key} cx={size/2} cy={size/2} r={r} fill="none"
+                    stroke={s.color} strokeWidth={isActive ? thickness + 5 : thickness}
+                    strokeDasharray={`${dash} ${rest}`}
+                    strokeDashoffset={-s.offset}
+                    transform={`rotate(-90 ${size/2} ${size/2})`}
+                    strokeLinecap="butt"
+                    className="alloc-donut-slice"
+                    style={{opacity: hover == null || isActive ? 1 : .42}}
+                    onMouseEnter={() => setHover(s.i)}
+                    onMouseLeave={() => setHover(null)}/>
+          );
+        })}
+      </svg>
+      <div className="alloc-donut-center">
+        <div className="alloc-center-ticker">{active.ticker}</div>
+        <div className="alloc-center-value">{active.valueDisplay || totalDisplay}</div>
+        <div className="alloc-center-pct">{(active.pct * 100).toFixed(2)}%</div>
+      </div>
+      {hover != null && (
+        <div className="alloc-donut-tooltip" style={{left:tipX, top:tipY}}>
+          <span style={{background:active.color}}></span>
+          <b>{active.ticker}</b>
+          <em>{(active.pct * 100).toFixed(2)}%</em>
+        </div>
+      )}
+    </div>
+  );
+}
+
 window.LineChart = LineChart;
 window.Sparkline = Sparkline;
 window.Donut = Donut;
+window.AllocationDonut = AllocationDonut;
