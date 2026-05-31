@@ -243,6 +243,84 @@ button, input { font: inherit; }
   outline: 3px solid rgba(17, 16, 14, .22);
   outline-offset: 3px;
 }
+.loading-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255,253,248,.86), rgba(248,243,234,.62) 42%, rgba(28,22,16,.22) 100%);
+  opacity: 0;
+  pointer-events: none;
+  backdrop-filter: blur(0);
+  transition: opacity .24s ease, backdrop-filter .24s ease;
+}
+.loading-gate.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  backdrop-filter: blur(8px);
+}
+.loading-panel {
+  width: min(360px, 92vw);
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 24px;
+  border: 1px solid rgba(218, 203, 187, .92);
+  border-radius: 22px;
+  background: rgba(255, 253, 248, .76);
+  box-shadow: 0 26px 80px rgba(44, 33, 22, .22);
+}
+.mini-maid {
+  width: 92px;
+  height: 108px;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,.78);
+  background:
+    url("assets/anime-maid-dashboard-bg.png") 78% 44% / 560px auto no-repeat;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.78),
+    0 14px 28px rgba(54, 38, 24, .18);
+  animation: maidBounce .9s ease-in-out infinite;
+}
+.loading-title {
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 20px;
+}
+.loading-subtitle {
+  margin-top: -8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+.loading-bar {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(218, 203, 187, .62);
+}
+.loading-bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2b8f8a, #dba33b);
+}
+.loading-gate.is-active .loading-bar span {
+  animation: loadingFill 3s linear forwards;
+}
+@keyframes maidBounce {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+@keyframes loadingFill {
+  to { width: 100%; }
+}
 .reveal {
   opacity: 0;
   transform: translateY(14px);
@@ -289,5 +367,31 @@ button, input { font: inherit; }
     </section>
   </main>
 </div>
+<div class="loading-gate" id="loadingGate" aria-hidden="true">
+  <div class="loading-panel" role="status" aria-live="polite">
+    <div class="mini-maid" aria-hidden="true"></div>
+    <div class="loading-title">กำลังเปิด DCA-Portfolio</div>
+    <div class="loading-subtitle">PLEASE WAIT 3 SECONDS</div>
+    <div class="loading-bar"><span></span></div>
+  </div>
+</div>
+<script>
+(() => {
+  const gate = document.getElementById("loadingGate");
+  const card = document.querySelector(".wire-card");
+  if (!gate || !card) return;
+
+  card.addEventListener("click", event => {
+    const target = card.getAttribute("href");
+    if (!target) return;
+    event.preventDefault();
+    gate.classList.add("is-active");
+    gate.setAttribute("aria-hidden", "false");
+    setTimeout(() => {
+      location.href = target;
+    }, 3000);
+  });
+})();
+</script>
 </body>
 </html>
