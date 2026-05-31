@@ -27,6 +27,7 @@ function App() {
   const [editHolding, setEditHolding] = React.useState(null);
   const [editDCA, setEditDCA] = React.useState(null);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [appReady, setAppReady] = React.useState(false);
 
   // Apply theme/density/accent
   React.useEffect(() => {
@@ -34,6 +35,16 @@ function App() {
     document.documentElement.dataset.theme = s.theme;
     applyAccent(s.accent);
   }, [s.density, s.theme, s.accent]);
+
+  React.useEffect(() => {
+    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    if (prefersReducedMotion) {
+      setAppReady(true);
+      return;
+    }
+    const id = requestAnimationFrame(() => setAppReady(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   // Live price feed — refreshes every 60s
   const priceStatus = useLivePrices(store.holdings, 60000);
@@ -59,7 +70,12 @@ function App() {
 
   return (
     <>
-      <div className="app">
+      <div className="app" style={{
+        opacity: appReady ? 1 : 0,
+        transform: appReady ? "translateY(0)" : "translateY(14px)",
+        filter: appReady ? "blur(0)" : "blur(5px)",
+        transition: "opacity .78s ease, transform .78s cubic-bezier(.2,.8,.2,1), filter .78s ease",
+      }}>
         <Sidebar active={activeNav}
                  onNav={(k) => goTo(k)}
                  dcaDueCount={store.dca.filter(d => !d.paused && d.nextDate && d.nextDate <= window.todayISO()).length}/>
