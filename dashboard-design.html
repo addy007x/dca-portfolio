@@ -26,7 +26,21 @@ body {
   margin: 0;
   color: var(--ink);
   font-family: var(--ui);
-  background: linear-gradient(135deg, #f8f3ea 0%, var(--bg) 55%, #efe8dc 100%);
+  background:
+    linear-gradient(90deg, rgba(248, 243, 234, .88) 0%, rgba(248, 243, 234, .62) 48%, rgba(239, 232, 220, .38) 100%),
+    linear-gradient(180deg, rgba(255, 253, 248, .34), rgba(228, 217, 200, .28)),
+    url("assets/fantasy-vault-bg.png") center / cover fixed no-repeat,
+    linear-gradient(135deg, #f8f3ea 0%, var(--bg) 55%, #efe8dc 100%);
+}
+body:before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 24% 24%, rgba(255,255,255,.42), transparent 28%),
+    radial-gradient(circle at 92% 12%, rgba(62, 86, 58, .18), transparent 30%),
+    linear-gradient(180deg, transparent 0 62%, rgba(32, 24, 15, .08) 100%);
 }
 button, input { font: inherit; }
 .shell {
