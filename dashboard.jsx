@@ -341,6 +341,13 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
     })
     .filter(s => s.value > 0)
     .sort((a, b) => b.value - a.value);
+  const topAlloc = assetAllocSegs[0] || null;
+  const topAllocPct = topAlloc && totals.mvTHB > 0 ? (topAlloc.value / totals.mvTHB) * 100 : 0;
+  const concentration = topAllocPct >= 40
+    ? { tone: "high", label: "กระจุกสูง", hint: "ตัวเดียวกินสัดส่วนเยอะ ควรเฝ้าดูความเสี่ยง" }
+    : topAllocPct >= 25
+      ? { tone: "watch", label: "เริ่มกระจุก", hint: "ยังรับได้ แต่ควรมีแผนกระจายเพิ่ม" }
+      : { tone: "ok", label: "กระจายดี", hint: "น้ำหนักตัวหลักยังไม่สูงเกินไป" };
 
   // Find next DCA
   const nextDCA = dcaList
@@ -554,6 +561,25 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
                 onSelect={(key) => setSelectedAllocKey(current => current === key ? null : key)}
               />
             </div>
+
+            {topAlloc && (
+              <button type="button"
+                      className={`alloc-risk-panel ${concentration.tone}`}
+                      onClick={() => setSelectedAllocKey(current => current === topAlloc.key ? null : topAlloc.key)}>
+                <div className="alloc-risk-main">
+                  <span className="alloc-risk-dot" style={{background:topAlloc.color}}></span>
+                  <div>
+                    <div className="alloc-risk-label">น้ำหนักสูงสุด</div>
+                    <div className="alloc-risk-title">{topAlloc.ticker}</div>
+                  </div>
+                </div>
+                <div className="alloc-risk-metric">
+                  <div className="alloc-risk-pct">{topAllocPct.toFixed(2)}%</div>
+                  <div className="alloc-risk-badge">{concentration.label}</div>
+                </div>
+                <div className="alloc-risk-hint">{concentration.hint}</div>
+              </button>
+            )}
 
             <div className="alloc-legend-grid">
               {assetAllocSegs.slice(0, 6).map(s => {
