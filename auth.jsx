@@ -68,11 +68,16 @@ function saveAuthSession(session, options = {}) {
   window.dispatchEvent(new Event("siamfolio.auth.changed"));
 }
 
-function reloadAfterAuthDelay() {
+function reloadAfterAuthDelay(targetUrl = "") {
   clearTimeout(_authReloadTimer);
   _authReloadTimer = setTimeout(() => {
-    location.reload();
+    if (targetUrl) location.assign(targetUrl);
+    else location.reload();
   }, AUTH_RELOAD_DELAY_MS);
+}
+
+function getPostLoginUrl() {
+  return new URL("dashboard-design.html", location.href).href;
 }
 
 function getAuthUser() {
@@ -262,7 +267,7 @@ function AuthForm() {
           try {
             await signInWithGoogleCredential(response.credential, { silent: true });
             setMessage("เข้าสู่ระบบสำเร็จ กำลังรีเฟรชใน 5 วินาที...");
-            reloadAfterAuthDelay();
+            reloadAfterAuthDelay(getPostLoginUrl());
           } catch (error) {
             setMessage(error.message);
             setBusy(false);
