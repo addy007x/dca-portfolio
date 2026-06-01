@@ -463,7 +463,7 @@ function LocalDatabasePanel({ priceStatus }) {
           </div>
           {lineCode?.command && (
             <div style={{fontSize:10, color:"var(--accent-ink)", lineHeight:1.5}}>
-              พิมพ์ใน LINE OA: <b>{lineCode.command}</b>
+              พิมพ์ใน LINE OA: <b>{lineCode.command}</b> หรือส่งแค่ <b>{lineCode.code}</b>
             </div>
           )}
           {lineMsg && (

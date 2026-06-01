@@ -759,7 +759,7 @@ function portfolioFlexMessage(snapshot) {
 function lineCommand(text) {
   const t = String(text || "").trim().toLowerCase();
   if (!t) return null;
-  if (t.startsWith("ผูก ") || t.startsWith("link ")) return "link";
+  if (/^(ผูก|link)\s*[a-z0-9]{4,12}$/i.test(t) || /^[a-z0-9]{6}$/i.test(t)) return "link";
   if (["help", "คำสั่ง", "ช่วยเหลือ"].includes(t)) return "help";
   if (t.includes("ลบ") || t.includes("ขาดทุน") || t.includes("แดง")) return "loss";
   if (t.includes("บวก") || t.includes("กำไร") || t.includes("เขียว")) return "gain";
@@ -769,7 +769,7 @@ function lineCommand(text) {
 
 function extractLineLinkCode(text) {
   const t = String(text || "").trim();
-  const m = t.match(/^(?:ผูก|link)\s+([A-Za-z0-9]{4,12})/i);
+  const m = t.match(/^(?:ผูก|link)\s*([A-Za-z0-9]{4,12})$/i) || t.match(/^([A-Za-z0-9]{6})$/i);
   return m ? m[1].toUpperCase() : "";
 }
 
@@ -992,7 +992,7 @@ async function handleLineLinkCode(req, env) {
     code = randomCode();
   }
 
-  const expiresAt = now + 10 * 60 * 1000;
+  const expiresAt = now + 30 * 60 * 1000;
   await env.DB.prepare(
     `INSERT INTO line_link_codes(code,user_id,email,name,expires_at,created_at)
      VALUES(?,?,?,?,?,?)`
