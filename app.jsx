@@ -50,6 +50,7 @@ function App() {
   const [showEarnModal, setShowEarnModal] = React.useState(false);
   const [editHolding, setEditHolding] = React.useState(null);
   const [editDCA, setEditDCA] = React.useState(null);
+  const [editTx, setEditTx] = React.useState(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [appReady, setAppReady] = React.useState(false);
 
@@ -75,6 +76,7 @@ function App() {
       const action = actionFromHash();
       if (action === "add-tx") {
         setView({ kind: "dashboard", asset: null });
+        setEditTx(null);
         setShowTxModal(true);
         return;
       }
@@ -135,7 +137,7 @@ function App() {
         <main className="main">
           <Topbar ccy={s.ccy}
                   onCcy={(c) => window.updateSettings({ ccy: c })}
-                  onAdd={() => setShowTxModal(true)}
+                  onAdd={() => { setEditTx(null); setShowTxModal(true); }}
                   priceStatus={priceStatus}
                   onSettings={() => window.postMessage({ type: '__activate_edit_mode' }, '*')}
                   searchQuery={searchQuery}
@@ -145,20 +147,20 @@ function App() {
 
           {view.kind === "detail"
             ? <Detail asset={currentAsset} ccy={s.ccy} onBack={() => goTo("dashboard")}
-                      onAddTx={() => setShowTxModal(true)}
+                      onAddTx={() => { setEditTx(null); setShowTxModal(true); }}
                       accent={`var(--accent)`}/>
             : view.kind === "portfolio"
             ? <PortfolioView ccy={s.ccy}
                              onOpenAsset={onOpenAsset}
                              onAddHolding={() => { setEditHolding(null); setShowHoldingModal(true); }}
-                             onAddTx={() => setShowTxModal(true)}
+                             onAddTx={() => { setEditTx(null); setShowTxModal(true); }}
                              onEditHolding={(h) => { setEditHolding(h); setShowHoldingModal(true); }}/>
             : view.kind === "dca"
             ? <DCAView ccy={s.ccy} onAddDCA={openDcaModal} onEditDCA={openEditDCA}/>
             : view.kind === "earn"
             ? <EarnView ccy={s.ccy} onAddEarn={() => setShowEarnModal(true)}/>
             : view.kind === "history"
-            ? <HistoryView ccy={s.ccy}/>
+            ? <HistoryView ccy={s.ccy} onEditTx={(tx) => { setEditTx(tx); setShowTxModal(true); }}/>
             : view.kind === "tax"
             ? <TaxView ccy={s.ccy}/>
             : view.kind === "bench"
@@ -166,7 +168,7 @@ function App() {
             : <Dashboard ccy={s.ccy}
                          onOpenAsset={onOpenAsset}
                          onAddHolding={() => { setEditHolding(null); setShowHoldingModal(true); }}
-                         onAddTx={() => setShowTxModal(true)}
+                         onAddTx={() => { setEditTx(null); setShowTxModal(true); }}
                          onAddDCA={openDcaModal}
                          onAddEarn={() => setShowEarnModal(true)}
                          onEditHolding={(h) => { setEditHolding(h); setShowHoldingModal(true); }}
@@ -190,8 +192,12 @@ function App() {
       <TransactionModal open={showTxModal}
                         holdings={store.holdings}
                         defaultTicker={view.kind === "detail" && currentAsset ? currentAsset.ticker : null}
-                        onClose={() => setShowTxModal(false)}
-                        onSave={(tx) => window.addTransaction(tx)}/>
+                        editTransaction={editTx}
+                        onClose={() => { setShowTxModal(false); setEditTx(null); }}
+                        onSave={(tx) => {
+                          if (editTx) window.updateTransaction(editTx.id, tx);
+                          else window.addTransaction(tx);
+                        }}/>
 
       <EarnModal open={showEarnModal}
                  holdings={store.holdings}

@@ -139,7 +139,8 @@ function HoldingModal({ open, holding, onClose, onSave }) {
 }
 
 // ─────── Add Transaction ───────
-function TransactionModal({ open, defaultTicker, holdings, onClose, onSave }) {
+function TransactionModal({ open, defaultTicker, holdings, editTransaction, onClose, onSave }) {
+  const isEdit = !!editTransaction;
   const [form, setForm] = React.useState({
     ticker: defaultTicker || "",
     kind: "buy",
@@ -150,14 +151,14 @@ function TransactionModal({ open, defaultTicker, holdings, onClose, onSave }) {
   });
   React.useEffect(() => {
     if (open) setForm({
-      ticker: defaultTicker || holdings[0]?.ticker || "",
-      kind: "buy",
-      qty: 0,
-      pricePerUnit: 0,
-      date: window.todayISO(),
-      note: "",
+      ticker: editTransaction?.ticker || defaultTicker || holdings[0]?.ticker || "",
+      kind: editTransaction?.kind || "buy",
+      qty: editTransaction ? Math.abs(editTransaction.qty || 0) : 0,
+      pricePerUnit: editTransaction?.pricePerUnit || 0,
+      date: editTransaction?.date || window.todayISO(),
+      note: editTransaction?.note || "",
     });
-  }, [open, defaultTicker]);
+  }, [open, defaultTicker, editTransaction]);
 
   // Auto-fill current price when ticker changes (must be before early return)
   const h = holdings.find(x => x.ticker === form.ticker);
@@ -184,6 +185,7 @@ function TransactionModal({ open, defaultTicker, holdings, onClose, onSave }) {
       pricePerUnit: price,
       valUSD: ccy === "USD" ? qty * price : (qty * price) / (window.getStore().fx || 35.8),
       ccy,
+      dcaId: editTransaction?.dcaId || null,
       note: form.note || (form.kind === "buy" ? "ซื้อด้วยตนเอง" : form.kind === "sell" ? "ขายด้วยตนเอง" : "DCA"),
     });
     onClose();
@@ -193,7 +195,7 @@ function TransactionModal({ open, defaultTicker, holdings, onClose, onSave }) {
     <div className="modal-scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <form className="modal modal-form" onSubmit={submit}>
         <div className="modal-ico" style={{background:"var(--up-soft)", color:"var(--up)"}}>
-          <Ico name="plus" size={22}/>
+          <Ico name={isEdit ? "edit" : "plus"} size={22}/>
         </div>
         <h3>เพิ่มธุรกรรม</h3>
         <p>บันทึกการซื้อ/ขาย/DCA — ระบบจะคำนวณต้นทุนเฉลี่ยใหม่อัตโนมัติ</p>

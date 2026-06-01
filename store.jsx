@@ -192,6 +192,53 @@ function updateHolding(id, patch) {
   }));
 }
 
+function applyTxToHolding(h, tx) {
+  const qty = Number(tx.qty || 0);
+  const price = Number(tx.pricePerUnit || 0);
+  const oldQty = Number(h.qty || 0);
+  const oldCost = Number(h.costAvg || price || 0);
+  const newQty = oldQty + qty;
+  let newCost = oldCost;
+  if (qty > 0) {
+    newCost = ((oldQty * oldCost) + (qty * price)) / Math.max(newQty, 0.0001);
+  }
+  return { ...h, qty: Math.max(0, newQty), costAvg: newCost };
+}
+
+function reverseTxFromHolding(h, tx) {
+  const qty = Number(tx.qty || 0);
+  const price = Number(tx.pricePerUnit || 0);
+  const oldQty = Number(h.qty || 0);
+  const oldCost = Number(h.costAvg || price || 0);
+  const newQty = oldQty - qty;
+  let newCost = oldCost;
+  if (qty > 0) {
+    const remainingCost = (oldQty * oldCost) - (qty * price);
+    newCost = newQty > 0 ? remainingCost / Math.max(newQty, 0.0001) : oldCost;
+  }
+  return { ...h, qty: Math.max(0, newQty), costAvg: newCost };
+}
+
+function txNativeValue(tx, fx = 35.8) {
+  if (!tx) return 0;
+  const valUSD = Number(tx.valUSD || 0);
+  return tx.ccy === "THB" ? valUSD * fx : valUSD;
+}
+
+function adjustDcaAfterTxChange(dca, oldTx, newTx, fx = 35.8) {
+  if (!dca) return dca;
+  const oldMatches = oldTx?.kind === "dca" && oldTx.dcaId === dca.id;
+  const newMatches = newTx?.kind === "dca" && newTx.dcaId === dca.id;
+  if (!oldMatches && !newMatches) return dca;
+  const countDelta = (newMatches ? 1 : 0) - (oldMatches ? 1 : 0);
+  const spentDelta = (newMatches ? txNativeValue(newTx, fx) : 0) - (oldMatches ? txNativeValue(oldTx, fx) : 0);
+  return {
+    ...dca,
+    executedCount: Math.max(0, Number(dca.executedCount || 0) + countDelta),
+    totalSpent: Math.max(0, Number(dca.totalSpent || 0) + spentDelta),
+  };
+}
+
 function addTransaction(tx) {
   updateStore(s => {
     const t = { ...tx, id: makeId("tx") };
@@ -199,15 +246,8 @@ function addTransaction(tx) {
     // Update holding qty/costAvg if buy/dca/sell
     const idx = next.holdings.findIndex(h => h.ticker === tx.ticker);
     if (idx >= 0) {
-      const h = next.holdings[idx];
-      const newQty = h.qty + tx.qty; // tx.qty signed
-      let newCost = h.costAvg;
-      if (tx.qty > 0) {
-        // weighted average
-        newCost = ((h.qty * h.costAvg) + (tx.qty * tx.pricePerUnit)) / Math.max(newQty, 0.0001);
-      }
       next.holdings = next.holdings.map((x, i) => i === idx
-        ? { ...x, qty: Math.max(0, newQty), costAvg: newCost }
+        ? applyTxToHolding(x, tx)
         : x);
     }
     return next;
@@ -215,7 +255,32 @@ function addTransaction(tx) {
 }
 
 function removeTransaction(id) {
-  updateStore(s => ({ ...s, transactions: s.transactions.filter(t => t.id !== id) }));
+  updateStore(s => {
+    const old = s.transactions.find(t => t.id === id);
+    if (!old) return s;
+    return {
+      ...s,
+      holdings: s.holdings.map(h => h.ticker === old.ticker ? reverseTxFromHolding(h, old) : h),
+      dca: s.dca.map(d => adjustDcaAfterTxChange(d, old, null, s.fx)),
+      transactions: s.transactions.filter(t => t.id !== id),
+    };
+  });
+}
+
+function updateTransaction(id, patch) {
+  updateStore(s => {
+    const old = s.transactions.find(t => t.id === id);
+    if (!old) return s;
+    const nextTx = { ...old, ...patch, id };
+    let holdings = s.holdings.map(h => h.ticker === old.ticker ? reverseTxFromHolding(h, old) : h);
+    holdings = holdings.map(h => h.ticker === nextTx.ticker ? applyTxToHolding(h, nextTx) : h);
+    return {
+      ...s,
+      holdings,
+      dca: s.dca.map(d => adjustDcaAfterTxChange(d, old, nextTx, s.fx)),
+      transactions: s.transactions.map(t => t.id === id ? nextTx : t),
+    };
+  });
 }
 
 function addDCA(d) {
@@ -373,7 +438,7 @@ function dueDCAs() {
 Object.assign(window, {
   useStore, getStore, updateStore,
   addHolding, removeHolding, updateHolding,
-  addTransaction, removeTransaction,
+  addTransaction, removeTransaction, updateTransaction,
   addDCA, removeDCA, updateDCA, executeDCA,
   addEarn, updateEarn, removeEarn, dismissAlert,
   updateSettings, setLivePrices, setFX,

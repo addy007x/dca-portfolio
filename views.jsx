@@ -193,7 +193,7 @@ function DCAView({ ccy, onAddDCA, onEditDCA }) {
 }
 
 // ─────── History View ───────
-function HistoryView({ ccy }) {
+function HistoryView({ ccy, onEditTx }) {
   const store = window.useStore();
   const FX = store.fx || 35.8;
   const [filter, setFilter] = React.useState("all");
@@ -280,7 +280,8 @@ function HistoryView({ ccy }) {
                   <div onClick={e => e.stopPropagation()}>
                     <Menu items={[
                       { label: "ลบธุรกรรม", icon: "trash", danger: true,
-                        onClick: () => window.removeTransaction(t.id) }
+                        onClick: () => window.removeTransaction(t.id) },
+                      { label: "แก้ไขธุรกรรม", icon: "edit", onClick: () => onEditTx && onEditTx(t) }
                     ]}/>
                   </div>
                 </div>
