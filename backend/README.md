@@ -130,6 +130,15 @@ https://YOUR-WORKER.workers.dev/api/line/webhook
 
 Add the OA as a friend and send it any message. The webhook stores your LINE user ID automatically in D1, so `LINE_TO_ID` is optional. If you still want manual targets, set `LINE_TO_ID` to a user ID, group ID, or room ID; comma-separate multiple destinations.
 
+LINE chat commands:
+
+```text
+พอร์ต / สรุป    Show current portfolio value and gain/loss summary
+บวก / กำไร      Show assets with positive P/L
+ลบ / ขาดทุน     Show assets with negative P/L
+คำสั่ง          Show available commands
+```
+
 ## Cost
 
 Cloudflare's free tier covers personal use comfortably:

@@ -439,6 +439,133 @@ async function replyLine(env, replyToken, text) {
   }).catch(() => {});
 }
 
+function fmtTHB(value) {
+  const n = Math.round(Math.abs(Number(value) || 0));
+  return `${value < 0 ? "-" : ""}฿${n.toLocaleString("en-US")}`;
+}
+
+function fmtSignedTHB(value) {
+  const n = Number(value) || 0;
+  return `${n >= 0 ? "+" : "-"}${fmtTHB(Math.abs(n))}`;
+}
+
+function fmtPctValue(value) {
+  const n = Number(value) || 0;
+  return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+}
+
+async function getLatestPortfolioData(env) {
+  const row = await env.DB.prepare(
+    "SELECT data FROM portfolio_snapshots ORDER BY updated_at DESC LIMIT 1"
+  ).first().catch(() => null);
+  if (row?.data) {
+    try {
+      return JSON.parse(row.data);
+    } catch (_) {}
+  }
+
+  const legacy = await env.DB.prepare("SELECT * FROM holdings ORDER BY rowid").all().catch(() => null);
+  const holdings = (legacy?.results || []).map(h => ({
+    ...h,
+    spark: h.spark ? JSON.parse(h.spark) : [],
+  }));
+  return { holdings, fx: 35.8 };
+}
+
+function portfolioRows(snapshot) {
+  const holdings = snapshot?.holdings || [];
+  const fx = Number(snapshot?.fx) || 35.8;
+  return holdings.map(h => {
+    const qty = Number(h.qty) || 0;
+    const price = Number(h.price) || 0;
+    const costAvg = Number(h.costAvg) || 0;
+    const multiplier = String(h.ccy || "USD").toUpperCase() === "THB" ? 1 : fx;
+    const valueTHB = qty * price * multiplier;
+    const costTHB = qty * costAvg * multiplier;
+    const plTHB = valueTHB - costTHB;
+    const plPct = costTHB > 0 ? (plTHB / costTHB) * 100 : 0;
+    return {
+      ticker: h.ticker || "-",
+      name: h.name || "",
+      valueTHB,
+      costTHB,
+      plTHB,
+      plPct,
+    };
+  });
+}
+
+function formatAssetLine(row) {
+  return `${row.ticker}: ${fmtSignedTHB(row.plTHB)} (${fmtPctValue(row.plPct)})`;
+}
+
+function formatPortfolioSummary(snapshot, mode = "summary") {
+  const rows = portfolioRows(snapshot);
+  if (!rows.length) {
+    return "SiamFolio\nยังไม่มีข้อมูลพอร์ตในระบบ ลองเปิดเว็บแล้วรอให้ sync ก่อนนะครับ";
+  }
+
+  const totalValue = rows.reduce((sum, r) => sum + r.valueTHB, 0);
+  const totalCost = rows.reduce((sum, r) => sum + r.costTHB, 0);
+  const totalPL = totalValue - totalCost;
+  const totalPct = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
+  const gains = rows.filter(r => r.plTHB > 0).sort((a, b) => b.plTHB - a.plTHB);
+  const losses = rows.filter(r => r.plTHB < 0).sort((a, b) => a.plTHB - b.plTHB);
+
+  if (mode === "gain") {
+    return [
+      "SiamFolio - สินทรัพย์บวก",
+      gains.length ? gains.slice(0, 8).map(formatAssetLine).join("\n") : "ยังไม่มีสินทรัพย์ที่เป็นบวก",
+    ].join("\n");
+  }
+
+  if (mode === "loss") {
+    return [
+      "SiamFolio - สินทรัพย์ติดลบ",
+      losses.length ? losses.slice(0, 8).map(formatAssetLine).join("\n") : "ยังไม่มีสินทรัพย์ที่ติดลบ",
+    ].join("\n");
+  }
+
+  const lines = [
+    "SiamFolio Portfolio",
+    `มูลค่าปัจจุบัน: ${fmtTHB(totalValue)}`,
+    `กำไร/ขาดทุนรวม: ${fmtSignedTHB(totalPL)} (${fmtPctValue(totalPct)})`,
+    `สินทรัพย์ทั้งหมด: ${rows.length} ตัว`,
+    "",
+    "บวกเด่น:",
+    gains.length ? gains.slice(0, 3).map(formatAssetLine).join("\n") : "ไม่มี",
+    "",
+    "ติดลบ:",
+    losses.length ? losses.slice(0, 3).map(formatAssetLine).join("\n") : "ไม่มี",
+  ];
+  return lines.join("\n").slice(0, 4800);
+}
+
+function lineCommand(text) {
+  const t = String(text || "").trim().toLowerCase();
+  if (!t) return null;
+  if (["help", "คำสั่ง", "ช่วยเหลือ"].includes(t)) return "help";
+  if (t.includes("ลบ") || t.includes("ขาดทุน") || t.includes("แดง")) return "loss";
+  if (t.includes("บวก") || t.includes("กำไร") || t.includes("เขียว")) return "gain";
+  if (t.includes("พอร์ต") || t.includes("portfolio") || t.includes("สรุป") || t.includes("มูลค่า")) return "summary";
+  return null;
+}
+
+async function lineCommandReply(env, text) {
+  const command = lineCommand(text);
+  if (command === "help") {
+    return [
+      "SiamFolio คำสั่ง",
+      "พอร์ต / สรุป - ดูมูลค่าพอร์ตและกำไรขาดทุน",
+      "บวก / กำไร - ดูสินทรัพย์ที่เป็นบวก",
+      "ลบ / ขาดทุน - ดูสินทรัพย์ที่ติดลบ",
+    ].join("\n");
+  }
+  if (!command) return null;
+  const snapshot = await getLatestPortfolioData(env);
+  return formatPortfolioSummary(snapshot, command);
+}
+
 async function handleLineWebhook(req, env) {
   if (!env.DB) return error("D1 database not bound", 500);
   const bodyText = await req.text();
@@ -463,7 +590,15 @@ async function handleLineWebhook(req, env) {
          last_seen_at=excluded.last_seen_at`
     ).bind(target.id, target.kind, "", now, now));
     if (event.replyToken) {
-      replies.push(replyLine(env, event.replyToken, "SiamFolio เชื่อม LINE OA แล้ว ✅\nต่อไปแจ้งเตือน DCA จะส่งมาที่แชทนี้"));
+      const text = event.message?.type === "text" ? event.message.text : "";
+      replies.push((async () => {
+        const commandText = await lineCommandReply(env, text);
+        await replyLine(
+          env,
+          event.replyToken,
+          commandText || "SiamFolio เชื่อม LINE OA แล้ว ✅\nพิมพ์ 'พอร์ต' เพื่อดูมูลค่าพอร์ต หรือ 'คำสั่ง' เพื่อดูคำสั่งทั้งหมด"
+        );
+      })());
     }
   }
 
