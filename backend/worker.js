@@ -430,19 +430,39 @@ function lineMessages(payload) {
   return [{ type: "text", text: String(payload || "") }];
 }
 
-async function replyLine(env, replyToken, payload) {
-  if (!env.LINE_CHANNEL_ACCESS_TOKEN || !replyToken) return;
-  await fetch("https://api.line.me/v2/bot/message/reply", {
+function normalizeLineReply(payload) {
+  if (payload?.__lineReply) return payload;
+  return { messages: lineMessages(payload), fallback: null };
+}
+
+async function postLineReply(env, replyToken, messages) {
+  return fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${env.LINE_CHANNEL_ACCESS_TOKEN}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      replyToken,
-      messages: lineMessages(payload),
-    }),
-  }).catch(() => {});
+    body: JSON.stringify({ replyToken, messages }),
+  });
+}
+
+async function replyLine(env, replyToken, payload) {
+  if (!env.LINE_CHANNEL_ACCESS_TOKEN || !replyToken) return;
+  const reply = normalizeLineReply(payload);
+  try {
+    const res = await postLineReply(env, replyToken, reply.messages);
+    if (res.ok) return;
+    const body = await res.text().catch(() => "");
+    console.error("LINE reply failed:", res.status, body);
+    if (reply.fallback) {
+      await postLineReply(env, replyToken, [{ type: "text", text: reply.fallback }]);
+    }
+  } catch (e) {
+    console.error("LINE reply error:", e.stack || e);
+    if (reply.fallback) {
+      await postLineReply(env, replyToken, [{ type: "text", text: reply.fallback }]).catch(() => {});
+    }
+  }
 }
 
 function fmtTHB(value) {
@@ -620,18 +640,13 @@ function portfolioFlexMessage(snapshot) {
     altText,
     contents: {
       type: "bubble",
-      size: "mega",
-      styles: {
-        body: { backgroundColor: "#FFFDF8" },
-        footer: { separator: true, separatorColor: "#E8DDCF" },
-      },
       header: {
         type: "box",
         layout: "vertical",
         paddingAll: "18px",
         backgroundColor: "#191512",
         contents: [
-          flexText("SIAMFOLIO", { size: "xs", color: "#E6C56A", weight: "bold", letterSpacing: "2px" }),
+          flexText("SIAMFOLIO", { size: "xs", color: "#E6C56A", weight: "bold" }),
           flexText("Portfolio Snapshot", { size: "xl", color: "#FFFFFF", weight: "bold", margin: "sm" }),
           flexText(new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }), {
             size: "xs",
@@ -727,7 +742,14 @@ async function lineCommandReply(env, text) {
   }
   if (!command) return null;
   const snapshot = await getLatestPortfolioData(env);
-  if (command === "summary") return portfolioFlexMessage(snapshot);
+  if (command === "summary") {
+    const flex = portfolioFlexMessage(snapshot);
+    return {
+      __lineReply: true,
+      messages: lineMessages(flex),
+      fallback: formatPortfolioSummary(snapshot, "summary"),
+    };
+  }
   return formatPortfolioSummary(snapshot, command);
 }
 
