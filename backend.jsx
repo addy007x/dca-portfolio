@@ -50,6 +50,14 @@ function isBackendConfigured() {
   return !!getBackendConfig();
 }
 
+function getPriceProxyConfig() {
+  const legacy = getBackendConfig();
+  if (legacy?.url) return { url: legacy.url, key: legacy.key || "" };
+  const authCfg = typeof window.getAuthConfig === "function" ? window.getAuthConfig() : (window.AUTH_CONFIG || {});
+  const url = (authCfg?.apiUrl || "").replace(/\/$/, "");
+  return url ? { url, key: "" } : null;
+}
+
 // ─────── HTTP helpers ───────
 async function backendFetch(path, opts = {}) {
   const cfg = getBackendConfig();
@@ -107,11 +115,12 @@ async function fetchDueDCAs() {
 
 // ─────── Prices via backend (no CORS issues) ───────
 async function backendPrices(kind, symbols) {
-  const cfg = getBackendConfig();
+  const cfg = getPriceProxyConfig();
   if (!cfg || !symbols || symbols.length === 0) return {};
   try {
     const url = cfg.url.replace(/\/$/, "") + `/api/prices/${kind}?symbols=${symbols.join(",")}`;
-    const r = await fetch(url);
+    const headers = cfg.key ? { "X-Api-Key": cfg.key } : {};
+    const r = await fetch(url, { headers });
     if (!r.ok) return {};
     return await r.json();
   } catch (e) {
@@ -121,11 +130,12 @@ async function backendPrices(kind, symbols) {
 }
 
 async function backendFX(from = "USD", to = "THB") {
-  const cfg = getBackendConfig();
+  const cfg = getPriceProxyConfig();
   if (!cfg) return null;
   try {
     const url = cfg.url.replace(/\/$/, "") + `/api/prices/fx?from=${from}&to=${to}`;
-    const r = await fetch(url);
+    const headers = cfg.key ? { "X-Api-Key": cfg.key } : {};
+    const r = await fetch(url, { headers });
     if (!r.ok) return null;
     const data = await r.json();
     return data?.rate || null;

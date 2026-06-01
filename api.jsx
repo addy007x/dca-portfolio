@@ -156,7 +156,9 @@ async function refreshAllPrices(holdings) {
   const byClass = { us: [], th: [], crypto: [], gold: [] };
   for (const h of holdings) byClass[h.classKey]?.push(h.ticker);
 
-  const useBackend = typeof window.isBackendConfigured === "function" && window.isBackendConfigured();
+  const useBackend =
+    (typeof window.isBackendConfigured === "function" && window.isBackendConfigured()) ||
+    (typeof window.isAuthConfigured === "function" && window.isAuthConfigured());
 
   let crypto, us, th, fx;
 
