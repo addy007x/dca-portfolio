@@ -345,23 +345,40 @@ async function getDueDCAs(env) {
   return json({ due: r.results || [] });
 }
 
-function getLineTargetIds(env) {
+function getLineSecretTargetIds(env) {
   const raw = env.LINE_TO_ID || env.LINE_TARGET_ID || "";
   return raw.split(",").map(s => s.trim()).filter(Boolean);
 }
 
-function lineStatus(env) {
+async function getLineTargetIds(env) {
+  const ids = new Set(getLineSecretTargetIds(env));
+  if (env.DB) {
+    try {
+      const rows = await env.DB.prepare("SELECT id FROM line_targets ORDER BY last_seen_at DESC").all();
+      for (const row of (rows.results || [])) {
+        if (row.id) ids.add(row.id);
+      }
+    } catch (_) {
+      // Schema may not have been applied yet; secret targets still work.
+    }
+  }
+  return [...ids];
+}
+
+async function lineStatus(env) {
+  const targets = await getLineTargetIds(env);
   return {
-    enabled: !!(env.LINE_CHANNEL_ACCESS_TOKEN && getLineTargetIds(env).length),
+    enabled: !!(env.LINE_CHANNEL_ACCESS_TOKEN && targets.length),
     hasToken: !!env.LINE_CHANNEL_ACCESS_TOKEN,
-    targets: getLineTargetIds(env).length,
+    targets: targets.length,
+    webhookUrl: "https://<your-worker>/api/line/webhook",
   };
 }
 
 async function sendLinePush(env, text, toOverride) {
   if (!env.LINE_CHANNEL_ACCESS_TOKEN) throw new Error("LINE_CHANNEL_ACCESS_TOKEN is not configured");
-  const targets = toOverride ? [toOverride] : getLineTargetIds(env);
-  if (!targets.length) throw new Error("LINE_TO_ID is not configured");
+  const targets = toOverride ? [toOverride] : await getLineTargetIds(env);
+  if (!targets.length) throw new Error("No LINE target found. Add the OA as a friend and send it one message.");
 
   const results = [];
   for (const to of targets) {
@@ -381,6 +398,78 @@ async function sendLinePush(env, text, toOverride) {
     results.push({ to, status: res.status });
   }
   return results;
+}
+
+function getLineSource(event) {
+  const source = event?.source || {};
+  if (source.userId) return { id: source.userId, kind: "user" };
+  if (source.groupId) return { id: source.groupId, kind: "group" };
+  if (source.roomId) return { id: source.roomId, kind: "room" };
+  return null;
+}
+
+async function verifyLineSignature(req, env, bodyText) {
+  if (!env.LINE_CHANNEL_SECRET) return true;
+  const signature = req.headers.get("X-Line-Signature") || "";
+  if (!signature) return false;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(env.LINE_CHANNEL_SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const digest = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(bodyText));
+  const expected = btoa(String.fromCharCode(...new Uint8Array(digest)));
+  return signature === expected;
+}
+
+async function replyLine(env, replyToken, text) {
+  if (!env.LINE_CHANNEL_ACCESS_TOKEN || !replyToken) return;
+  await fetch("https://api.line.me/v2/bot/message/reply", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${env.LINE_CHANNEL_ACCESS_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      replyToken,
+      messages: [{ type: "text", text }],
+    }),
+  }).catch(() => {});
+}
+
+async function handleLineWebhook(req, env) {
+  if (!env.DB) return error("D1 database not bound", 500);
+  const bodyText = await req.text();
+  const valid = await verifyLineSignature(req, env, bodyText);
+  if (!valid) return error("Invalid LINE signature", 401);
+
+  const body = JSON.parse(bodyText || "{}");
+  const now = Date.now();
+  let saved = 0;
+  const stmts = [];
+  const replies = [];
+
+  for (const event of (body.events || [])) {
+    const target = getLineSource(event);
+    if (!target) continue;
+    saved += 1;
+    stmts.push(env.DB.prepare(
+      `INSERT INTO line_targets(id,kind,display_name,created_at,last_seen_at)
+       VALUES(?,?,?,?,?)
+       ON CONFLICT(id) DO UPDATE SET
+         kind=excluded.kind,
+         last_seen_at=excluded.last_seen_at`
+    ).bind(target.id, target.kind, "", now, now));
+    if (event.replyToken) {
+      replies.push(replyLine(env, event.replyToken, "SiamFolio เชื่อม LINE OA แล้ว ✅\nต่อไปแจ้งเตือน DCA จะส่งมาที่แชทนี้"));
+    }
+  }
+
+  if (stmts.length > 0) await env.DB.batch(stmts);
+  if (replies.length > 0) await Promise.all(replies);
+  return json({ ok: true, saved });
 }
 
 function formatDcaLineMessage(due) {
@@ -426,7 +515,8 @@ async function handleRequest(req, env, ctx) {
   if (path === "/api/prices/stocks") return handleStocks(url, env);
   if (path === "/api/prices/fx") return handleFX(url, env);
   if (path === "/api/health") return json({ ok: true, version: "2.0", time: new Date().toISOString() });
-  if (path === "/api/line/status" && req.method === "GET") return json(lineStatus(env));
+  if (path === "/api/line/status" && req.method === "GET") return json(await lineStatus(env));
+  if (path === "/api/line/webhook" && req.method === "POST") return handleLineWebhook(req, env);
 
   if (path === "/api/auth/config" && req.method === "GET") {
     return json({ googleClientId: env.GOOGLE_CLIENT_ID || "" });
@@ -473,7 +563,8 @@ async function handleCron(env) {
   const newDue = (due.results || []).filter(d => !alreadyLogged.has(d.id));
 
   let lineSent = false;
-  if (newDue.length > 0 && lineStatus(env).enabled) {
+  const line = await lineStatus(env);
+  if (newDue.length > 0 && line.enabled) {
     try {
       await sendLinePush(env, formatDcaLineMessage(newDue));
       lineSent = true;

@@ -95,3 +95,12 @@ CREATE TABLE IF NOT EXISTS portfolio_snapshots (
   data       TEXT NOT NULL,
   updated_at INTEGER NOT NULL
 );
+
+-- LINE OA targets captured automatically from webhook events.
+CREATE TABLE IF NOT EXISTS line_targets (
+  id           TEXT PRIMARY KEY,
+  kind         TEXT,
+  display_name TEXT,
+  created_at   INTEGER NOT NULL,
+  last_seen_at INTEGER NOT NULL
+);

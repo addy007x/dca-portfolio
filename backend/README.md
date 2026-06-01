@@ -109,20 +109,26 @@ PUT  /api/portfolio                                → full replace { holdings: 
 GET  /api/dca/due                                  → { due: [{...}] }
 GET  /api/line/status                              → { enabled, hasToken, targets }
 POST /api/line/test                                → sends a test LINE OA push
+POST /api/line/webhook                             → captures LINE user/group/room target IDs
 ```
 
 Cron: `0 2 * * *` (09:00 ICT daily) — scans `dca_schedules`, inserts rows in `dca_log` with `status='due'` for each ticker whose `nextDate <= today`. If LINE OA secrets are set, it sends one LINE push and stores `status='notified'`. Frontend reads `/api/dca/due` on load and shows banner.
 
 ## LINE OA notifications
 
-Create a LINE Official Account and Messaging API channel, then set these Worker secrets:
+Create a LINE Official Account and Messaging API channel, then set the Worker token secret:
 
 ```bash
 wrangler secret put LINE_CHANNEL_ACCESS_TOKEN
-wrangler secret put LINE_TO_ID
 ```
 
-`LINE_TO_ID` is the destination user ID, group ID, or room ID. You can comma-separate multiple destinations. After deployment, open Settings in SiamFolio and press the LINE OA test button.
+Then deploy and register the webhook URL in LINE Developers:
+
+```text
+https://YOUR-WORKER.workers.dev/api/line/webhook
+```
+
+Add the OA as a friend and send it any message. The webhook stores your LINE user ID automatically in D1, so `LINE_TO_ID` is optional. If you still want manual targets, set `LINE_TO_ID` to a user ID, group ID, or room ID; comma-separate multiple destinations.
 
 ## Cost
 
