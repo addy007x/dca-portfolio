@@ -274,7 +274,7 @@ function dismissAlert(id) {
 function addEarn(e) {
   updateStore(s => ({
     ...s,
-    earn: [...s.earn, { ...e, id: makeId("e"), earnedToday: 0 }],
+    earn: [...s.earn, { ...e, id: makeId("e"), earnedToday: 0, accruedEarnedUSD: 0, accruedEarnedAt: Date.now() }],
   }));
 }
 

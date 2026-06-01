@@ -17,6 +17,22 @@ function PageShell({ title, sub, actions, children }) {
   );
 }
 
+const EARN_SECONDS_PER_YEAR = 365 * 86400;
+
+function earnPriceFromHoldings(holdings, sym) {
+  const h = (holdings || []).find(x => x.ticker === sym);
+  if (h) return h.price;
+  if (["USDT","USDC","BUSD","DAI"].includes(sym)) return 1;
+  return 0;
+}
+
+function calcEarnedUSDForSeconds(p, seconds, price) {
+  const qty = Number(p?.qty) || 0;
+  const apy = Number(p?.apy) || 0;
+  const earnedNative = qty * (apy / 100) * (Math.max(0, seconds) / EARN_SECONDS_PER_YEAR);
+  return price > 0 ? earnedNative * price : earnedNative;
+}
+
 // ─────── DCA View ───────
 function DCAView({ ccy, onAddDCA, onEditDCA }) {
   const store = window.useStore();
@@ -300,22 +316,60 @@ function EarnView({ ccy, onAddEarn }) {
   }, []);
 
   const getPrice = (sym) => {
-    const h = holdings.find(x => x.ticker === sym);
-    if (h) return h.price;
-    if (["USDT","USDC","BUSD","DAI"].includes(sym)) return 1;
-    return 0;
+    return earnPriceFromHoldings(holdings, sym);
   };
   const calcEarnedTodayUSD = (p) => {
-    const earnedNative = p.qty * (p.apy / 100) / 365 * (secNow / 86400);
-    const price = getPrice(p.sym);
-    return price > 0 ? earnedNative * price : earnedNative;
+    return calcEarnedUSDForSeconds(p, secNow, getPrice(p.sym));
   };
+  const storedEarnedUSD = (p) => Number(p.accruedEarnedUSD ?? p.earnedToday ?? 0) || 0;
+  const pendingEarnedUSD = (p) => {
+    const last = Number(p.accruedEarnedAt) || 0;
+    if (!last) return 0;
+    return calcEarnedUSDForSeconds(p, (Date.now() - last) / 1000, getPrice(p.sym));
+  };
+
+  React.useEffect(() => {
+    if (!positions.length) return;
+
+    const syncEarnAccrual = () => {
+      const now = Date.now();
+      const current = new Date(now);
+      const secOfDay = current.getHours() * 3600 + current.getMinutes() * 60 + current.getSeconds();
+
+      window.updateStore(s => {
+        let changed = false;
+        const nextEarn = (s.earn || []).map(p => {
+          const last = Number(p.accruedEarnedAt) || 0;
+          const base = Number(p.accruedEarnedUSD ?? p.earnedToday ?? 0) || 0;
+          const price = earnPriceFromHoldings(s.holdings || [], p.sym);
+          const elapsedSeconds = last ? Math.max(0, (now - last) / 1000) : secOfDay;
+
+          if (last && p.accruedEarnedUSD != null && elapsedSeconds < 60) return p;
+
+          const earned = calcEarnedUSDForSeconds(p, elapsedSeconds, price);
+          changed = true;
+          return {
+            ...p,
+            accruedEarnedUSD: base + earned,
+            accruedEarnedAt: now,
+          };
+        });
+
+        return changed ? { ...s, earn: nextEarn } : s;
+      });
+    };
+
+    syncEarnAccrual();
+    const id = setInterval(syncEarnAccrual, 60000);
+    return () => clearInterval(id);
+  }, [positions.length]);
 
   const totalUSD = positions.reduce((s, p) => s + p.qty * Math.max(getPrice(p.sym), 1), 0);
   const earnedTodayUSD = positions.reduce((s, p) => s + calcEarnedTodayUSD(p), 0);
-  const savedEarnedUSD = positions.reduce((s, p) => s + (Number(p.earnedToday) || 0), 0);
-  const accumulatedEarnedUSD = savedEarnedUSD + earnedTodayUSD;
-  const totalWithEarnedUSD = totalUSD + earnedTodayUSD;
+  const savedEarnedUSD = positions.reduce((s, p) => s + storedEarnedUSD(p), 0);
+  const pendingAccruedUSD = positions.reduce((s, p) => s + pendingEarnedUSD(p), 0);
+  const accumulatedEarnedUSD = savedEarnedUSD + pendingAccruedUSD;
+  const totalWithEarnedUSD = totalUSD + accumulatedEarnedUSD;
   const totalAnnualUSD = positions.reduce((s, p) => s + p.qty * getPrice(p.sym) * p.apy / 100, 0);
 
   const usdtBal = (positions.find(p => p.sym === "USDT") || {}).qty || 0;
@@ -337,7 +391,7 @@ function EarnView({ ccy, onAddEarn }) {
         <div className="kpi">
           <div className="label">ยอดรวม Earn</div>
           <div className="value">{ccySym}{ccy === "THB" ? Math.round(totalWithEarnedUSD*FX).toLocaleString() : fmtNum(totalWithEarnedUSD,2)}</div>
-          <div className="delta" style={{color:"var(--muted)"}}>มูลค่าตลาด + ดอกเบี้ยวันนี้</div>
+          <div className="delta" style={{color:"var(--muted)"}}>มูลค่าตลาด + ดอกเบี้ยสะสม</div>
         </div>
         <div className="kpi">
           <div className="label">ได้รับวันนี้</div>
@@ -352,7 +406,7 @@ function EarnView({ ccy, onAddEarn }) {
         <div className="kpi">
           <div className="label">ดอกเบี้ยสะสม</div>
           <div className="value">{ccySym}{ccy === "THB" ? fmtNum(accumulatedEarnedUSD*FX,2) : fmtNum(accumulatedEarnedUSD,4)}</div>
-          <div className="delta" style={{color:"var(--accent-ink)"}}>รวมที่บันทึก + วันนี้</div>
+          <div className="delta" style={{color:"var(--accent-ink)"}}>บันทึกไว้ ไม่รีเซตข้ามวัน</div>
         </div>
         <div className="kpi">
           <div className="label">สินทรัพย์</div>
