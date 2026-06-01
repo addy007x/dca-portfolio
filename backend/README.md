@@ -133,7 +133,7 @@ Add the OA as a friend and send it any message. The webhook stores your LINE use
 LINE chat commands:
 
 ```text
-พอร์ต / สรุป    Show current portfolio value and gain/loss summary
+พอร์ต / สรุป    Show a Flex card with current portfolio value and gain/loss summary
 บวก / กำไร      Show assets with positive P/L
 ลบ / ขาดทุน     Show assets with negative P/L
 คำสั่ง          Show available commands

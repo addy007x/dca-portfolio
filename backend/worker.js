@@ -424,7 +424,13 @@ async function verifyLineSignature(req, env, bodyText) {
   return signature === expected;
 }
 
-async function replyLine(env, replyToken, text) {
+function lineMessages(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (payload && typeof payload === "object") return [payload];
+  return [{ type: "text", text: String(payload || "") }];
+}
+
+async function replyLine(env, replyToken, payload) {
   if (!env.LINE_CHANNEL_ACCESS_TOKEN || !replyToken) return;
   await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
@@ -434,7 +440,7 @@ async function replyLine(env, replyToken, text) {
     },
     body: JSON.stringify({
       replyToken,
-      messages: [{ type: "text", text }],
+      messages: lineMessages(payload),
     }),
   }).catch(() => {});
 }
@@ -499,18 +505,22 @@ function formatAssetLine(row) {
   return `${row.ticker}: ${fmtSignedTHB(row.plTHB)} (${fmtPctValue(row.plPct)})`;
 }
 
-function formatPortfolioSummary(snapshot, mode = "summary") {
+function portfolioStats(snapshot) {
   const rows = portfolioRows(snapshot);
-  if (!rows.length) {
-    return "SiamFolio\nยังไม่มีข้อมูลพอร์ตในระบบ ลองเปิดเว็บแล้วรอให้ sync ก่อนนะครับ";
-  }
-
   const totalValue = rows.reduce((sum, r) => sum + r.valueTHB, 0);
   const totalCost = rows.reduce((sum, r) => sum + r.costTHB, 0);
   const totalPL = totalValue - totalCost;
   const totalPct = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
   const gains = rows.filter(r => r.plTHB > 0).sort((a, b) => b.plTHB - a.plTHB);
   const losses = rows.filter(r => r.plTHB < 0).sort((a, b) => a.plTHB - b.plTHB);
+  return { rows, totalValue, totalCost, totalPL, totalPct, gains, losses };
+}
+
+function formatPortfolioSummary(snapshot, mode = "summary") {
+  const { rows, totalValue, totalCost, totalPL, totalPct, gains, losses } = portfolioStats(snapshot);
+  if (!rows.length) {
+    return "SiamFolio\nยังไม่มีข้อมูลพอร์ตในระบบ ลองเปิดเว็บแล้วรอให้ sync ก่อนนะครับ";
+  }
 
   if (mode === "gain") {
     return [
@@ -541,6 +551,160 @@ function formatPortfolioSummary(snapshot, mode = "summary") {
   return lines.join("\n").slice(0, 4800);
 }
 
+function flexText(text, extra = {}) {
+  return { type: "text", text: String(text), ...extra };
+}
+
+function flexMetric(label, value, color) {
+  return {
+    type: "box",
+    layout: "vertical",
+    spacing: "xs",
+    contents: [
+      flexText(label, { size: "xs", color: "#8C7D6B", weight: "bold" }),
+      flexText(value, { size: "xl", color, weight: "bold", wrap: true }),
+    ],
+  };
+}
+
+function flexAssetRow(row) {
+  const positive = row.plTHB >= 0;
+  return {
+    type: "box",
+    layout: "horizontal",
+    spacing: "sm",
+    contents: [
+      flexText(row.ticker, { size: "sm", color: "#211C18", weight: "bold", flex: 2 }),
+      flexText(fmtSignedTHB(row.plTHB), {
+        size: "sm",
+        color: positive ? "#26A269" : "#D94E4E",
+        weight: "bold",
+        align: "end",
+        flex: 3,
+      }),
+      flexText(fmtPctValue(row.plPct), {
+        size: "xs",
+        color: "#8C7D6B",
+        align: "end",
+        flex: 2,
+      }),
+    ],
+  };
+}
+
+function flexList(title, rows, emptyText, color) {
+  return {
+    type: "box",
+    layout: "vertical",
+    spacing: "sm",
+    margin: "lg",
+    contents: [
+      flexText(title, { size: "sm", color, weight: "bold" }),
+      ...(rows.length
+        ? rows.slice(0, 3).map(flexAssetRow)
+        : [flexText(emptyText, { size: "sm", color: "#8C7D6B" })]),
+    ],
+  };
+}
+
+function portfolioFlexMessage(snapshot) {
+  const { rows, totalValue, totalPL, totalPct, gains, losses } = portfolioStats(snapshot);
+  if (!rows.length) return formatPortfolioSummary(snapshot, "summary");
+
+  const positive = totalPL >= 0;
+  const accent = positive ? "#26A269" : "#D94E4E";
+  const altText = `SiamFolio Portfolio ${fmtTHB(totalValue)} ${fmtSignedTHB(totalPL)} (${fmtPctValue(totalPct)})`;
+
+  return {
+    type: "flex",
+    altText,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      styles: {
+        body: { backgroundColor: "#FFFDF8" },
+        footer: { separator: true, separatorColor: "#E8DDCF" },
+      },
+      header: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "18px",
+        backgroundColor: "#191512",
+        contents: [
+          flexText("SIAMFOLIO", { size: "xs", color: "#E6C56A", weight: "bold", letterSpacing: "2px" }),
+          flexText("Portfolio Snapshot", { size: "xl", color: "#FFFFFF", weight: "bold", margin: "sm" }),
+          flexText(new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }), {
+            size: "xs",
+            color: "#C9B8A5",
+            margin: "sm",
+          }),
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        paddingAll: "18px",
+        contents: [
+          flexMetric("มูลค่าพอร์ตปัจจุบัน", fmtTHB(totalValue), "#211C18"),
+          {
+            type: "box",
+            layout: "vertical",
+            spacing: "xs",
+            paddingAll: "14px",
+            backgroundColor: positive ? "#EAF8F0" : "#FDEEEE",
+            cornerRadius: "12px",
+            contents: [
+              flexText("กำไร/ขาดทุนรวม", { size: "xs", color: "#8C7D6B", weight: "bold" }),
+              flexText(`${fmtSignedTHB(totalPL)} (${fmtPctValue(totalPct)})`, {
+                size: "lg",
+                color: accent,
+                weight: "bold",
+                wrap: true,
+              }),
+            ],
+          },
+          {
+            type: "box",
+            layout: "horizontal",
+            spacing: "md",
+            contents: [
+              flexMetric("สินทรัพย์", `${rows.length} ตัว`, "#211C18"),
+              flexMetric("สถานะ", positive ? "กำไร" : "ติดลบ", accent),
+            ],
+          },
+          { type: "separator", margin: "lg", color: "#E8DDCF" },
+          flexList("บวกเด่น", gains, "ยังไม่มีสินทรัพย์ที่เป็นบวก", "#26A269"),
+          flexList("ติดลบ", losses, "ยังไม่มีสินทรัพย์ที่ติดลบ", "#D94E4E"),
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: "#191512",
+            action: {
+              type: "uri",
+              label: "เปิด Dashboard",
+              uri: "https://addy007x.github.io/dca-portfolio/",
+            },
+          },
+          flexText("พิมพ์ บวก / ลบ / คำสั่ง เพื่อดูเพิ่ม", {
+            size: "xs",
+            color: "#8C7D6B",
+            align: "center",
+            margin: "sm",
+          }),
+        ],
+      },
+    },
+  };
+}
+
 function lineCommand(text) {
   const t = String(text || "").trim().toLowerCase();
   if (!t) return null;
@@ -563,6 +727,7 @@ async function lineCommandReply(env, text) {
   }
   if (!command) return null;
   const snapshot = await getLatestPortfolioData(env);
+  if (command === "summary") return portfolioFlexMessage(snapshot);
   return formatPortfolioSummary(snapshot, command);
 }
 
