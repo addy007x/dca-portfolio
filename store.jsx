@@ -15,12 +15,18 @@ function makeId(prefix = "id") {
 }
 
 // ─────── Date helpers ───────
+function bangkokISO(ms = Date.now()) {
+  return new Date(ms + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return bangkokISO();
 }
 function daysFromNow(n) {
-  const d = new Date();
-  d.setDate(d.getDate() + n);
+  return bangkokISO(Date.now() + n * 86400000);
+}
+function addDaysISO(iso, n) {
+  const d = new Date((iso || todayISO()) + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 }
 function daysBetween(aISO, bISO) {
@@ -35,7 +41,18 @@ function computeNextDCA(dca, fromISO = todayISO()) {
   const days = { daily: 1, weekly: 7, biweekly: 14, monthly: 30, สัปดาห์: 7, เดือน: 30 }[freq] || 7;
   // If next is already set and in the future, keep it
   if (dca.nextDate && dca.nextDate >= fromISO) return dca.nextDate;
-  return daysFromNow(days);
+  return addDaysISO(fromISO, days);
+}
+
+function normalizeDCAList(list) {
+  const today = todayISO();
+  return (list || []).map(d => {
+    if ((d.executedCount || 0) === 0 && d.startDate && (!d.nextDate || d.nextDate > d.startDate)) {
+      return { ...d, nextDate: d.startDate };
+    }
+    if (!d.nextDate) return { ...d, nextDate: d.startDate || today };
+    return d;
+  });
 }
 
 // ─────── Seed (first-run) ───────
@@ -77,6 +94,7 @@ function loadStore() {
       if (parsed.version === STORE_VERSION) {
         return {
           ...parsed,
+          dca: normalizeDCAList(parsed.dca),
           settings: { ...buildSeed().settings, ...(parsed.settings || {}) },
         };
       }
@@ -201,6 +219,7 @@ function removeTransaction(id) {
 }
 
 function addDCA(d) {
+  const startDate = d.startDate || todayISO();
   updateStore(s => ({
     ...s,
     dca: [...s.dca, {
@@ -208,8 +227,8 @@ function addDCA(d) {
       executedCount: 0,
       totalSpent: 0,
       paused: false,
-      startDate: todayISO(),
-      nextDate: computeNextDCA({ freq: d.freq, nextDate: null }),
+      startDate,
+      nextDate: d.nextDate || startDate,
       ...d,
     }],
   }));
@@ -222,7 +241,14 @@ function removeDCA(id) {
 function updateDCA(id, patch) {
   updateStore(s => ({
     ...s,
-    dca: s.dca.map(d => d.id === id ? { ...d, ...patch } : d),
+    dca: s.dca.map(d => {
+      if (d.id !== id) return d;
+      const next = { ...d, ...patch };
+      if (!("nextDate" in patch) && (("startDate" in patch) || ("freq" in patch)) && (d.executedCount || 0) === 0) {
+        next.nextDate = next.startDate || todayISO();
+      }
+      return next;
+    }),
   }));
 }
 
@@ -236,7 +262,7 @@ function executeDCA(id) {
       ...x,
       executedCount: x.executedCount + 1,
       totalSpent: x.totalSpent + x.amount,
-      nextDate: computeNextDCA({ freq: x.freq, nextDate: null }, daysFromNow(1)),
+      nextDate: computeNextDCA({ freq: x.freq, nextDate: null }, todayISO()),
     } : x);
     // Also create a transaction
     const holding = s.holdings.find(h => h.ticker === d.ticker);
@@ -352,5 +378,5 @@ Object.assign(window, {
   addEarn, updateEarn, removeEarn, dismissAlert,
   updateSettings, setLivePrices, setFX,
   resetToSeed, exportJSON, importJSON,
-  dueDCAs, todayISO, daysBetween, makeId,
+  dueDCAs, todayISO, daysBetween, makeId, normalizeDCAList,
 });

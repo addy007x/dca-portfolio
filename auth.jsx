@@ -199,6 +199,7 @@ async function loadCloudIntoStore() {
       window.updateStore(s => ({
         ...s,
         ...snapshot,
+        dca: window.normalizeDCAList ? window.normalizeDCAList(snapshot.dca || []) : (snapshot.dca || []),
         settings: { ...s.settings, ...(snapshot.settings || {}) },
       }));
     } finally {

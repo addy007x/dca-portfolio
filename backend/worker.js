@@ -84,6 +84,43 @@ function randomCode(length = 6) {
   return [...bytes].map(b => alphabet[b % alphabet.length]).join("");
 }
 
+function bangkokNow(ms = Date.now()) {
+  const shifted = new Date(ms + 7 * 60 * 60 * 1000);
+  return {
+    date: shifted.toISOString().slice(0, 10),
+    time: shifted.toISOString().slice(11, 16),
+  };
+}
+
+function addDaysISO(iso, days) {
+  const d = new Date((iso || bangkokNow().date) + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function dcaFreqDays(freq) {
+  return { daily: 1, weekly: 7, biweekly: 14, monthly: 30 }[freq] || 7;
+}
+
+function nextDcaDate(freq, fromISO) {
+  return addDaysISO(fromISO || bangkokNow().date, dcaFreqDays(freq));
+}
+
+function isDcaDueAt(dca, dateISO, timeHHMM) {
+  if (!dca || dca.paused || !dca.nextDate) return false;
+  if (dca.nextDate < dateISO) return true;
+  if (dca.nextDate > dateISO) return false;
+  return String(dca.execTime || "00:00").slice(0, 5) <= timeHHMM;
+}
+
+function normalizeDcaForCron(dca) {
+  if (!dca) return dca;
+  if (Number(dca.executedCount || 0) === 0 && dca.startDate && (!dca.nextDate || dca.nextDate > dca.startDate)) {
+    return { ...dca, nextDate: dca.startDate };
+  }
+  return dca;
+}
+
 async function verifyGoogleCredential(credential, env) {
   if (!credential || typeof credential !== "string") throw new Error("Missing Google credential");
   if (!env.GOOGLE_CLIENT_ID) throw new Error("GOOGLE_CLIENT_ID is not configured on the Worker");
@@ -331,9 +368,9 @@ async function putPortfolio(req, env) {
   }
   for (const d of dca) {
     stmts.push(env.DB.prepare(
-      "INSERT INTO dca_schedules(id,ticker,classKey,ccy,amount,freq,startDate,nextDate,executedCount,totalSpent,paused) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+      "INSERT INTO dca_schedules(id,ticker,classKey,ccy,amount,freq,startDate,nextDate,execTime,executedCount,totalSpent,paused) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
     ).bind(d.id, d.ticker, d.classKey || "crypto", d.ccy, d.amount, d.freq,
-            d.startDate || null, d.nextDate || null,
+            d.startDate || null, d.nextDate || null, d.execTime || "09:00",
             d.executedCount || 0, d.totalSpent || 0, d.paused ? 1 : 0));
   }
   for (const e of earn) {
@@ -346,10 +383,12 @@ async function putPortfolio(req, env) {
 }
 
 async function getDueDCAs(env) {
+  const now = bangkokNow();
   const r = await env.DB.prepare(
     "SELECT * FROM dca_schedules WHERE paused = 0 AND nextDate <= ? ORDER BY nextDate"
-  ).bind(new Date().toISOString().slice(0, 10)).all();
-  return json({ due: r.results || [] });
+  ).bind(now.date).all();
+  const due = (r.results || []).filter(d => isDcaDueAt(d, now.date, now.time));
+  return json({ due });
 }
 
 function getLineSecretTargetIds(env) {
@@ -896,7 +935,70 @@ function formatDcaLineMessage(due) {
   return lines.join("\n");
 }
 
-async function handleUserPortfolioCron(env, today) {
+function executeDcaInSnapshot(snapshot, dueDca, dateISO) {
+  const dcaId = dueDca.id;
+  const amount = Number(dueDca.amount || 0);
+  const holdings = Array.isArray(snapshot.holdings) ? snapshot.holdings : [];
+  const transactions = Array.isArray(snapshot.transactions) ? snapshot.transactions : [];
+  const holding = holdings.find(h => h.ticker === dueDca.ticker);
+  const price = Number(holding?.price || holding?.costAvg || amount || 1);
+  const qty = price > 0 ? amount / price : 0;
+  const fx = Number(snapshot.fx || 35.8);
+  const tx = {
+    id: `tx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    ticker: dueDca.ticker,
+    kind: "dca",
+    date: dateISO,
+    qty,
+    pricePerUnit: price,
+    valUSD: dueDca.ccy === "USD" ? amount : amount / fx,
+    note: `DCA auto - ${dueDca.freq || "weekly"}`,
+    ccy: dueDca.ccy || holding?.ccy || "USD",
+    dcaId,
+  };
+
+  const nextHoldings = holding
+    ? holdings.map(h => {
+        if (h.id !== holding.id) return h;
+        const oldQty = Number(h.qty || 0);
+        const oldCost = Number(h.costAvg || price);
+        const newQty = oldQty + qty;
+        const costAvg = newQty > 0 ? ((oldQty * oldCost) + (qty * price)) / newQty : oldCost;
+        return { ...h, qty: newQty, costAvg };
+      })
+    : holdings;
+
+  const nextDca = (snapshot.dca || []).map(d => d.id === dcaId ? {
+    ...d,
+    executedCount: Number(d.executedCount || 0) + 1,
+    totalSpent: Number(d.totalSpent || 0) + amount,
+    nextDate: nextDcaDate(d.freq, dateISO),
+  } : d);
+
+  return {
+    ...snapshot,
+    holdings: nextHoldings,
+    transactions: [tx, ...transactions],
+    dca: nextDca,
+  };
+}
+
+function formatDcaExecutedLineMessage(due) {
+  const lines = [
+    "SiamFolio DCA executed",
+    `Completed: ${due.length} item(s)`,
+    "",
+    ...due.slice(0, 12).map(d => {
+      const amount = Number(d.amount || 0).toLocaleString("en-US");
+      return `- ${d.ticker || "-"}: ${d.ccy || "USD"} ${amount}`;
+    }),
+  ];
+  if (due.length > 12) lines.push(`...and ${due.length - 12} more`);
+  return lines.join("\n");
+}
+
+async function handleUserPortfolioCron(env, clock) {
+  const today = clock.date;
   const rows = await env.DB.prepare(
     "SELECT user_id,data FROM portfolio_snapshots ORDER BY updated_at DESC"
   ).all().catch(() => null);
@@ -904,9 +1006,6 @@ async function handleUserPortfolioCron(env, today) {
   let sent = 0;
 
   for (const row of snapshots) {
-    const targets = await getLinkedLineTargets(env, row.user_id);
-    if (!targets.length) continue;
-
     let snapshot = null;
     try {
       snapshot = JSON.parse(row.data || "{}");
@@ -914,39 +1013,48 @@ async function handleUserPortfolioCron(env, today) {
       continue;
     }
 
-    const due = (snapshot.dca || []).filter(d => !d.paused && d.nextDate && d.nextDate <= today);
+    const due = (snapshot.dca || []).map(normalizeDcaForCron).filter(d => isDcaDueAt(d, today, clock.time));
     if (!due.length) continue;
 
     const checks = await Promise.all(due.map(async d => {
       const scopedId = `${row.user_id}:${d.id || d.ticker || "dca"}`;
       const exists = await env.DB.prepare(
-        "SELECT id FROM dca_log WHERE date = ? AND dca_id = ? AND status IN ('due','notified')"
+        "SELECT id FROM dca_log WHERE date = ? AND dca_id = ? AND status IN ('due','notified','executed')"
       ).bind(today, scopedId).first().catch(() => null);
       return exists ? null : { ...d, scopedId };
     }));
     const newDue = checks.filter(Boolean);
     if (!newDue.length) continue;
 
+    let nextSnapshot = snapshot;
+    for (const d of newDue) nextSnapshot = executeDcaInSnapshot(nextSnapshot, d, today);
+    await env.DB.prepare(
+      "UPDATE portfolio_snapshots SET data = ?, updated_at = ? WHERE user_id = ?"
+    ).bind(JSON.stringify(nextSnapshot), Date.now(), row.user_id).run();
+
     let lineSent = false;
+    const targets = await getLinkedLineTargets(env, row.user_id);
     try {
-      await sendLinePush(env, formatDcaLineMessage(newDue), targets);
-      lineSent = true;
-      sent += targets.length;
+      if (targets.length) {
+        await sendLinePush(env, formatDcaExecutedLineMessage(newDue), targets);
+        lineSent = true;
+        sent += targets.length;
+      }
     } catch (e) {
       console.error("LINE user DCA push failed:", e.stack || e);
     }
 
-    const now = Date.now();
+    const createdAt = Date.now();
     const stmts = newDue.map(d => env.DB.prepare(
       "INSERT INTO dca_log(id,dca_id,date,ticker,amount,status,created_at) VALUES (?,?,?,?,?,?,?)"
     ).bind(
-      `log-${now}-${Math.random().toString(36).slice(2, 7)}`,
+      `log-${createdAt}-${Math.random().toString(36).slice(2, 7)}`,
       d.scopedId,
       today,
       d.ticker,
       d.amount,
-      lineSent ? "notified" : "due",
-      now
+      "executed",
+      createdAt
     ));
     if (stmts.length > 0) await env.DB.batch(stmts);
   }
@@ -1049,8 +1157,9 @@ async function handleRequest(req, env, ctx) {
 // Cron handler. Scans legacy DCA schedules and logs due reminders.
 async function handleCron(env) {
   if (!env.DB) return;
-  const today = new Date().toISOString().slice(0, 10);
-  const userLineSent = await handleUserPortfolioCron(env, today);
+  const now = bangkokNow();
+  const today = now.date;
+  const userLineSent = await handleUserPortfolioCron(env, now);
   const due = await env.DB.prepare(
     "SELECT * FROM dca_schedules WHERE paused = 0 AND nextDate <= ?"
   ).bind(today).all();
@@ -1058,7 +1167,9 @@ async function handleCron(env) {
     "SELECT dca_id FROM dca_log WHERE date = ? AND status IN ('due','notified')"
   ).bind(today).all();
   const alreadyLogged = new Set((existing.results || []).map(r => r.dca_id));
-  const newDue = (due.results || []).filter(d => !alreadyLogged.has(d.id));
+  const newDue = (due.results || [])
+    .map(normalizeDcaForCron)
+    .filter(d => !alreadyLogged.has(d.id) && isDcaDueAt(d, today, now.time));
 
   let lineSent = false;
   const line = await lineStatus(env);
