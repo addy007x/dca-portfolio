@@ -72,6 +72,11 @@ curl 'https://YOUR-WORKER.workers.dev/api/prices/stocks?symbols=NVDA,AAPL,PTT.BK
 # Portfolio (needs API key)
 curl https://YOUR-WORKER.workers.dev/api/portfolio \
   -H "X-Api-Key: YOUR-API-KEY"
+
+# LINE OA status and test push
+curl https://YOUR-WORKER.workers.dev/api/line/status
+curl -X POST https://YOUR-WORKER.workers.dev/api/line/test \
+  -H "X-Api-Key: YOUR-API-KEY"
 ```
 
 ## Connect the frontend
@@ -102,9 +107,22 @@ GET  /api/prices/fx?from=USD&to=THB                → { rate, date, base, quote
 GET  /api/portfolio                                → { holdings, transactions, dca, earn, dueDcaLog }
 PUT  /api/portfolio                                → full replace { holdings: [...], ... }
 GET  /api/dca/due                                  → { due: [{...}] }
+GET  /api/line/status                              → { enabled, hasToken, targets }
+POST /api/line/test                                → sends a test LINE OA push
 ```
 
-Cron: `0 2 * * *` (09:00 ICT daily) — scans `dca_schedules`, inserts rows in `dca_log` with `status='due'` for each ticker whose `nextDate <= today`. Frontend reads `/api/dca/due` on load and shows banner.
+Cron: `0 2 * * *` (09:00 ICT daily) — scans `dca_schedules`, inserts rows in `dca_log` with `status='due'` for each ticker whose `nextDate <= today`. If LINE OA secrets are set, it sends one LINE push and stores `status='notified'`. Frontend reads `/api/dca/due` on load and shows banner.
+
+## LINE OA notifications
+
+Create a LINE Official Account and Messaging API channel, then set these Worker secrets:
+
+```bash
+wrangler secret put LINE_CHANNEL_ACCESS_TOKEN
+wrangler secret put LINE_TO_ID
+```
+
+`LINE_TO_ID` is the destination user ID, group ID, or room ID. You can comma-separate multiple destinations. After deployment, open Settings in SiamFolio and press the LINE OA test button.
 
 ## Cost
 

@@ -345,6 +345,77 @@ async function getDueDCAs(env) {
   return json({ due: r.results || [] });
 }
 
+function getLineTargetIds(env) {
+  const raw = env.LINE_TO_ID || env.LINE_TARGET_ID || "";
+  return raw.split(",").map(s => s.trim()).filter(Boolean);
+}
+
+function lineStatus(env) {
+  return {
+    enabled: !!(env.LINE_CHANNEL_ACCESS_TOKEN && getLineTargetIds(env).length),
+    hasToken: !!env.LINE_CHANNEL_ACCESS_TOKEN,
+    targets: getLineTargetIds(env).length,
+  };
+}
+
+async function sendLinePush(env, text, toOverride) {
+  if (!env.LINE_CHANNEL_ACCESS_TOKEN) throw new Error("LINE_CHANNEL_ACCESS_TOKEN is not configured");
+  const targets = toOverride ? [toOverride] : getLineTargetIds(env);
+  if (!targets.length) throw new Error("LINE_TO_ID is not configured");
+
+  const results = [];
+  for (const to of targets) {
+    const res = await fetch("https://api.line.me/v2/bot/message/push", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${env.LINE_CHANNEL_ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        to,
+        messages: [{ type: "text", text }],
+      }),
+    });
+    const body = await res.text().catch(() => "");
+    if (!res.ok) throw new Error(`LINE ${res.status}: ${body.slice(0, 300)}`);
+    results.push({ to, status: res.status });
+  }
+  return results;
+}
+
+function formatDcaLineMessage(due) {
+  const lines = [
+    "SiamFolio DCA reminder",
+    `Due today: ${due.length} item(s)`,
+    "",
+    ...due.slice(0, 12).map(d => {
+      const sym = d.ticker || "-";
+      const amount = Number(d.amount || 0).toLocaleString("en-US");
+      return `- ${sym}: ${d.ccy || "USD"} ${amount}`;
+    }),
+  ];
+  if (due.length > 12) lines.push(`...and ${due.length - 12} more`);
+  return lines.join("\n");
+}
+
+async function requireLineActionAuth(req, env) {
+  const user = await getSessionUser(req, env);
+  if (user) return { user };
+
+  const key = req.headers.get("X-Api-Key");
+  if (env.API_KEY && key && key.trim() === env.API_KEY.trim()) return { apiKey: true };
+
+  return { response: error("Unauthorized", 401) };
+}
+
+async function handleLineTest(req, env, actor) {
+  const body = await req.json().catch(() => ({}));
+  const who = actor?.user?.name || actor?.user?.email || "SiamFolio";
+  const text = (body.text || `SiamFolio LINE test\nSender: ${who}\nTime: ${new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" })}`).slice(0, 4500);
+  const results = await sendLinePush(env, text, body.to);
+  return json({ ok: true, sent: results.length, results });
+}
+
 // Router
 async function handleRequest(req, env, ctx) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
@@ -355,6 +426,7 @@ async function handleRequest(req, env, ctx) {
   if (path === "/api/prices/stocks") return handleStocks(url, env);
   if (path === "/api/prices/fx") return handleFX(url, env);
   if (path === "/api/health") return json({ ok: true, version: "2.0", time: new Date().toISOString() });
+  if (path === "/api/line/status" && req.method === "GET") return json(lineStatus(env));
 
   if (path === "/api/auth/config" && req.method === "GET") {
     return json({ googleClientId: env.GOOGLE_CLIENT_ID || "" });
@@ -362,6 +434,11 @@ async function handleRequest(req, env, ctx) {
   if (path === "/api/auth/google" && req.method === "POST") return handleGoogleAuth(req, env);
   if (path === "/api/auth/me" && req.method === "GET") return handleMe(req, env);
   if (path === "/api/auth/logout" && req.method === "POST") return handleLogout(req, env);
+  if (path === "/api/line/test" && req.method === "POST") {
+    const actor = await requireLineActionAuth(req, env);
+    if (actor.response) return actor.response;
+    return handleLineTest(req, env, actor);
+  }
 
   if (!env.DB) return error("D1 database not bound", 500);
 
@@ -389,15 +466,31 @@ async function handleCron(env) {
   const due = await env.DB.prepare(
     "SELECT * FROM dca_schedules WHERE paused = 0 AND nextDate <= ?"
   ).bind(today).all();
+  const existing = await env.DB.prepare(
+    "SELECT dca_id FROM dca_log WHERE date = ? AND status IN ('due','notified')"
+  ).bind(today).all();
+  const alreadyLogged = new Set((existing.results || []).map(r => r.dca_id));
+  const newDue = (due.results || []).filter(d => !alreadyLogged.has(d.id));
+
+  let lineSent = false;
+  if (newDue.length > 0 && lineStatus(env).enabled) {
+    try {
+      await sendLinePush(env, formatDcaLineMessage(newDue));
+      lineSent = true;
+    } catch (e) {
+      console.error("LINE push failed:", e.stack || e);
+    }
+  }
+
   const stmts = [];
-  for (const d of (due.results || [])) {
+  for (const d of newDue) {
     const logId = `log-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     stmts.push(env.DB.prepare(
       "INSERT INTO dca_log(id,dca_id,date,ticker,amount,status,created_at) VALUES (?,?,?,?,?,?,?)"
-    ).bind(logId, d.id, today, d.ticker, d.amount, "due", Date.now()));
+    ).bind(logId, d.id, today, d.ticker, d.amount, lineSent ? "notified" : "due", Date.now()));
   }
   if (stmts.length > 0) await env.DB.batch(stmts);
-  console.log(`[cron ${today}] Logged ${stmts.length} due DCA(s)`);
+  console.log(`[cron ${today}] Logged ${stmts.length} due DCA(s); lineSent=${lineSent}`);
 }
 
 export default {

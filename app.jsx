@@ -330,10 +330,22 @@ function LocalDatabasePanel({ priceStatus }) {
   const livePrices = store.settings.livePrices === true;
   const [msg, setMsg] = React.useState("");
   const [signingOut, setSigningOut] = React.useState(false);
+  const [lineStatus, setLineStatus] = React.useState(null);
+  const [lineMsg, setLineMsg] = React.useState("");
+  const [lineBusy, setLineBusy] = React.useState(false);
 
   React.useEffect(() => {
     if (mode === "local") window.setAutoSync?.(false);
   }, [mode]);
+
+  React.useEffect(() => {
+    if (!window.isAuthConfigured?.() || !window.getLineStatus) return;
+    let alive = true;
+    window.getLineStatus()
+      .then(data => { if (alive) setLineStatus(data); })
+      .catch(() => { if (alive) setLineStatus(null); });
+    return () => { alive = false; };
+  }, []);
 
   const useLocal = () => {
     window.setDatabaseMode?.("local");
@@ -351,6 +363,23 @@ function LocalDatabasePanel({ priceStatus }) {
     window.setBackendConfig?.(null);
     window.setAutoSync?.(false);
     setMsg("ล้างการเชื่อมต่อ backend แล้ว");
+  };
+
+  const testLine = async () => {
+    setLineBusy(true);
+    setLineMsg("กำลังส่งข้อความทดสอบ...");
+    try {
+      const data = await window.sendLineTest?.();
+      setLineMsg(`ส่ง LINE สำเร็จ ${data?.sent || 0} จุดหมาย`);
+      if (window.getLineStatus) {
+        const latest = await window.getLineStatus();
+        setLineStatus(latest);
+      }
+    } catch (error) {
+      setLineMsg(error.message || "ส่ง LINE ไม่สำเร็จ");
+    } finally {
+      setLineBusy(false);
+    }
   };
 
   const handleSignOut = async () => {
@@ -394,6 +423,30 @@ function LocalDatabasePanel({ priceStatus }) {
         <button className="twk-btn secondary" onClick={useLocal}>ใช้ฐานข้อมูลนี้</button>
         <button className="twk-btn secondary" onClick={clearCloudConfig}>ล้าง backend</button>
       </div>
+
+      {window.isAuthConfigured?.() && (
+        <div style={{display:"flex", flexDirection:"column", gap:6,
+                     padding:"8px 10px", borderRadius:8, background:"var(--surface)",
+                     border:"1px solid var(--line)"}}>
+          <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:8}}>
+            <div>
+              <div style={{fontSize:12, fontWeight:600}}>LINE OA</div>
+              <div style={{fontSize:10, color:"var(--muted)"}}>
+                {lineStatus?.enabled ? "พร้อมส่งแจ้งเตือนผ่าน LINE" : "รอใส่ LINE secret ใน Worker"}
+              </div>
+            </div>
+            <button className="twk-btn secondary" onClick={testLine}
+                    disabled={lineBusy || !lineStatus?.enabled}>
+              {lineBusy ? "ส่ง..." : "ทดสอบ"}
+            </button>
+          </div>
+          {lineMsg && (
+            <div style={{fontSize:10, color: lineMsg.includes("สำเร็จ") ? "var(--up)" : "var(--muted)"}}>
+              {lineMsg}
+            </div>
+          )}
+        </div>
+      )}
 
       {(window.isAuthConfigured?.() || window.isSupabaseConfigured?.()) && (
         <button className="twk-btn secondary" style={{marginTop:2, color:"var(--down)"}}

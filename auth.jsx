@@ -119,6 +119,17 @@ async function authFetch(path, opts = {}) {
   return res.json();
 }
 
+async function getLineStatus() {
+  return authFetch("/api/line/status");
+}
+
+async function sendLineTest() {
+  return authFetch("/api/line/test", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
 function serializePortfolio(s) {
   return {
     version: s.version,
@@ -376,6 +387,8 @@ Object.assign(window, {
   scheduleCloudSync,
   pushCloudPortfolio,
   pullCloudPortfolio,
+  getLineStatus,
+  sendLineTest,
   signOutSupabase,
   SupabaseAuthGate: AuthGate,
 });
