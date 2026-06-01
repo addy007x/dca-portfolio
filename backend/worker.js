@@ -223,7 +223,8 @@ async function getUserPortfolio(env, user) {
 }
 
 async function putUserPortfolio(req, env, user) {
-  const body = await req.json();
+  const incoming = await req.json();
+  const body = await mergePortfolioSnapshotForSave(env, user, incoming);
   await env.DB.prepare(
     `INSERT INTO portfolio_snapshots(user_id,data,updated_at)
      VALUES(?,?,?)
@@ -232,6 +233,45 @@ async function putUserPortfolio(req, env, user) {
        updated_at=excluded.updated_at`
   ).bind(user.id, JSON.stringify(body), Date.now()).run();
   return json({ ok: true });
+}
+
+async function mergePortfolioSnapshotForSave(env, user, incoming) {
+  const row = await env.DB.prepare("SELECT data FROM portfolio_snapshots WHERE user_id = ?")
+    .bind(user.id)
+    .first()
+    .catch(() => null);
+  if (!row?.data) return incoming;
+
+  let current = null;
+  try {
+    current = JSON.parse(row.data || "{}");
+  } catch (_) {
+    return incoming;
+  }
+
+  const next = { ...incoming };
+  const incomingTx = Array.isArray(incoming.transactions) ? incoming.transactions : [];
+  const currentTx = Array.isArray(current.transactions) ? current.transactions : [];
+  const txIds = new Set(incomingTx.map(t => t.id).filter(Boolean));
+  const preservedDcaTx = currentTx.filter(t => t.kind === "dca" && t.dcaId && !txIds.has(t.id));
+  if (preservedDcaTx.length) next.transactions = [...preservedDcaTx, ...incomingTx];
+
+  const currentDcaById = new Map((current.dca || []).map(d => [d.id, d]));
+  next.dca = (incoming.dca || []).map(d => {
+    const old = currentDcaById.get(d.id);
+    if (!old) return d;
+    const oldCount = Number(old.executedCount || 0);
+    const newCount = Number(d.executedCount || 0);
+    if (oldCount <= newCount) return d;
+    return {
+      ...d,
+      executedCount: old.executedCount,
+      totalSpent: Math.max(Number(d.totalSpent || 0), Number(old.totalSpent || 0)),
+      nextDate: old.nextDate || d.nextDate,
+    };
+  });
+
+  return next;
 }
 
 // Cache helpers. Workers KV is optional; in-memory cache covers warm isolates.
@@ -983,6 +1023,14 @@ function executeDcaInSnapshot(snapshot, dueDca, dateISO) {
   };
 }
 
+function hasDcaTransaction(snapshot, dca, dateISO) {
+  const rows = Array.isArray(snapshot?.transactions) ? snapshot.transactions : [];
+  return rows.some(t => {
+    if (t.dcaId && dca.id && t.dcaId === dca.id && t.date === dateISO) return true;
+    return t.kind === "dca" && t.ticker === dca.ticker && t.date === dateISO && Number(t.valUSD || 0) === Number(dca.amount || 0);
+  });
+}
+
 function formatDcaExecutedLineMessage(due) {
   const lines = [
     "SiamFolio DCA executed",
@@ -1021,7 +1069,8 @@ async function handleUserPortfolioCron(env, clock) {
       const exists = await env.DB.prepare(
         "SELECT id FROM dca_log WHERE date = ? AND dca_id = ? AND status IN ('due','notified','executed')"
       ).bind(today, scopedId).first().catch(() => null);
-      return exists ? null : { ...d, scopedId };
+      if (exists && hasDcaTransaction(snapshot, d, today)) return null;
+      return { ...d, scopedId, repair: !!exists };
     }));
     const newDue = checks.filter(Boolean);
     if (!newDue.length) continue;
