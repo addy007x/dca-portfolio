@@ -86,7 +86,7 @@ function Detail({ asset, ccy, onBack, onAddTx, accent }) {
         </div>
         <div className="stat-cell">
           <div className="l">จำนวนที่ถือ</div>
-          <div className="v num">{asset.qty.toLocaleString("en-US", { maximumFractionDigits: 4 })}</div>
+          <div className="v num">{fmtQty(asset.qty)}</div>
           <div className="d" style={{color:"var(--muted)"}}>
             มูลค่า {ccySym}{ccy === "THB" ? Math.round(mvDisp).toLocaleString() : fmtNum(mvDisp, 2)}
           </div>
@@ -212,7 +212,7 @@ function Detail({ asset, ccy, onBack, onAddTx, accent }) {
                 <div className="s">{t.date} · {t.note}</div>
               </div>
               <div className="tx-qty">
-                {t.qty >= 0 ? "+" : ""}{t.qty.toLocaleString("en-US", { maximumFractionDigits: 4 })} {asset.ticker === "XAUT" ? "oz" : asset.ticker}
+                {t.qty >= 0 ? "+" : ""}{fmtQty(t.qty)} {asset.ticker === "XAUT" ? "oz" : asset.ticker}
               </div>
               <div className="tx-val" style={{color: t.kind === "sell" ? "var(--down)" : "var(--up)"}}>
                 {t.kind === "sell" ? "+" : "−"}${fmtNum(t.valUSD || 0, 2)}

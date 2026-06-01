@@ -130,6 +130,11 @@ function fmtCcy(amount, ccy) {
 function fmtNum(amount, decimals = 2) {
   return amount.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
+function fmtQty(amount) {
+  const n = Number(amount || 0);
+  const max = Math.abs(n) > 0 && Math.abs(n) < 1 ? 8 : 4;
+  return n.toLocaleString("en-US", { maximumFractionDigits: max });
+}
 function fmtPct(p) {
   const s = (p >= 0 ? "+" : "") + p.toFixed(2) + "%";
   return s;
@@ -147,6 +152,7 @@ window.Sidebar = Sidebar;
 window.Topbar = Topbar;
 window.fmtCcy = fmtCcy;
 window.fmtNum = fmtNum;
+window.fmtQty = fmtQty;
 window.fmtPct = fmtPct;
 window.toDisplay = toDisplay;
 

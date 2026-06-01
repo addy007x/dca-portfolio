@@ -266,7 +266,7 @@ function HistoryView({ ccy }) {
                     </span>
                   </div>
                   <div className="num" style={{fontSize:13}}>
-                    {Math.abs(t.qty || 0).toLocaleString("en-US", {maximumFractionDigits:6})}
+                    {fmtQty(Math.abs(t.qty || 0))}
                   </div>
                   <div className="num" style={{fontSize:12, color:"var(--muted)"}}>
                     {t.pricePerUnit ? `$${fmtNum(t.pricePerUnit, 2)}` : "—"}
