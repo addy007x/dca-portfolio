@@ -449,6 +449,9 @@ function LocalDatabasePanel({ priceStatus }) {
               <div style={{fontSize:10, color:"var(--muted)"}}>
                 {lineStatus?.enabled ? `พร้อมส่ง LINE · ผูกแล้ว ${lineStatus?.linkedTargets || 0} คน` : "รอใส่ LINE secret ใน Worker"}
               </div>
+              <div style={{fontSize:10, color:"var(--accent-ink)", marginTop:2}}>
+                แอด LINE OA: <b>@166kcvav</b>
+              </div>
             </div>
             <div style={{display:"flex", gap:6}}>
               <button className="twk-btn secondary" onClick={createLineCode}
