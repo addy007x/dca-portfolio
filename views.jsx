@@ -1060,7 +1060,7 @@ function PortfolioView({ ccy, onOpenAsset, onAddHolding, onAddTx, onEditHolding 
                   </div>
                 </div>
                 <div className="num" style={{fontSize:13}}>
-                  {h.qty.toLocaleString("en-US",{maximumFractionDigits:4})}
+                  {fmtQty(h.qty)}
                   <div style={{fontSize:11, color:"var(--muted)"}}>
                     {h.classKey==="gold"?"oz":h.classKey==="crypto"?h.ticker:"หุ้น"}
                   </div>
