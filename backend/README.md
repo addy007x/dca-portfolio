@@ -130,6 +130,14 @@ https://YOUR-WORKER.workers.dev/api/line/webhook
 
 Add the OA as a friend and send it any message. The webhook stores your LINE user ID automatically in D1, so `LINE_TO_ID` is optional. If you still want manual targets, set `LINE_TO_ID` to a user ID, group ID, or room ID; comma-separate multiple destinations.
 
+For multi-user portfolios, each person should link their LINE chat to their Google account:
+
+1. Log in to SiamFolio.
+2. Open Settings > LINE OA > press the link button.
+3. Send the generated command, for example `ผูก ABC123`, to the LINE OA.
+
+After linking, LINE commands and DCA notifications use that person's own saved portfolio.
+
 LINE chat commands:
 
 ```text

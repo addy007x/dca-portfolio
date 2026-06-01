@@ -104,3 +104,20 @@ CREATE TABLE IF NOT EXISTS line_targets (
   created_at   INTEGER NOT NULL,
   last_seen_at INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS line_account_links (
+  line_target_id TEXT PRIMARY KEY,
+  user_id        TEXT NOT NULL,
+  linked_at      INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_line_account_links_user ON line_account_links(user_id);
+
+CREATE TABLE IF NOT EXISTS line_link_codes (
+  code       TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL,
+  email      TEXT,
+  name       TEXT,
+  expires_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_line_link_codes_exp ON line_link_codes(expires_at);

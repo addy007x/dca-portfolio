@@ -333,6 +333,7 @@ function LocalDatabasePanel({ priceStatus }) {
   const [lineStatus, setLineStatus] = React.useState(null);
   const [lineMsg, setLineMsg] = React.useState("");
   const [lineBusy, setLineBusy] = React.useState(false);
+  const [lineCode, setLineCode] = React.useState(null);
 
   React.useEffect(() => {
     if (mode === "local") window.setAutoSync?.(false);
@@ -377,6 +378,20 @@ function LocalDatabasePanel({ priceStatus }) {
       }
     } catch (error) {
       setLineMsg(error.message || "ส่ง LINE ไม่สำเร็จ");
+    } finally {
+      setLineBusy(false);
+    }
+  };
+
+  const createLineCode = async () => {
+    setLineBusy(true);
+    setLineMsg("กำลังสร้างรหัสผูก LINE...");
+    try {
+      const data = await window.createLineLinkCode?.();
+      setLineCode(data);
+      setLineMsg("สร้างรหัสแล้ว เอาไปพิมพ์ใน LINE OA");
+    } catch (error) {
+      setLineMsg(error.message || "สร้างรหัสไม่สำเร็จ");
     } finally {
       setLineBusy(false);
     }
@@ -432,14 +447,25 @@ function LocalDatabasePanel({ priceStatus }) {
             <div>
               <div style={{fontSize:12, fontWeight:600}}>LINE OA</div>
               <div style={{fontSize:10, color:"var(--muted)"}}>
-                {lineStatus?.enabled ? "พร้อมส่งแจ้งเตือนผ่าน LINE" : "รอใส่ LINE secret ใน Worker"}
+                {lineStatus?.enabled ? `พร้อมส่ง LINE · ผูกแล้ว ${lineStatus?.linkedTargets || 0} คน` : "รอใส่ LINE secret ใน Worker"}
               </div>
             </div>
-            <button className="twk-btn secondary" onClick={testLine}
-                    disabled={lineBusy || !lineStatus?.enabled}>
-              {lineBusy ? "ส่ง..." : "ทดสอบ"}
-            </button>
+            <div style={{display:"flex", gap:6}}>
+              <button className="twk-btn secondary" onClick={createLineCode}
+                      disabled={lineBusy || !lineStatus?.enabled}>
+                ผูก
+              </button>
+              <button className="twk-btn secondary" onClick={testLine}
+                      disabled={lineBusy || !lineStatus?.enabled}>
+                {lineBusy ? "ส่ง..." : "ทดสอบ"}
+              </button>
+            </div>
           </div>
+          {lineCode?.command && (
+            <div style={{fontSize:10, color:"var(--accent-ink)", lineHeight:1.5}}>
+              พิมพ์ใน LINE OA: <b>{lineCode.command}</b>
+            </div>
+          )}
           {lineMsg && (
             <div style={{fontSize:10, color: lineMsg.includes("สำเร็จ") ? "var(--up)" : "var(--muted)"}}>
               {lineMsg}

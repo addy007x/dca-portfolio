@@ -130,6 +130,13 @@ async function sendLineTest() {
   });
 }
 
+async function createLineLinkCode() {
+  return authFetch("/api/line/link-code", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
 function serializePortfolio(s) {
   return {
     version: s.version,
@@ -389,6 +396,7 @@ Object.assign(window, {
   pullCloudPortfolio,
   getLineStatus,
   sendLineTest,
+  createLineLinkCode,
   signOutSupabase,
   SupabaseAuthGate: AuthGate,
 });

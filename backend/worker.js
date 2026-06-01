@@ -77,6 +77,13 @@ function randomToken() {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
+function randomCode(length = 6) {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map(b => alphabet[b % alphabet.length]).join("");
+}
+
 async function verifyGoogleCredential(credential, env) {
   if (!credential || typeof credential !== "string") throw new Error("Missing Google credential");
   if (!env.GOOGLE_CLIENT_ID) throw new Error("GOOGLE_CLIENT_ID is not configured on the Worker");
@@ -365,19 +372,43 @@ async function getLineTargetIds(env) {
   return [...ids];
 }
 
+async function getLinkedLineTargets(env, userId) {
+  if (!env.DB || !userId) return [];
+  const rows = await env.DB.prepare(
+    `SELECT line_target_id
+     FROM line_account_links
+     WHERE user_id = ?`
+  ).bind(userId).all().catch(() => null);
+  return (rows?.results || []).map(r => r.line_target_id).filter(Boolean);
+}
+
+async function getLineLinkedUserId(env, targetId) {
+  if (!env.DB || !targetId) return "";
+  const row = await env.DB.prepare(
+    "SELECT user_id FROM line_account_links WHERE line_target_id = ?"
+  ).bind(targetId).first().catch(() => null);
+  return row?.user_id || "";
+}
+
 async function lineStatus(env) {
   const targets = await getLineTargetIds(env);
+  const linked = env.DB
+    ? await env.DB.prepare("SELECT COUNT(*) AS count FROM line_account_links").first().catch(() => null)
+    : null;
   return {
     enabled: !!(env.LINE_CHANNEL_ACCESS_TOKEN && targets.length),
     hasToken: !!env.LINE_CHANNEL_ACCESS_TOKEN,
     targets: targets.length,
+    linkedTargets: Number(linked?.count || 0),
     webhookUrl: "https://<your-worker>/api/line/webhook",
   };
 }
 
 async function sendLinePush(env, text, toOverride) {
   if (!env.LINE_CHANNEL_ACCESS_TOKEN) throw new Error("LINE_CHANNEL_ACCESS_TOKEN is not configured");
-  const targets = toOverride ? [toOverride] : await getLineTargetIds(env);
+  const targets = toOverride
+    ? Array.isArray(toOverride) ? toOverride : [toOverride]
+    : await getLineTargetIds(env);
   if (!targets.length) throw new Error("No LINE target found. Add the OA as a friend and send it one message.");
 
   const results = [];
@@ -480,10 +511,15 @@ function fmtPctValue(value) {
   return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
 }
 
-async function getLatestPortfolioData(env) {
-  const row = await env.DB.prepare(
-    "SELECT data FROM portfolio_snapshots ORDER BY updated_at DESC LIMIT 1"
-  ).first().catch(() => null);
+async function getLatestPortfolioData(env, userId = "") {
+  const row = userId
+    ? await env.DB.prepare("SELECT data FROM portfolio_snapshots WHERE user_id = ?")
+      .bind(userId)
+      .first()
+      .catch(() => null)
+    : await env.DB.prepare("SELECT data FROM portfolio_snapshots ORDER BY updated_at DESC LIMIT 1")
+      .first()
+      .catch(() => null);
   if (row?.data) {
     try {
       return JSON.parse(row.data);
@@ -723,6 +759,7 @@ function portfolioFlexMessage(snapshot) {
 function lineCommand(text) {
   const t = String(text || "").trim().toLowerCase();
   if (!t) return null;
+  if (t.startsWith("ผูก ") || t.startsWith("link ")) return "link";
   if (["help", "คำสั่ง", "ช่วยเหลือ"].includes(t)) return "help";
   if (t.includes("ลบ") || t.includes("ขาดทุน") || t.includes("แดง")) return "loss";
   if (t.includes("บวก") || t.includes("กำไร") || t.includes("เขียว")) return "gain";
@@ -730,7 +767,50 @@ function lineCommand(text) {
   return null;
 }
 
-async function lineCommandReply(env, text) {
+function extractLineLinkCode(text) {
+  const t = String(text || "").trim();
+  const m = t.match(/^(?:ผูก|link)\s+([A-Za-z0-9]{4,12})/i);
+  return m ? m[1].toUpperCase() : "";
+}
+
+async function linkLineTarget(env, target, text) {
+  const code = extractLineLinkCode(text);
+  if (!code) return null;
+
+  const now = Date.now();
+  const row = await env.DB.prepare(
+    "SELECT * FROM line_link_codes WHERE code = ? AND expires_at > ?"
+  ).bind(code, now).first().catch(() => null);
+  if (!row) {
+    return "รหัสผูกบัญชีไม่ถูกต้องหรือหมดอายุแล้ว\nให้เปิดเว็บ SiamFolio แล้วกดสร้างรหัสใหม่";
+  }
+
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO line_targets(id,kind,display_name,created_at,last_seen_at)
+       VALUES(?,?,?,?,?)
+       ON CONFLICT(id) DO UPDATE SET
+         kind=excluded.kind,
+         last_seen_at=excluded.last_seen_at`
+    ).bind(target.id, target.kind, "", now, now),
+    env.DB.prepare(
+      `INSERT INTO line_account_links(line_target_id,user_id,linked_at)
+       VALUES(?,?,?)
+       ON CONFLICT(line_target_id) DO UPDATE SET
+         user_id=excluded.user_id,
+         linked_at=excluded.linked_at`
+    ).bind(target.id, row.user_id, now),
+    env.DB.prepare("DELETE FROM line_link_codes WHERE code = ?").bind(code),
+  ]);
+
+  return [
+    "ผูก LINE กับ SiamFolio สำเร็จ ✅",
+    row.name || row.email ? `บัญชี: ${row.name || row.email}` : "",
+    "ต่อไปพิมพ์ 'พอร์ต' เพื่อดูพอร์ตของบัญชีนี้ได้เลย",
+  ].filter(Boolean).join("\n");
+}
+
+async function lineCommandReply(env, text, targetId = "") {
   const command = lineCommand(text);
   if (command === "help") {
     return [
@@ -738,10 +818,16 @@ async function lineCommandReply(env, text) {
       "พอร์ต / สรุป - ดูมูลค่าพอร์ตและกำไรขาดทุน",
       "บวก / กำไร - ดูสินทรัพย์ที่เป็นบวก",
       "ลบ / ขาดทุน - ดูสินทรัพย์ที่ติดลบ",
+      "ผูก CODE - ผูก LINE กับบัญชี Google ของคุณ",
     ].join("\n");
   }
+  if (command === "link") return null;
   if (!command) return null;
-  const snapshot = await getLatestPortfolioData(env);
+  const userId = await getLineLinkedUserId(env, targetId);
+  if (!userId) {
+    return "LINE นี้ยังไม่ได้ผูกกับบัญชี SiamFolio\nเปิดเว็บ > Settings > LINE OA > สร้างรหัสผูก LINE แล้วพิมพ์ 'ผูก CODE' มาที่นี่";
+  }
+  const snapshot = await getLatestPortfolioData(env, userId);
   if (command === "summary") {
     const flex = portfolioFlexMessage(snapshot);
     return {
@@ -779,7 +865,8 @@ async function handleLineWebhook(req, env) {
     if (event.replyToken) {
       const text = event.message?.type === "text" ? event.message.text : "";
       replies.push((async () => {
-        const commandText = await lineCommandReply(env, text);
+        const linkedText = await linkLineTarget(env, target, text);
+        const commandText = linkedText || await lineCommandReply(env, text, target.id);
         await replyLine(
           env,
           event.replyToken,
@@ -809,6 +896,64 @@ function formatDcaLineMessage(due) {
   return lines.join("\n");
 }
 
+async function handleUserPortfolioCron(env, today) {
+  const rows = await env.DB.prepare(
+    "SELECT user_id,data FROM portfolio_snapshots ORDER BY updated_at DESC"
+  ).all().catch(() => null);
+  const snapshots = rows?.results || [];
+  let sent = 0;
+
+  for (const row of snapshots) {
+    const targets = await getLinkedLineTargets(env, row.user_id);
+    if (!targets.length) continue;
+
+    let snapshot = null;
+    try {
+      snapshot = JSON.parse(row.data || "{}");
+    } catch (_) {
+      continue;
+    }
+
+    const due = (snapshot.dca || []).filter(d => !d.paused && d.nextDate && d.nextDate <= today);
+    if (!due.length) continue;
+
+    const checks = await Promise.all(due.map(async d => {
+      const scopedId = `${row.user_id}:${d.id || d.ticker || "dca"}`;
+      const exists = await env.DB.prepare(
+        "SELECT id FROM dca_log WHERE date = ? AND dca_id = ? AND status IN ('due','notified')"
+      ).bind(today, scopedId).first().catch(() => null);
+      return exists ? null : { ...d, scopedId };
+    }));
+    const newDue = checks.filter(Boolean);
+    if (!newDue.length) continue;
+
+    let lineSent = false;
+    try {
+      await sendLinePush(env, formatDcaLineMessage(newDue), targets);
+      lineSent = true;
+      sent += targets.length;
+    } catch (e) {
+      console.error("LINE user DCA push failed:", e.stack || e);
+    }
+
+    const now = Date.now();
+    const stmts = newDue.map(d => env.DB.prepare(
+      "INSERT INTO dca_log(id,dca_id,date,ticker,amount,status,created_at) VALUES (?,?,?,?,?,?,?)"
+    ).bind(
+      `log-${now}-${Math.random().toString(36).slice(2, 7)}`,
+      d.scopedId,
+      today,
+      d.ticker,
+      d.amount,
+      lineSent ? "notified" : "due",
+      now
+    ));
+    if (stmts.length > 0) await env.DB.batch(stmts);
+  }
+
+  return sent;
+}
+
 async function requireLineActionAuth(req, env) {
   const user = await getSessionUser(req, env);
   if (user) return { user };
@@ -823,8 +968,37 @@ async function handleLineTest(req, env, actor) {
   const body = await req.json().catch(() => ({}));
   const who = actor?.user?.name || actor?.user?.email || "SiamFolio";
   const text = (body.text || `SiamFolio LINE test\nSender: ${who}\nTime: ${new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" })}`).slice(0, 4500);
-  const results = await sendLinePush(env, text, body.to);
+  const linkedTargets = actor?.user ? await getLinkedLineTargets(env, actor.user.id) : [];
+  const results = await sendLinePush(env, text, body.to || linkedTargets);
   return json({ ok: true, sent: results.length, results });
+}
+
+async function handleLineLinkCode(req, env) {
+  if (!env.DB) return error("D1 database not bound", 500);
+  const user = await getSessionUser(req, env);
+  if (!user) return error("Unauthorized", 401);
+
+  const now = Date.now();
+  await env.DB.prepare("DELETE FROM line_link_codes WHERE user_id = ? OR expires_at <= ?")
+    .bind(user.id, now)
+    .run();
+
+  let code = randomCode();
+  for (let i = 0; i < 4; i++) {
+    const exists = await env.DB.prepare("SELECT code FROM line_link_codes WHERE code = ?")
+      .bind(code)
+      .first();
+    if (!exists) break;
+    code = randomCode();
+  }
+
+  const expiresAt = now + 10 * 60 * 1000;
+  await env.DB.prepare(
+    `INSERT INTO line_link_codes(code,user_id,email,name,expires_at,created_at)
+     VALUES(?,?,?,?,?,?)`
+  ).bind(code, user.id, user.email || "", user.name || "", expiresAt, now).run();
+
+  return json({ code, expiresAt, command: `ผูก ${code}` });
 }
 
 // Router
@@ -846,6 +1020,7 @@ async function handleRequest(req, env, ctx) {
   if (path === "/api/auth/google" && req.method === "POST") return handleGoogleAuth(req, env);
   if (path === "/api/auth/me" && req.method === "GET") return handleMe(req, env);
   if (path === "/api/auth/logout" && req.method === "POST") return handleLogout(req, env);
+  if (path === "/api/line/link-code" && req.method === "POST") return handleLineLinkCode(req, env);
   if (path === "/api/line/test" && req.method === "POST") {
     const actor = await requireLineActionAuth(req, env);
     if (actor.response) return actor.response;
@@ -875,6 +1050,7 @@ async function handleRequest(req, env, ctx) {
 async function handleCron(env) {
   if (!env.DB) return;
   const today = new Date().toISOString().slice(0, 10);
+  const userLineSent = await handleUserPortfolioCron(env, today);
   const due = await env.DB.prepare(
     "SELECT * FROM dca_schedules WHERE paused = 0 AND nextDate <= ?"
   ).bind(today).all();
@@ -903,7 +1079,7 @@ async function handleCron(env) {
     ).bind(logId, d.id, today, d.ticker, d.amount, lineSent ? "notified" : "due", Date.now()));
   }
   if (stmts.length > 0) await env.DB.batch(stmts);
-  console.log(`[cron ${today}] Logged ${stmts.length} due DCA(s); lineSent=${lineSent}`);
+  console.log(`[cron ${today}] Logged ${stmts.length} legacy due DCA(s); lineSent=${lineSent}; userLineSent=${userLineSent}`);
 }
 
 export default {
