@@ -370,7 +370,8 @@ function EarnView({ ccy, onAddEarn }) {
   const savedEarnedUSD = positions.reduce((s, p) => s + storedEarnedUSD(p), 0);
   const pendingAccruedUSD = positions.reduce((s, p) => s + pendingEarnedUSD(p), 0);
   const accumulatedEarnedUSD = savedEarnedUSD + pendingAccruedUSD;
-  const totalWithEarnedUSD = totalUSD + accumulatedEarnedUSD;
+  const earnedAddedToTotalUSD = accumulatedEarnedUSD;
+  const totalWithEarnedUSD = totalUSD + earnedAddedToTotalUSD;
   const totalAnnualUSD = positions.reduce((s, p) => s + p.qty * getPrice(p.sym) * p.apy / 100, 0);
 
   const usdtBal = (positions.find(p => p.sym === "USDT") || {}).qty || 0;
@@ -392,6 +393,9 @@ function EarnView({ ccy, onAddEarn }) {
         <div className="kpi">
           <div className="label">ยอดรวม Earn</div>
           <div className="value">{ccySym}{ccy === "THB" ? Math.round(totalWithEarnedUSD*FX).toLocaleString() : fmtNum(totalWithEarnedUSD,2)}</div>
+          <div className="delta up" style={{marginTop:4}}>
+            +{ccySym}{ccy === "THB" ? fmtNum(earnedAddedToTotalUSD*FX,2) : fmtNum(earnedAddedToTotalUSD,4)} ดอกเบี้ยสะสมถูกบวกในยอดนี้แล้ว
+          </div>
           <div className="delta" style={{color:"var(--muted)"}}>มูลค่าตลาด + ดอกเบี้ยสะสม</div>
         </div>
         <div className="kpi">
