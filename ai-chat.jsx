@@ -6,7 +6,7 @@ function AIChatWidget() {
   const [messages, setMessages] = React.useState(() => ([
     {
       role: "assistant",
-      text: "สวัสดีครับ ผมคือ Siam AI ถามเรื่องพอร์ต, DCA, Earn, LINE alert หรือสิ่งที่ควรเช็กวันนี้ได้เลย",
+      text: "สวัสดีครับ ผมคือ Siam AI ถามเรื่องพอร์ต, DCA, Earn, LINE OA หรือสิ่งที่ควรเช็กวันนี้ได้เลย",
     },
   ]));
   const listRef = React.useRef(null);
@@ -22,6 +22,7 @@ function AIChatWidget() {
     "DCA รอบต่อไปมีอะไร",
     "สินทรัพย์ตัวไหนติดลบ",
     "Earn ได้เท่าไหร่",
+    "ผูก LINE OA ยังไง",
   ];
 
   async function send(text = input) {
@@ -58,23 +59,79 @@ function AIChatWidget() {
           right: 22px;
           bottom: 22px;
           z-index: 70;
-          min-width: 58px;
-          height: 58px;
+          min-width: 172px;
+          height: 68px;
           border: 1px solid rgba(17,16,14,.12);
-          border-radius: 18px;
-          background: linear-gradient(135deg, #11100e, #3b3028);
-          color: #fff8e8;
+          border-radius: 22px;
+          background:
+            linear-gradient(135deg, rgba(255,253,248,.94), rgba(246,236,221,.88)),
+            linear-gradient(135deg, #11100e, #3b3028);
+          color: #17130f;
           box-shadow: 0 18px 50px rgba(41, 28, 16, .28);
           font-weight: 800;
           cursor: pointer;
+          padding: 8px 12px 8px 8px;
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          overflow: hidden;
+        }
+        .ai-chat-launch::before {
+          content: "";
+          position: absolute;
+          inset: -28px -38px auto auto;
+          width: 118px;
+          height: 118px;
+          border-radius: 999px;
+          background: radial-gradient(circle, rgba(214,160,58,.26), transparent 62%);
+          pointer-events: none;
+        }
+        .ai-launch-avatar {
+          position: relative;
+          width: 50px;
+          height: 50px;
+          flex: 0 0 auto;
+          border-radius: 16px;
+          overflow: hidden;
+          border: 1px solid rgba(255,255,255,.72);
+          background:
+            linear-gradient(135deg, rgba(43,143,138,.25), rgba(214,160,58,.26)),
+            #f7efe4;
+          box-shadow: 0 8px 22px rgba(55,37,18,.16);
+        }
+        .ai-launch-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: 28% 38%;
+          transform: scale(1.42);
+          filter: saturate(1.05);
+        }
+        .ai-launch-copy {
+          position: relative;
+          min-width: 0;
+          text-align: left;
+          line-height: 1.12;
+        }
+        .ai-launch-copy b {
+          display: block;
+          font-size: 14px;
+          letter-spacing: 0;
+        }
+        .ai-launch-copy span {
+          display: block;
+          margin-top: 4px;
+          color: #7c7167;
+          font-size: 11px;
+          font-weight: 800;
         }
         .ai-chat-panel {
           position: fixed;
           right: 22px;
           bottom: 88px;
           z-index: 70;
-          width: min(420px, calc(100vw - 28px));
-          max-height: min(680px, calc(100vh - 118px));
+          width: min(430px, calc(100vw - 28px));
+          max-height: min(700px, calc(100vh - 118px));
           display: grid;
           grid-template-rows: auto 1fr auto;
           border: 1px solid rgba(218,203,187,.96);
@@ -91,7 +148,30 @@ function AIChatWidget() {
           gap: 12px;
           padding: 14px 16px;
           border-bottom: 1px solid rgba(218,203,187,.72);
-          background: linear-gradient(135deg, rgba(255,255,255,.86), rgba(246,239,229,.72));
+          background:
+            linear-gradient(135deg, rgba(255,255,255,.86), rgba(246,239,229,.72)),
+            radial-gradient(circle at 14% 18%, rgba(43,143,138,.16), transparent 36%);
+        }
+        .ai-chat-head-main {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+        }
+        .ai-head-avatar {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          overflow: hidden;
+          background: #f7efe4;
+          border: 1px solid rgba(17,16,14,.10);
+        }
+        .ai-head-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: 28% 38%;
+          transform: scale(1.42);
         }
         .ai-chat-title { font-weight: 800; line-height: 1.1; }
         .ai-chat-sub { margin-top: 3px; color: var(--muted); font-size: 11px; }
@@ -106,7 +186,7 @@ function AIChatWidget() {
         }
         .ai-chat-list {
           min-height: 280px;
-          max-height: 430px;
+          max-height: 440px;
           overflow: auto;
           padding: 14px;
           display: grid;
@@ -187,7 +267,8 @@ function AIChatWidget() {
         }
         .ai-chat-form button:disabled { opacity: .6; cursor: wait; }
         @media (max-width: 640px) {
-          .ai-chat-launch { right: 14px; bottom: 14px; }
+          .ai-chat-launch { right: 14px; bottom: 14px; min-width: 64px; width: 64px; padding: 7px; border-radius: 20px; }
+          .ai-launch-copy { display: none; }
           .ai-chat-panel { right: 14px; bottom: 78px; }
         }
       `}</style>
@@ -195,9 +276,14 @@ function AIChatWidget() {
       {open && (
         <section className="ai-chat-panel" aria-label="Siam AI chat">
           <div className="ai-chat-head">
-            <div>
-              <div className="ai-chat-title">Siam AI</div>
-              <div className="ai-chat-sub">ตอบจากข้อมูล DCA-Portfolio ของบัญชีนี้</div>
+            <div className="ai-chat-head-main">
+              <span className="ai-head-avatar">
+                <img src="assets/loading-maid-characters.png" alt="" aria-hidden="true"/>
+              </span>
+              <div>
+                <div className="ai-chat-title">Siam AI</div>
+                <div className="ai-chat-sub">ตอบจากข้อมูล DCA-Portfolio และ LINE OA ของบัญชีนี้</div>
+              </div>
             </div>
             <button className="ai-chat-close" onClick={() => setOpen(false)} aria-label="ปิด">×</button>
           </div>
@@ -216,7 +302,7 @@ function AIChatWidget() {
           <form className="ai-chat-form" onSubmit={e => { e.preventDefault(); send(); }}>
             <input value={input}
                    onChange={e => setInput(e.target.value)}
-                   placeholder="ถามเรื่องพอร์ตหรือ DCA..."
+                   placeholder="ถามเรื่องพอร์ต DCA หรือ LINE OA..."
                    disabled={busy}/>
             <button disabled={busy || !input.trim()}>ส่ง</button>
           </form>
@@ -224,7 +310,13 @@ function AIChatWidget() {
       )}
 
       <button className="ai-chat-launch" onClick={() => setOpen(o => !o)} aria-label="เปิด Siam AI">
-        AI
+        <span className="ai-launch-avatar">
+          <img src="assets/loading-maid-characters.png" alt="" aria-hidden="true"/>
+        </span>
+        <span className="ai-launch-copy">
+          <b>Siam AI</b>
+          <span>ถามพอร์ต · DCA · LINE</span>
+        </span>
       </button>
     </>
   );

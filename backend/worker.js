@@ -803,6 +803,25 @@ function compactSnapshotForAi(snapshot) {
 function localAiAnswer(question, context) {
   const q = String(question || "").toLowerCase();
   const t = context.totals;
+  if (
+    q.includes("line") ||
+    q.includes("oa") ||
+    q.includes("@166kcvav") ||
+    q.includes("ผูก") ||
+    q.includes("แจ้งเตือน")
+  ) {
+    return [
+      "ขั้นตอนผูก LINE OA กับ SiamFolio",
+      "1. เพิ่มเพื่อน LINE OA: @166kcvav",
+      "2. เปิดเว็บ SiamFolio แล้วล็อกอิน Google ให้เรียบร้อย",
+      "3. ไปที่ Settings > LINE OA",
+      "4. กดสร้างรหัสผูก LINE",
+      "5. คัดลอกรหัส แล้วพิมพ์ในแชท LINE ว่า: ผูก CODE",
+      "6. ถ้าผูกสำเร็จ จะขึ้นข้อความยืนยัน",
+      "",
+      "หลังผูกแล้วพิมพ์ใน LINE ได้ เช่น พอร์ต, กำไร, ขาดทุน, DCA, คำสั่ง",
+    ].join("\n");
+  }
   if (!context.assets.length) return "ยังไม่มีข้อมูลพอร์ตในระบบครับ ลองเพิ่มสินทรัพย์หรือรอ cloud sync ก่อน แล้วถามผมใหม่ได้เลย";
   if (q.includes("dca") || q.includes("รอบ") || q.includes("ซื้อ")) {
     const due = context.dca.due.length
@@ -861,6 +880,7 @@ async function openAiAnswer(env, question, context, history = []) {
     body: JSON.stringify({
       model: env.OPENAI_MODEL || "gpt-4.1-mini",
       instructions: [
+        "ถ้าผู้ใช้ถามเรื่อง LINE OA หรือแจ้งเตือน ให้บอกขั้นตอน: เพิ่มเพื่อน @166kcvav, เปิดเว็บและล็อกอิน Google, ไป Settings > LINE OA, กดสร้างรหัสผูก LINE, แล้วพิมพ์ใน LINE ว่า ผูก CODE",
         "คุณคือ SiamFolio AI ผู้ช่วยภาษาไทยสำหรับระบบ DCA Portfolio Tracker",
         "ตอบจากข้อมูล JSON ที่ให้มาเท่านั้น ถ้าไม่มีข้อมูลให้บอกว่าไม่พบข้อมูล",
         "ช่วยอธิบายพอร์ต, DCA schedule, Earn, ธุรกรรม, LINE alert และสิ่งที่ควรเช็กวันนี้",
