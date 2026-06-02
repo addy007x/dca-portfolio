@@ -21,7 +21,7 @@
   --red: #ef6b5e;
   --amber: #f6ad45;
   --blue: #4e7bff;
-  --shadow: 0 18px 54px rgba(0, 0, 0, .34);
+  --shadow: 0 14px 38px rgba(0, 0, 0, .30);
   --ui: "IBM Plex Sans Thai", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, monospace;
 }
@@ -55,20 +55,20 @@ button { cursor: pointer; }
 .app {
   position: relative;
   min-height: 100vh;
-  padding: 18px;
+  padding: 12px;
 }
 .frame {
-  min-height: calc(100vh - 36px);
+  min-height: calc(100vh - 24px);
   display: grid;
-  grid-template-columns: 330px minmax(0, 1fr);
-  grid-template-rows: 88px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-rows: 74px minmax(0, 1fr);
+  gap: 10px;
 }
 .top {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 330px minmax(0, 1fr) auto;
-  gap: 14px;
+  grid-template-columns: 300px minmax(0, 1fr) auto;
+  gap: 10px;
   align-items: stretch;
 }
 .brand, .nav, .actions, .side, .scene-wrap {
@@ -78,13 +78,13 @@ button { cursor: pointer; }
 }
 .brand {
   display: flex;
-  gap: 14px;
+  gap: 11px;
   align-items: center;
-  padding: 14px 16px;
+  padding: 11px 13px;
 }
 .logo {
-  width: 48px;
-  height: 48px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
   border: 1px solid rgba(34, 211, 238, .55);
@@ -96,32 +96,32 @@ button { cursor: pointer; }
 }
 .brand h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 19px;
   line-height: 1.05;
 }
 .brand p {
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 }
 .nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px;
+  gap: 6px;
+  padding: 9px;
 }
 .tab {
-  min-width: 108px;
-  min-height: 44px;
+  min-width: 94px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
   background: transparent;
   color: #d9e6ff;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .03em;
   text-transform: uppercase;
@@ -134,12 +134,12 @@ button { cursor: pointer; }
 .actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px;
+  gap: 8px;
+  padding: 9px;
 }
 .cmd-btn {
-  min-width: 86px;
-  min-height: 44px;
+  min-width: 74px;
+  min-height: 38px;
   border: 1px solid rgba(255,255,255,.16);
   color: white;
   font-weight: 800;
@@ -148,41 +148,41 @@ button { cursor: pointer; }
 .cmd-btn.start { background: linear-gradient(180deg, #0f8f65, #075f48); }
 .cmd-btn.stop { background: linear-gradient(180deg, #b94338, #74241f); }
 .bot-chip {
-  min-height: 44px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  padding: 0 14px;
+  padding: 0 12px;
   border: 1px solid rgba(132,162,205,.38);
   background: rgba(8,13,24,.72);
   color: #e9f2ff;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   white-space: nowrap;
 }
 .bot-chip:before {
   content: "";
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   background: var(--green);
   box-shadow: 0 0 14px var(--green);
 }
 .side {
   display: grid;
   align-content: start;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 12px;
   overflow: hidden;
 }
 .section-title {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  margin: 0 0 8px;
+  margin: 0 0 7px;
   color: var(--cyan);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -193,11 +193,11 @@ button { cursor: pointer; }
 }
 .project-card {
   display: grid;
-  grid-template-columns: 64px 1fr;
-  gap: 12px;
+  grid-template-columns: 54px 1fr;
+  gap: 10px;
   align-items: center;
-  min-height: 92px;
-  padding: 12px;
+  min-height: 78px;
+  padding: 10px;
   transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
 }
 .project-card:hover {
@@ -206,8 +206,8 @@ button { cursor: pointer; }
   box-shadow: 0 0 0 1px rgba(34,211,238,.20), 0 12px 28px rgba(0,0,0,.28);
 }
 .project-icon {
-  width: 64px;
-  height: 54px;
+  width: 54px;
+  height: 46px;
   display: grid;
   place-items: center;
   background:
@@ -219,52 +219,52 @@ button { cursor: pointer; }
 }
 .project-card h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1.1;
 }
 .project-card p {
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 }
 .task-list, .stats {
   display: grid;
-  gap: 8px;
-  padding: 10px;
+  gap: 7px;
+  padding: 8px;
 }
 .task {
-  min-height: 50px;
+  min-height: 44px;
   display: grid;
-  grid-template-columns: 30px 1fr auto;
+  grid-template-columns: 26px 1fr auto;
   align-items: center;
-  gap: 10px;
-  padding: 8px;
+  gap: 8px;
+  padding: 7px;
   border: 1px solid rgba(132,162,205,.14);
   background: rgba(7, 11, 20, .48);
 }
 .task-mark {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   background: var(--blue);
   box-shadow: 0 0 14px rgba(78,123,255,.26);
 }
 .task:nth-child(2) .task-mark { background: #9b4ded; }
 .task b {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
 }
 .task span {
   display: block;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
 }
-.on { color: var(--green); font-family: var(--mono); font-size: 12px; font-weight: 800; }
+.on { color: var(--green); font-family: var(--mono); font-size: 11px; font-weight: 800; }
 .stat {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding: 9px 6px;
+  padding: 8px 5px;
   border-bottom: 1px solid rgba(132,162,205,.16);
   color: #dce8fb;
   font-family: var(--mono);
@@ -273,7 +273,7 @@ button { cursor: pointer; }
 .stat span { color: var(--muted); font-family: var(--ui); }
 .scene-wrap {
   position: relative;
-  min-height: 640px;
+  min-height: 590px;
   overflow: hidden;
 }
 .scene {
@@ -282,7 +282,7 @@ button { cursor: pointer; }
   background:
     linear-gradient(90deg, rgba(4, 8, 16, .36), rgba(4, 8, 16, .05) 32%, rgba(4, 8, 16, .18)),
     linear-gradient(180deg, rgba(8, 13, 24, .34), transparent 22%, rgba(8, 13, 24, .24)),
-    url("assets/trading-office-scene.png") center / cover no-repeat;
+    url("assets/trading-office-scene.png") center 38% / cover no-repeat;
   image-rendering: auto;
   transform: scale(1.01);
 }
@@ -299,31 +299,31 @@ button { cursor: pointer; }
 }
 .status-card {
   position: absolute;
-  top: 24px;
-  min-width: 250px;
-  padding: 12px 14px 0;
+  top: 20px;
+  min-width: 218px;
+  padding: 10px 12px 0;
   border: 1px solid rgba(132,162,205,.45);
   background: rgba(7, 12, 23, .78);
-  box-shadow: 0 16px 34px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);
+  box-shadow: 0 12px 28px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.08);
   backdrop-filter: blur(4px);
 }
-.status-card.one { left: 28px; }
-.status-card.two { left: 298px; }
+.status-card.one { left: 22px; }
+.status-card.two { left: 258px; }
 .status-card b {
   display: block;
   font-family: var(--mono);
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 11px;
+  line-height: 1.42;
 }
 .status-card .label {
   display: block;
-  margin: 10px -14px 0;
-  padding: 10px 12px;
+  margin: 8px -12px 0;
+  padding: 8px 10px;
   border-top: 1px solid rgba(132,162,205,.28);
   background: linear-gradient(180deg, rgba(28, 42, 66, .82), rgba(13, 21, 37, .82));
   color: var(--cyan);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
   text-align: center;
 }
@@ -331,26 +331,26 @@ button { cursor: pointer; }
   position: absolute;
   display: grid;
   align-content: center;
-  min-width: 214px;
-  min-height: 88px;
-  padding: 14px 16px;
+  min-width: 188px;
+  min-height: 74px;
+  padding: 12px 14px;
   border: 1px solid rgba(34,211,238,.42);
   background: linear-gradient(180deg, rgba(7, 12, 23, .86), rgba(10, 18, 33, .72));
-  box-shadow: 0 16px 38px rgba(0,0,0,.32), 0 0 0 1px rgba(34,211,238,.08);
+  box-shadow: 0 12px 30px rgba(0,0,0,.30), 0 0 0 1px rgba(34,211,238,.08);
   transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
   z-index: 2;
 }
 .hotspot:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   border-color: rgba(34,211,238,.90);
   box-shadow: 0 18px 44px rgba(0,0,0,.36), 0 0 28px rgba(34,211,238,.22);
 }
-.hotspot.dca { left: 220px; bottom: 110px; }
-.hotspot.gold { right: 90px; bottom: 150px; border-color: rgba(246,173,69,.52); }
+.hotspot.dca { left: 205px; bottom: 96px; }
+.hotspot.gold { right: 76px; bottom: 132px; border-color: rgba(246,173,69,.52); }
 .hotspot .mini {
   color: var(--cyan);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -358,39 +358,36 @@ button { cursor: pointer; }
 .hotspot strong {
   display: block;
   margin-top: 3px;
-  font-size: 20px;
+  font-size: 17px;
   line-height: 1.1;
 }
 .hotspot span:last-child {
   margin-top: 5px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 .command {
-  position: absolute;
-  left: 24px;
-  bottom: 24px;
-  width: min(360px, calc(100% - 48px));
-  padding: 12px;
+  position: relative;
+  width: 100%;
+  padding: 10px;
   border: 1px solid rgba(132,162,205,.44);
   background: rgba(7, 12, 23, .86);
-  z-index: 2;
 }
 .command b {
   display: block;
-  margin-bottom: 9px;
+  margin-bottom: 7px;
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 12px;
 }
 .command-row {
   display: grid;
-  grid-template-columns: 1fr 42px;
-  gap: 8px;
+  grid-template-columns: 1fr 38px;
+  gap: 7px;
 }
 .command input {
   min-width: 0;
-  height: 42px;
+  height: 38px;
   border: 1px solid rgba(132,162,205,.22);
   background: rgba(4, 8, 16, .72);
   color: #e6f0ff;
@@ -401,7 +398,7 @@ button { cursor: pointer; }
   border: 1px solid rgba(132,162,205,.32);
   background: linear-gradient(180deg, rgba(87,112,154,.78), rgba(39,52,79,.82));
   color: white;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
 }
 .loading-gate {
@@ -465,31 +462,31 @@ button { cursor: pointer; }
   .top { grid-template-columns: 1fr; }
   .nav, .actions { justify-content: flex-start; overflow-x: auto; }
   .side { grid-row: 3; }
-  .scene-wrap { min-height: 560px; }
-  .status-card.two { left: auto; right: 24px; }
+  .scene-wrap { min-height: 520px; }
+  .status-card.two { left: auto; right: 20px; }
 }
 @media (max-width: 720px) {
-  .app { padding: 10px; }
-  .frame { min-height: calc(100vh - 20px); gap: 10px; }
+  .app { padding: 8px; }
+  .frame { min-height: calc(100vh - 16px); gap: 8px; }
   .nav { display: none; }
   .actions { flex-wrap: wrap; }
-  .scene-wrap { min-height: 590px; }
+  .scene-wrap { min-height: 540px; }
   .status-card {
     position: relative;
     left: auto !important;
     right: auto !important;
     top: auto;
-    margin: 12px;
+    margin: 10px;
     min-width: 0;
   }
   .hotspot {
-    left: 14px !important;
-    right: 14px !important;
+    left: 12px !important;
+    right: 12px !important;
     min-width: 0;
   }
-  .hotspot.dca { bottom: 126px; }
-  .hotspot.gold { bottom: 28px; }
-  .command { display: none; }
+  .hotspot.dca { bottom: 112px; }
+  .hotspot.gold { bottom: 24px; }
+  .command { display: block; }
 }
 </style>
 </head>
@@ -547,6 +544,17 @@ button { cursor: pointer; }
           <div class="stat"><span>Risk Guard</span><b>Ready</b></div>
         </div>
       </section>
+
+      <section>
+        <h2 class="section-title"><span>Command</span><span>Ready</span></h2>
+        <div class="command">
+          <b>Quick Open</b>
+          <div class="command-row">
+            <input id="commandInput" placeholder="พิมพ์ dca หรือ gold...">
+            <button id="commandBtn" type="button" aria-label="Run command">›</button>
+          </div>
+        </div>
+      </section>
     </aside>
 
     <section class="scene-wrap reveal" style="animation-delay:.1s" aria-label="Trading office scene">
@@ -577,13 +585,6 @@ button { cursor: pointer; }
         <span>กราฟแท่งเทียน จุดเข้าออก และ paper signal</span>
       </a>
 
-      <div class="command">
-        <b>Command</b>
-        <div class="command-row">
-          <input id="commandInput" placeholder="พิมพ์ dca หรือ gold...">
-          <button id="commandBtn" type="button" aria-label="Run command">›</button>
-        </div>
-      </div>
     </section>
   </section>
 </main>
