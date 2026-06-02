@@ -208,6 +208,32 @@ button { cursor: pointer; }
   gap: 10px;
   margin-top: 4px;
 }
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.preset-chip {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid rgba(214,160,58,.34);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255,248,232,.92), rgba(255,253,248,.72));
+  color: #7a4f12;
+  font-size: 13px;
+  font-weight: 800;
+}
+.preset-chip:before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 5px rgba(214,160,58,.14);
+}
 .btn {
   min-height: 46px;
   display: inline-flex;
@@ -235,6 +261,29 @@ button { cursor: pointer; }
   color: #276f68;
   font-size: 13px;
   line-height: 1.55;
+}
+.ea-panel {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.ea-stat {
+  padding: 12px;
+  border: 1px solid rgba(17,16,14,.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,.56);
+}
+.ea-stat span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.ea-stat b {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--mono);
+  font-size: 15px;
 }
 .list { display: grid; gap: 10px; }
 .item {
@@ -452,12 +501,18 @@ button { cursor: pointer; }
 
     <section class="card panel">
       <h2>Strategy Setup</h2>
-      <div class="stack">
+        <div class="stack">
+        <div class="preset-row">
+          <button id="goldPresetBtn" class="preset-chip" type="button">Gold EA Preset</button>
+          <span class="preset-chip">Paper Signal Only</span>
+        </div>
         <div class="split">
           <div class="field">
             <label>ตลาด</label>
-            <input id="symbolInput" value="BTCUSDT" list="symbolList" spellcheck="false">
+            <input id="symbolInput" value="XAUTUSDT" list="symbolList" spellcheck="false">
             <datalist id="symbolList">
+              <option value="XAUTUSDT"></option>
+              <option value="PAXGUSDT"></option>
               <option value="BTCUSDT"></option>
               <option value="ETHUSDT"></option>
               <option value="SOLUSDT"></option>
@@ -477,6 +532,7 @@ button { cursor: pointer; }
           <div class="field">
             <label>กลยุทธ์</label>
             <select id="strategyInput">
+              <option value="gold-ea">Gold EA Trend Guard</option>
               <option value="trend-dca">Trend + DCA Safety</option>
               <option value="ema-cross">EMA Cross</option>
               <option value="grid-rebalance">Grid Rebalance</option>
@@ -485,8 +541,8 @@ button { cursor: pointer; }
           <div class="field">
             <label>Timeframe</label>
             <select id="granularityInput">
-              <option value="15m">15m</option>
-              <option value="1H" selected>1H</option>
+              <option value="15m" selected>15m</option>
+              <option value="1H">1H</option>
               <option value="4H">4H</option>
               <option value="1D">1D</option>
             </select>
@@ -495,7 +551,7 @@ button { cursor: pointer; }
         <div class="split">
           <div class="field">
             <label>จำนวนแท่ง</label>
-            <input id="limitInput" value="300" inputmode="numeric">
+            <input id="limitInput" value="500" inputmode="numeric">
           </div>
           <div class="field">
             <label>ทุนเริ่มต้น (USDT)</label>
@@ -505,16 +561,38 @@ button { cursor: pointer; }
         <div class="split">
           <div class="field">
             <label>เงินต่อไม้ (USDT)</label>
-            <input id="orderSizeInput" value="25" inputmode="decimal">
+            <input id="orderSizeInput" value="20" inputmode="decimal">
           </div>
           <div class="field">
             <label>Max loss (%)</label>
-            <input id="maxLossInput" value="8" inputmode="decimal">
+            <input id="maxLossInput" value="5" inputmode="decimal">
           </div>
+        </div>
+        <div class="split">
+          <div class="field">
+            <label>Stop Loss (%)</label>
+            <input id="stopLossInput" value="1.2" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label>Take Profit (%)</label>
+            <input id="takeProfitInput" value="2.4" inputmode="decimal">
+          </div>
+        </div>
+        <div class="field">
+          <label>EA Session</label>
+          <select id="sessionInput">
+            <option value="all" selected>All day signal</option>
+            <option value="london-ny">London + New York focus</option>
+          </select>
         </div>
         <div class="actions">
           <button id="runBtn" class="btn">Run Backtest</button>
           <button id="connectBtn" class="btn secondary" type="button">Connect Bitget Later</button>
+        </div>
+        <div class="ea-panel">
+          <div class="ea-stat"><span>EA Mode</span><b>Paper</b></div>
+          <div class="ea-stat"><span>Order API</span><b>Off</b></div>
+          <div class="ea-stat"><span>Kill Switch</span><b>Required</b></div>
         </div>
         <div id="setupNote" class="note">
           ทองคำให้ใส่ symbol ที่ Bitget รองรับในตลาด futures นั้น ๆ เช่น PAXGUSDT หรือ XAUTUSDT ถ้ามีในรายการของ Bitget
@@ -562,6 +640,7 @@ button { cursor: pointer; }
 const API_BASE = "https://siamfolio-api.kingbooms5678.workers.dev";
 const runBtn = document.getElementById("runBtn");
 const connectBtn = document.getElementById("connectBtn");
+const goldPresetBtn = document.getElementById("goldPresetBtn");
 const statusText = document.getElementById("statusText");
 const statusSub = document.getElementById("statusSub");
 const quickResult = document.getElementById("quickResult");
@@ -593,6 +672,9 @@ function payload() {
     initialCapital: readNumber("initialCapitalInput", 1000),
     orderSize: readNumber("orderSizeInput", 25),
     maxLossPct: readNumber("maxLossInput", 8),
+    stopLossPct: readNumber("stopLossInput", 1.2),
+    takeProfitPct: readNumber("takeProfitInput", 2.4),
+    session: document.getElementById("sessionInput").value,
   };
 }
 
@@ -636,6 +718,47 @@ function ema(values, period) {
   return out;
 }
 
+function rsi(values, period = 14) {
+  const out = new Array(values.length).fill(null);
+  if (values.length <= period) return out;
+  let gain = 0;
+  let loss = 0;
+  for (let i = 1; i <= period; i++) {
+    const diff = values[i] - values[i - 1];
+    if (diff >= 0) gain += diff;
+    else loss -= diff;
+  }
+  let avgGain = gain / period;
+  let avgLoss = loss / period;
+  out[period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+  for (let i = period + 1; i < values.length; i++) {
+    const diff = values[i] - values[i - 1];
+    const up = diff > 0 ? diff : 0;
+    const down = diff < 0 ? -diff : 0;
+    avgGain = (avgGain * (period - 1) + up) / period;
+    avgLoss = (avgLoss * (period - 1) + down) / period;
+    out[i] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+  }
+  return out;
+}
+
+function atr(candles, period = 14) {
+  const out = new Array(candles.length).fill(null);
+  if (candles.length <= period) return out;
+  const tr = candles.map((c, i) => {
+    if (i === 0) return c.high - c.low;
+    const prevClose = candles[i - 1].close;
+    return Math.max(c.high - c.low, Math.abs(c.high - prevClose), Math.abs(c.low - prevClose));
+  });
+  let avg = tr.slice(1, period + 1).reduce((sum, v) => sum + v, 0) / period;
+  out[period] = avg;
+  for (let i = period + 1; i < candles.length; i++) {
+    avg = (avg * (period - 1) + tr[i]) / period;
+    out[i] = avg;
+  }
+  return out;
+}
+
 function runBrowserBacktest(p, candles) {
   if (!candles || candles.length < 30) throw new Error("Not enough candles for backtest");
   const closes = candles.map(c => c.close);
@@ -643,13 +766,19 @@ function runBrowserBacktest(p, candles) {
   const ema20 = ema(closes, 20);
   const ema21 = ema(closes, 21);
   const ema50 = ema(closes, 50);
+  const rsi14 = rsi(closes, 14);
+  const atr14 = atr(candles, 14);
   const initialCapital = Math.max(50, Number(p.initialCapital) || 1000);
   const orderSize = Math.max(1, Math.min(initialCapital, Number(p.orderSize) || 25));
   const maxLossPct = Math.max(1, Math.min(80, Number(p.maxLossPct) || 8));
+  const stopLossPct = Math.max(0.2, Math.min(20, Number(p.stopLossPct) || 1.2));
+  const takeProfitPct = Math.max(0.2, Math.min(40, Number(p.takeProfitPct) || 2.4));
   const feeRate = 0.0006;
   let cash = initialCapital;
   let qty = 0;
   let positionCost = 0;
+  let entryPrice = 0;
+  let trailingStop = 0;
   let halted = false;
   const trades = [];
   const equityCurve = [];
@@ -663,6 +792,8 @@ function runBrowserBacktest(p, candles) {
     cash -= quote;
     qty += bought;
     positionCost += quote;
+    entryPrice = price;
+    trailingStop = price * (1 - stopLossPct / 100);
     trades.push({ side: "BUY", time: candles[i].time, price, quote, qty: bought, fee, reason });
   };
   const sellAll = (i, price, reason) => {
@@ -674,6 +805,8 @@ function runBrowserBacktest(p, candles) {
     cash += gross - fee;
     qty = 0;
     positionCost = 0;
+    entryPrice = 0;
+    trailingStop = 0;
     trades.push({ side: "SELL", time: candles[i].time, price, quote: gross, qty: soldQty, fee, pnl, reason });
   };
 
@@ -685,7 +818,36 @@ function runBrowserBacktest(p, candles) {
       halted = true;
     }
     if (!halted) {
-      if (p.strategy === "ema-cross") {
+      if (p.strategy === "gold-ea") {
+        const currentAtr = atr14[i] || Math.max(price * 0.008, candles[i].high - candles[i].low);
+        const currentRsi = rsi14[i] || 50;
+        const trendOk = i > 55 && ema20[i] > ema50[i] && price > ema20[i];
+        const prevHigh = Math.max(...candles.slice(Math.max(0, i - 20), i).map(c => c.high));
+        const pullbackBounce = closes[i - 1] < ema20[i - 1] && price > ema20[i];
+        const breakout = price > prevHigh;
+        const momentum = i > 2 && closes[i] > closes[i - 1] && closes[i - 1] > closes[i - 2];
+        const utcHour = new Date(candles[i].time).getUTCHours();
+        const sessionOk = p.session !== "london-ny" || (utcHour >= 7 && utcHour <= 21);
+
+        if (qty > 0) {
+          const hardStop = entryPrice * (1 - stopLossPct / 100);
+          const takeProfit = entryPrice * (1 + takeProfitPct / 100);
+          trailingStop = Math.max(trailingStop || hardStop, price - currentAtr * 1.6);
+          if (candles[i].low <= hardStop) {
+            sellAll(i, hardStop, "Gold EA stop loss");
+          } else if (candles[i].high >= takeProfit) {
+            sellAll(i, takeProfit, "Gold EA take profit");
+          } else if (price <= trailingStop) {
+            sellAll(i, price, "Gold EA trailing stop");
+          } else if (price < ema50[i] || currentRsi > 78) {
+            sellAll(i, price, "Gold EA trend exit");
+          }
+        }
+
+        if (qty <= 0 && sessionOk && trendOk && currentRsi >= 45 && currentRsi <= 72 && (pullbackBounce || breakout || momentum)) {
+          buy(i, price, "Gold EA trend entry");
+        }
+      } else if (p.strategy === "ema-cross") {
         if (ema9[i - 1] <= ema21[i - 1] && ema9[i] > ema21[i] && qty <= 0) buy(i, price, "EMA9 crossed above EMA21");
         if (ema9[i - 1] >= ema21[i - 1] && ema9[i] < ema21[i] && qty > 0) sellAll(i, price, "EMA9 crossed below EMA21");
       } else if (p.strategy === "grid-rebalance") {
@@ -735,6 +897,8 @@ function runBrowserBacktest(p, candles) {
       openPositionQty: qty,
       haltedByRisk: halted,
       feeRate,
+      stopLossPct,
+      takeProfitPct,
     },
     trades: trades.slice(-30),
     equityCurve: equityCurve.filter((_, i) => i % sampleEvery === 0),
@@ -765,7 +929,7 @@ function renderMetrics(data) {
     metricCard("Win Rate", `${pctFmt.format(m.winRatePct)}%`, ""),
     metricCard("Buy / Sell", `${m.buyCount} / ${m.sellCount}`, ""),
     metricCard("Open Qty", qtyFmt.format(m.openPositionQty), ""),
-    metricCard("Fee", `${pctFmt.format(m.feeRate * 100)}%`, ""),
+    metricCard("SL / TP", `${pctFmt.format(m.stopLossPct || 0)}% / ${pctFmt.format(m.takeProfitPct || 0)}%`, ""),
   ].join("");
 }
 
@@ -945,6 +1109,24 @@ function pauseRealtime() {
   liveChip.textContent = "Ready";
 }
 
+function applyGoldEaPreset() {
+  document.getElementById("symbolInput").value = "XAUTUSDT";
+  document.getElementById("productTypeInput").value = "usdt-futures";
+  document.getElementById("strategyInput").value = "gold-ea";
+  document.getElementById("granularityInput").value = "15m";
+  document.getElementById("limitInput").value = "500";
+  document.getElementById("initialCapitalInput").value = "1000";
+  document.getElementById("orderSizeInput").value = "20";
+  document.getElementById("maxLossInput").value = "5";
+  document.getElementById("stopLossInput").value = "1.2";
+  document.getElementById("takeProfitInput").value = "2.4";
+  document.getElementById("sessionInput").value = "all";
+  statusText.textContent = "Gold EA";
+  statusSub.textContent = "XAUTUSDT · Paper signal mode";
+  setupNote.innerHTML = `<span class="pill">Gold EA Ready</span> โหมดนี้เป็นบอทจำลองสำหรับทอง ใช้ดูสัญญาณเข้าออกบนกราฟก่อน ยังไม่ส่ง order จริงไป Bitget`;
+  pauseRealtime();
+}
+
 async function runBacktest() {
   const p = payload();
   runBtn.disabled = true;
@@ -953,16 +1135,24 @@ async function runBacktest() {
   setupNote.textContent = "กำลังประมวลผล backtest จากแท่งเทียนจริง...";
 
   try {
-    const res = await fetch(`${API_BASE}/api/bitget/backtest`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(p),
-    });
-    const data = await res.json();
-    if (!res.ok || data.error) throw new Error(data.error || "Backtest failed");
+    let data;
+    if (p.strategy === "gold-ea") {
+      const candles = await fetchBitgetDirect(p);
+      data = runBrowserBacktest(p, candles);
+    } else {
+      const res = await fetch(`${API_BASE}/api/bitget/backtest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(p),
+      });
+      data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Backtest failed");
+    }
     statusText.textContent = "Complete";
     statusSub.textContent = `${data.symbol} · ${data.granularity}`;
-    setupNote.innerHTML = `<span class="pill">Paper result only</span> ใช้สำหรับทดลองกลยุทธ์ ยังไม่มีการส่งคำสั่งไป Bitget`;
+    setupNote.innerHTML = p.strategy === "gold-ea"
+      ? `<span class="pill">Gold EA Paper</span> สัญญาณจำลองเท่านั้น ใช้ EMA20/EMA50 + RSI + ATR พร้อม SL ${pctFmt.format(p.stopLossPct)}% / TP ${pctFmt.format(p.takeProfitPct)}%`
+      : `<span class="pill">Paper result only</span> ใช้สำหรับทดลองกลยุทธ์ ยังไม่มีการส่งคำสั่งไป Bitget`;
     renderQuick(data);
     renderMetrics(data);
     renderCandleChart(data.candlesData, data.trades);
@@ -993,12 +1183,16 @@ async function runBacktest() {
 }
 
 runBtn.addEventListener("click", runBacktest);
-["symbolInput", "productTypeInput", "strategyInput", "granularityInput", "limitInput", "initialCapitalInput", "orderSizeInput", "maxLossInput"]
+goldPresetBtn.addEventListener("click", applyGoldEaPreset);
+["symbolInput", "productTypeInput", "strategyInput", "granularityInput", "limitInput", "initialCapitalInput", "orderSizeInput", "maxLossInput", "stopLossInput", "takeProfitInput", "sessionInput"]
   .forEach(id => document.getElementById(id).addEventListener("change", pauseRealtime));
 connectBtn.addEventListener("click", () => {
   setupNote.innerHTML = `<span class="pill">Next phase</span> ระบบ live trade ต้องเพิ่มหน้าเก็บ API key แบบ secret, จำกัดสิทธิ์ถอนเงิน, และปุ่มยืนยันก่อนเปิดใช้งานจริง`;
 });
-if (new URLSearchParams(location.search).get("autorun") === "1") {
+const params = new URLSearchParams(location.search);
+if (params.get("preset") === "gold-ea") applyGoldEaPreset();
+if (params.get("symbol")) document.getElementById("symbolInput").value = params.get("symbol").toUpperCase();
+if (params.get("autorun") === "1") {
   setTimeout(runBacktest, 300);
 }
 </script>
