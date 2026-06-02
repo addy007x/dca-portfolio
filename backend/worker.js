@@ -740,6 +740,166 @@ function portfolioStats(snapshot) {
   return { rows, totalValue, totalCost, totalPL, totalPct, gains, losses };
 }
 
+function compactSnapshotForAi(snapshot) {
+  const stats = portfolioStats(snapshot);
+  const now = bangkokNow();
+  const dca = (snapshot?.dca || []).map(normalizeDcaForCron);
+  const activeDca = dca.filter(d => !d.paused);
+  const dueDca = activeDca.filter(d => isDcaDueAt(d, now.date, now.time));
+  const nextDca = activeDca
+    .slice()
+    .sort((a, b) => String(a.nextDate || "").localeCompare(String(b.nextDate || "")))
+    .slice(0, 8)
+    .map(d => ({
+      ticker: d.ticker,
+      amount: Number(d.amount || 0),
+      ccy: d.ccy || "USD",
+      freq: d.freq || "weekly",
+      nextDate: d.nextDate || "",
+      execTime: d.execTime || "",
+      executedCount: Number(d.executedCount || 0),
+      totalSpent: Number(d.totalSpent || 0),
+    }));
+  const earn = (snapshot?.earn || []).map(e => ({
+    sym: e.sym,
+    qty: Number(e.qty || 0),
+    apy: Number(e.apy || 0),
+    accruedEarnedUSD: Number(e.accruedEarnedUSD ?? e.earnedToday ?? 0),
+  }));
+  return {
+    nowBangkok: now,
+    fx: Number(snapshot?.fx || 35.8),
+    totals: {
+      valueTHB: Math.round(stats.totalValue),
+      costTHB: Math.round(stats.totalCost),
+      plTHB: Math.round(stats.totalPL),
+      plPct: Number(stats.totalPct.toFixed(2)),
+      assetCount: stats.rows.length,
+    },
+    assets: stats.rows.map(r => ({
+      ticker: r.ticker,
+      name: r.name,
+      valueTHB: Math.round(r.valueTHB),
+      costTHB: Math.round(r.costTHB),
+      plTHB: Math.round(r.plTHB),
+      plPct: Number(r.plPct.toFixed(2)),
+    })).sort((a, b) => b.valueTHB - a.valueTHB),
+    gainers: stats.gains.slice(0, 5).map(r => ({ ticker: r.ticker, plTHB: Math.round(r.plTHB), plPct: Number(r.plPct.toFixed(2)) })),
+    losers: stats.losses.slice(0, 5).map(r => ({ ticker: r.ticker, plTHB: Math.round(r.plTHB), plPct: Number(r.plPct.toFixed(2)) })),
+    dca: {
+      activeCount: activeDca.length,
+      pausedCount: dca.filter(d => d.paused).length,
+      dueCount: dueDca.length,
+      due: dueDca.map(d => ({ ticker: d.ticker, amount: Number(d.amount || 0), ccy: d.ccy || "USD", nextDate: d.nextDate, execTime: d.execTime })),
+      next: nextDca,
+    },
+    earn,
+    transactionCount: (snapshot?.transactions || []).length,
+    pricesUpdatedAt: snapshot?.pricesUpdatedAt || 0,
+    priceRefreshSource: snapshot?.priceRefreshSource || "",
+  };
+}
+
+function localAiAnswer(question, context) {
+  const q = String(question || "").toLowerCase();
+  const t = context.totals;
+  if (!context.assets.length) return "ยังไม่มีข้อมูลพอร์ตในระบบครับ ลองเพิ่มสินทรัพย์หรือรอ cloud sync ก่อน แล้วถามผมใหม่ได้เลย";
+  if (q.includes("dca") || q.includes("รอบ") || q.includes("ซื้อ")) {
+    const due = context.dca.due.length
+      ? context.dca.due.map(d => `- ${d.ticker}: ${d.ccy} ${d.amount} เวลา ${d.execTime || "-"}`).join("\n")
+      : "ตอนนี้ยังไม่มีรายการ DCA ที่ถึงรอบ";
+    const next = context.dca.next.length
+      ? context.dca.next.slice(0, 5).map(d => `- ${d.ticker}: ${d.ccy} ${d.amount} วันที่ ${d.nextDate} ${d.execTime || ""}`).join("\n")
+      : "ยังไม่มี DCA ที่เปิดใช้งาน";
+    return `สรุป DCA ตอนนี้\nใช้งานอยู่ ${context.dca.activeCount} รายการ, พักไว้ ${context.dca.pausedCount} รายการ\n\nถึงรอบ:\n${due}\n\nรอบถัดไป:\n${next}`;
+  }
+  if (q.includes("ลบ") || q.includes("ขาดทุน") || q.includes("ติด")) {
+    return context.losers.length
+      ? `สินทรัพย์ที่ติดลบเด่น ๆ:\n${context.losers.map(a => `- ${a.ticker}: ${fmtSignedTHB(a.plTHB)} (${fmtPctValue(a.plPct)})`).join("\n")}`
+      : "ตอนนี้ยังไม่มีสินทรัพย์ที่ติดลบในพอร์ตครับ";
+  }
+  if (q.includes("บวก") || q.includes("กำไร") || q.includes("เด่น")) {
+    return context.gainers.length
+      ? `สินทรัพย์ที่เป็นบวกเด่น ๆ:\n${context.gainers.map(a => `- ${a.ticker}: ${fmtSignedTHB(a.plTHB)} (${fmtPctValue(a.plPct)})`).join("\n")}`
+      : "ตอนนี้ยังไม่มีสินทรัพย์ที่เป็นบวกในพอร์ตครับ";
+  }
+  if (q.includes("earn") || q.includes("ดอก")) {
+    const totalEarn = context.earn.reduce((sum, e) => sum + Number(e.accruedEarnedUSD || 0), 0);
+    return `Earn ตอนนี้มี ${context.earn.length} รายการ ดอกเบี้ยสะสมประมาณ $${totalEarn.toFixed(4)}\n${context.earn.slice(0, 6).map(e => `- ${e.sym}: qty ${e.qty}, APY ${e.apy}%`).join("\n") || "ยังไม่มีรายการ Earn"}`;
+  }
+  return [
+    "สรุปพอร์ตจากข้อมูลล่าสุด",
+    `มูลค่ารวม: ${fmtTHB(t.valueTHB)}`,
+    `ต้นทุนรวม: ${fmtTHB(t.costTHB)}`,
+    `กำไร/ขาดทุน: ${fmtSignedTHB(t.plTHB)} (${fmtPctValue(t.plPct)})`,
+    `จำนวนสินทรัพย์: ${t.assetCount} ตัว`,
+    `DCA ใช้งานอยู่: ${context.dca.activeCount} รายการ`,
+    "",
+    "ถามต่อได้ เช่น “DCA รอบต่อไป”, “ตัวไหนติดลบ”, “Earn ได้เท่าไหร่”",
+  ].join("\n");
+}
+
+async function openAiAnswer(env, question, context, history = []) {
+  const messages = Array.isArray(history) ? history.slice(-8) : [];
+  const prompt = [
+    "ข้อมูลพอร์ตผู้ใช้แบบ JSON:",
+    JSON.stringify(context),
+    "",
+    "ประวัติแชทล่าสุด:",
+    JSON.stringify(messages),
+    "",
+    "คำถามผู้ใช้:",
+    String(question || "").slice(0, 1200),
+  ].join("\n");
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: env.OPENAI_MODEL || "gpt-4.1-mini",
+      instructions: [
+        "คุณคือ SiamFolio AI ผู้ช่วยภาษาไทยสำหรับระบบ DCA Portfolio Tracker",
+        "ตอบจากข้อมูล JSON ที่ให้มาเท่านั้น ถ้าไม่มีข้อมูลให้บอกว่าไม่พบข้อมูล",
+        "ช่วยอธิบายพอร์ต, DCA schedule, Earn, ธุรกรรม, LINE alert และสิ่งที่ควรเช็กวันนี้",
+        "อย่าอ้างว่าเป็นคำแนะนำการลงทุน ให้พูดว่าเป็นการช่วยอ่านข้อมูลและจัดลำดับสิ่งที่ควรตรวจ",
+        "ตอบสั้น กระชับ เป็น bullet ได้ ไม่เกิน 8 บรรทัดถ้าไม่ได้ถูกขอให้ละเอียด",
+      ].join("\n"),
+      input: prompt,
+      max_output_tokens: 700,
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error?.message || `OpenAI ${response.status}`);
+  return data.output_text
+    || (data.output || []).flatMap(item => item.content || []).map(c => c.text || "").join("").trim()
+    || "ผมประมวลผลแล้ว แต่ไม่ได้รับข้อความตอบกลับจาก AI";
+}
+
+async function handleAiChat(req, env, user) {
+  if (!env.DB) return error("D1 database not bound", 500);
+  const body = await req.json().catch(() => ({}));
+  const question = String(body.question || "").trim();
+  if (!question) return error("Missing question", 400);
+
+  const latest = await getLatestPortfolioData(env, user.id);
+  const snapshot = await refreshSnapshotPrices(env, latest, user.id).catch(() => latest);
+  const context = compactSnapshotForAi(snapshot);
+
+  if (!env.OPENAI_API_KEY) {
+    return json({ ok: true, mode: "local", answer: localAiAnswer(question, context), contextUpdatedAt: snapshot.pricesUpdatedAt || 0 });
+  }
+
+  try {
+    const answer = await openAiAnswer(env, question, context, body.history);
+    return json({ ok: true, mode: "openai", answer, contextUpdatedAt: snapshot.pricesUpdatedAt || 0 });
+  } catch (e) {
+    return json({ ok: true, mode: "local-fallback", answer: localAiAnswer(question, context), warning: e.message, contextUpdatedAt: snapshot.pricesUpdatedAt || 0 });
+  }
+}
+
 function formatPortfolioSummary(snapshot, mode = "summary") {
   const { rows, totalValue, totalCost, totalPL, totalPct, gains, losses } = portfolioStats(snapshot);
   if (!rows.length) {
@@ -1525,6 +1685,12 @@ async function handleRequest(req, env, ctx) {
   if (path === "/api/auth/me" && req.method === "GET") return handleMe(req, env);
   if (path === "/api/auth/logout" && req.method === "POST") return handleLogout(req, env);
   if (path === "/api/line/link-code" && req.method === "POST") return handleLineLinkCode(req, env);
+  if (path === "/api/ai/chat" && req.method === "POST") {
+    if (!env.DB) return error("D1 database not bound", 500);
+    const user = await getSessionUser(req, env);
+    if (!user) return error("Unauthorized", 401);
+    return handleAiChat(req, env, user);
+  }
   if (path === "/api/line/test" && req.method === "POST") {
     const actor = await requireLineActionAuth(req, env);
     if (actor.response) return actor.response;

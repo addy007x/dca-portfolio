@@ -137,6 +137,13 @@ async function createLineLinkCode() {
   });
 }
 
+async function askPortfolioAi(question, history = []) {
+  return authFetch("/api/ai/chat", {
+    method: "POST",
+    body: JSON.stringify({ question, history }),
+  });
+}
+
 function serializePortfolio(s) {
   return {
     version: s.version,
@@ -398,6 +405,8 @@ Object.assign(window, {
   getLineStatus,
   sendLineTest,
   createLineLinkCode,
+  askPortfolioAi,
+  authFetch,
   signOutSupabase,
   SupabaseAuthGate: AuthGate,
 });

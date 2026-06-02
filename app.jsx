@@ -264,6 +264,7 @@ function App() {
           </button>
         </TweakSection>
       </TweaksPanel>
+      {window.AIChatWidget ? <AIChatWidget/> : null}
     </>
   );
 }
