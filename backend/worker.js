@@ -1495,6 +1495,7 @@ async function handleBitgetBacktest(req) {
       symbol: market.symbol,
       productType: market.productType,
       granularity: market.granularity,
+      candlesData: market.candles,
       cached: market.cached,
     });
   } catch (e) {
