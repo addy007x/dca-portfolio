@@ -56,6 +56,8 @@ button, input { font: inherit; }
   box-shadow: 0 0 0 5px rgba(66, 173, 104, .12);
 }
 .main {
+  position: relative;
+  z-index: 1;
   min-width: 0;
   padding: 22px 38px 46px;
 }
@@ -161,7 +163,7 @@ button, input { font: inherit; }
   border: 1px solid rgba(218, 203, 187, .92);
   border-radius: var(--radius);
   background:
-    linear-gradient(135deg, rgba(255,255,255,.82), rgba(255,253,248,.44)),
+    linear-gradient(135deg, rgba(255,255,255,.94), rgba(255,253,248,.76)),
     radial-gradient(circle at 14% 18%, rgba(219, 163, 59, .22), transparent 28%),
     radial-gradient(circle at 86% 78%, rgba(43, 143, 138, .20), transparent 30%),
     var(--panel);
@@ -201,7 +203,7 @@ button, input { font: inherit; }
   position: relative;
   z-index: 1;
   display: block;
-  color: var(--ink);
+  color: #11100e;
   font-family: "Plus Jakarta Sans", "IBM Plex Sans Thai", sans-serif;
   font-size: clamp(22px, 2.1vw, 34px);
   font-weight: 800;
@@ -219,6 +221,49 @@ button, input { font: inherit; }
   font-weight: 700;
   letter-spacing: .18em;
   text-transform: uppercase;
+  text-align: center;
+}
+.wire-card.bot {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.95), rgba(255,253,248,.78)),
+    radial-gradient(circle at 16% 16%, rgba(43, 143, 138, .24), transparent 28%),
+    radial-gradient(circle at 86% 72%, rgba(215, 86, 55, .18), transparent 30%),
+    var(--panel);
+}
+.wire-card.bot:after {
+  background: linear-gradient(135deg, rgba(43,143,138,.42), rgba(215,86,55,.24));
+}
+.wire-content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 18px;
+}
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.mini-badge {
+  padding: 4px 8px;
+  border: 1px solid rgba(17,16,14,.08);
+  border-radius: 999px;
+  background: rgba(255,255,255,.58);
+  color: #574d43;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .03em;
+}
+.bot-hint {
+  max-width: 330px;
+  color: #665b51;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
   text-align: center;
 }
 .wire-card:hover {
@@ -363,6 +408,18 @@ button, input { font: inherit; }
           <span class="wire-subtitle">Open Dashboard</span>
         </span>
       </a>
+      <a class="wire-card bot reveal" href="./bitget-bot.html" data-loading-title="กำลังเปิด Bitget Backtest Lab" style="animation-delay:.08s" aria-label="เปิดระบบ Backtest Trade Bot">
+        <span class="wire-content">
+          <span class="wire-title">Bitget Bot Lab</span>
+          <span class="wire-subtitle">Backtest · Crypto · Gold</span>
+          <span class="badge-row" aria-hidden="true">
+            <span class="mini-badge">Paper Mode</span>
+            <span class="mini-badge">Risk Guard</span>
+            <span class="mini-badge">XAUT / BTC</span>
+          </span>
+          <span class="bot-hint">ทดสอบกลยุทธ์ก่อนเทรดจริง เชื่อม Bitget แบบปลอดภัยในขั้นต่อไป</span>
+        </span>
+      </a>
     </section>
   </main>
 </div>
@@ -377,19 +434,21 @@ button, input { font: inherit; }
 <script>
 (() => {
   const gate = document.getElementById("loadingGate");
-  const card = document.querySelector(".wire-card");
-  if (!gate || !card) return;
+  const loadingTitle = document.querySelector(".loading-title");
+  const cards = document.querySelectorAll(".wire-card");
+  if (!gate || !cards.length) return;
 
-  card.addEventListener("click", event => {
+  cards.forEach(card => card.addEventListener("click", event => {
     const target = card.getAttribute("href");
     if (!target) return;
     event.preventDefault();
+    if (loadingTitle) loadingTitle.textContent = card.dataset.loadingTitle || (target.includes("bitget") ? "กำลังเปิด Bitget Backtest Lab" : "กำลังเปิด DCA-Portfolio");
     gate.classList.add("is-active");
     gate.setAttribute("aria-hidden", "false");
     setTimeout(() => {
       location.href = target;
     }, 3000);
-  });
+  }));
 })();
 </script>
 </body>

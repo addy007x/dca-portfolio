@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SiamFolio - Bitget Backtest Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f3efe7;
+  --panel: rgba(255, 253, 248, .82);
+  --ink: #17130f;
+  --muted: #7c7167;
+  --line: #e4d7c7;
+  --accent: #11100e;
+  --green: #2f9b68;
+  --red: #d45645;
+  --gold: #d6a03a;
+  --blue: #2b8f8a;
+  --radius: 18px;
+  --shadow: 0 18px 52px rgba(65, 48, 31, .10);
+  --ui: "IBM Plex Sans Thai", "Plus Jakarta Sans", sans-serif;
+  --mono: "JetBrains Mono", monospace;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--ui);
+  background:
+    linear-gradient(90deg, rgba(248, 243, 234, .92) 0%, rgba(248, 243, 234, .66) 50%, rgba(239, 232, 220, .38) 100%),
+    url("assets/anime-maid-dashboard-bg.png") center / cover fixed no-repeat,
+    linear-gradient(135deg, #f8f3ea 0%, var(--bg) 56%, #efe8dc 100%);
+}
+body:before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255,255,255,.48), transparent 28%),
+    radial-gradient(circle at 88% 14%, rgba(43,143,138,.18), transparent 30%),
+    linear-gradient(180deg, transparent 0 64%, rgba(32,24,15,.08) 100%);
+}
+a, button, input, select { font: inherit; }
+.page {
+  position: relative;
+  min-height: 100vh;
+  padding: 28px 38px 48px;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+.brand h1 {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 44px);
+  line-height: 1.06;
+  letter-spacing: 0;
+}
+.brand p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+.back {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255,253,248,.72);
+  color: var(--ink);
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 8px 22px rgba(65,48,31,.07);
+}
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, .8fr);
+  gap: 16px;
+  align-items: start;
+}
+.card {
+  border: 1px solid rgba(218,203,187,.92);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+.hero {
+  min-height: 288px;
+  padding: 24px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.84), rgba(255,253,248,.58)),
+    radial-gradient(circle at 14% 20%, rgba(43,143,138,.22), transparent 28%),
+    radial-gradient(circle at 82% 70%, rgba(214,160,58,.24), transparent 30%);
+}
+.hero-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid rgba(17,16,14,.08);
+  border-radius: 999px;
+  background: rgba(255,255,255,.58);
+  color: #51483f;
+  font-size: 12px;
+  font-weight: 800;
+}
+.hero-title {
+  margin: 14px 0 0;
+  font-size: clamp(30px, 4vw, 56px);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+.hero-sub {
+  max-width: 620px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.65;
+}
+.status {
+  min-width: 190px;
+  padding: 14px;
+  border: 1px solid rgba(17,16,14,.08);
+  border-radius: 16px;
+  background: rgba(255,255,255,.58);
+}
+.status b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 20px;
+}
+.status span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.markets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 26px;
+}
+.market {
+  padding: 14px;
+  border: 1px solid rgba(17,16,14,.08);
+  border-radius: 16px;
+  background: rgba(255,255,255,.54);
+}
+.market span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.market b {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 20px;
+}
+.panel {
+  padding: 20px;
+}
+.panel h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+.stack {
+  display: grid;
+  gap: 12px;
+}
+.field {
+  display: grid;
+  gap: 6px;
+}
+.field label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.field input, .field select {
+  width: 100%;
+  height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255,255,255,.72);
+  padding: 0 12px;
+  color: var(--ink);
+  outline: 0;
+}
+.split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.btn {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+}
+.btn.secondary {
+  border: 1px solid var(--line);
+  background: rgba(255,253,248,.72);
+  color: var(--ink);
+}
+.note {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(43,143,138,.10);
+  color: #276f68;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.list {
+  display: grid;
+  gap: 10px;
+}
+.item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid rgba(17,16,14,.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,.54);
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: var(--green);
+  box-shadow: 0 0 0 5px rgba(47,155,104,.12);
+}
+.item b { display: block; font-size: 14px; }
+.item span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.roadmap {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.step {
+  padding: 16px;
+  border: 1px solid rgba(218,203,187,.92);
+  border-radius: 16px;
+  background: rgba(255,253,248,.72);
+}
+.step em {
+  color: var(--gold);
+  font-family: var(--mono);
+  font-style: normal;
+  font-weight: 800;
+}
+.step b {
+  display: block;
+  margin-top: 8px;
+  font-size: 15px;
+}
+.step span {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+@media (max-width: 980px) {
+  .page { padding: 20px; }
+  .topbar { align-items: flex-start; flex-direction: column; }
+  .grid, .roadmap { grid-template-columns: 1fr; }
+  .markets, .split { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="topbar">
+    <div class="brand">
+      <h1>Bitget Backtest Lab</h1>
+      <p>ระบบทดลองกลยุทธ์เทรดคริปโตและทองคำ ก่อนเชื่อมต่อ Bitget เพื่อส่งคำสั่งจริง</p>
+    </div>
+    <a class="back" href="./dashboard-design.html">กลับหน้าเลือกโปรเจกต์</a>
+  </header>
+
+  <section class="grid">
+    <div class="card hero">
+      <div class="hero-head">
+        <div>
+          <div class="eyebrow">PAPER MODE FIRST</div>
+          <div class="hero-title">Backtest before trading.</div>
+          <div class="hero-sub">
+            แนะนำให้เริ่มจากโหมดจำลองเท่านั้น: ดึงราคา, ทดสอบกลยุทธ์, วัด drawdown, ตั้ง risk limit แล้วค่อยเปิด Bitget API แบบไม่มีสิทธิ์ถอนเงิน
+          </div>
+        </div>
+        <div class="status">
+          <span>สถานะ Bitget</span>
+          <b>Sandbox</b>
+          <span>ยังไม่ส่ง order จริง</span>
+        </div>
+      </div>
+      <div class="markets">
+        <div class="market"><span>Crypto Core</span><b>BTC / ETH</b></div>
+        <div class="market"><span>Gold Proxy</span><b>XAUT</b></div>
+        <div class="market"><span>Exchange</span><b>Bitget</b></div>
+      </div>
+    </div>
+
+    <aside class="card panel">
+      <h2>Bitget Connect</h2>
+      <div class="list">
+        <div class="item"><span class="dot"></span><div><b>API Key แบบจำกัดสิทธิ์</b><span>ใช้ read + trade เท่านั้น ปิด withdrawal เสมอ</span></div></div>
+        <div class="item"><span class="dot"></span><div><b>Passphrase + Secret</b><span>เก็บเป็น Worker Secret ไม่แสดงในหน้าเว็บ</span></div></div>
+        <div class="item"><span class="dot"></span><div><b>Risk Guard</b><span>จำกัดขนาดไม้, max loss/day, และหยุดอัตโนมัติเมื่อ drawdown เกินกำหนด</span></div></div>
+      </div>
+    </aside>
+
+    <section class="card panel">
+      <h2>Strategy Setup</h2>
+      <div class="stack">
+        <div class="split">
+          <div class="field">
+            <label>ตลาด</label>
+            <select>
+              <option>BTCUSDT Perpetual</option>
+              <option>ETHUSDT Perpetual</option>
+              <option>XAUTUSDT Gold Proxy</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>กลยุทธ์</label>
+            <select>
+              <option>Trend + DCA Safety</option>
+              <option>EMA Cross</option>
+              <option>Grid Rebalance</option>
+            </select>
+          </div>
+        </div>
+        <div class="split">
+          <div class="field">
+            <label>เงินต่อไม้</label>
+            <input value="25 USDT">
+          </div>
+          <div class="field">
+            <label>Max loss / day</label>
+            <input value="3%">
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn">Run Backtest</button>
+          <button class="btn secondary">Connect Bitget Later</button>
+        </div>
+        <div class="note">
+          ข้อเสนอแนะ: ช่วงแรกให้บันทึกผล backtest ลง D1 ก่อน แล้วค่อยเพิ่ม live signal และ LINE แจ้งเตือนก่อนเปิด auto-trade จริง
+        </div>
+      </div>
+    </section>
+
+    <section class="card panel">
+      <h2>Backtest Result Preview</h2>
+      <div class="list">
+        <div class="item"><span class="dot"></span><div><b>Win Rate</b><span>รอข้อมูลย้อนหลังจาก Bitget candles</span></div></div>
+        <div class="item"><span class="dot"></span><div><b>Max Drawdown</b><span>ใช้ตัดสินว่ากลยุทธ์เสี่ยงเกินพอร์ตไหม</span></div></div>
+        <div class="item"><span class="dot"></span><div><b>LINE Alert</b><span>แจ้งเมื่อเกิดสัญญาณเข้าออก หรือ bot หยุดเพราะ risk guard</span></div></div>
+      </div>
+    </section>
+
+    <section class="roadmap">
+      <div class="step"><em>01</em><b>Backtest Engine</b><span>ดึง OHLCV จาก Bitget แล้วคำนวณผลย้อนหลัง</span></div>
+      <div class="step"><em>02</em><b>Paper Trading</b><span>ทดลองคำสั่งจำลองและบันทึกผลลงฐานข้อมูล</span></div>
+      <div class="step"><em>03</em><b>LINE Signal</b><span>แจ้งเตือนก่อนเข้า order ให้กดยืนยันได้</span></div>
+      <div class="step"><em>04</em><b>Auto Trade</b><span>เปิดเฉพาะหลังตั้ง risk guard และ API key ปลอดภัยแล้ว</span></div>
+    </section>
+  </section>
+</main>
+</body>
+</html>
