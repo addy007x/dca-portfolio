@@ -942,10 +942,6 @@ function EarnPanel({ ccy, positions, FX, holdings, askConfirm, onAdd }) {
             <span style={{width:7, height:7, borderRadius:"50%", background:"var(--up)", display:"inline-block", animation:"pulse 1.4s ease-in-out infinite"}}/>
             +{ccySym}{ccy === "THB" ? fmtNum(earnedTodayDisp, 2) : fmtNum(earnedTodayDisp, 4)} วันนี้
           </div>
-          <div style={{fontSize:11, color:"var(--muted)", marginTop:2}}>
-            อัพเดตทุกวินาที · รีเซ็ตเที่ยงคืน
-          </div>
-
           <div className="earn-rows">
             {positions.length === 0 && (
               <div style={{padding:"14px 8px", color:"var(--muted)", fontSize:12, textAlign:"center"}}>
