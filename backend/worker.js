@@ -362,6 +362,112 @@ async function handleFX(url, env) {
   return json(out);
 }
 
+const TRADFI_SYMBOLS = {
+  XAUUSD: "XAUUSD=X",
+  GOLD: "GC=F",
+  "GC=F": "GC=F",
+  GC: "GC=F",
+};
+
+const TRADFI_INTERVALS = {
+  "15m": "15m",
+  "1H": "1h",
+  "1h": "1h",
+  "4H": "1h",
+  "4h": "1h",
+  "1D": "1d",
+  "1d": "1d",
+};
+
+function normalizeTradfiSymbol(symbol) {
+  const s = String(symbol || "GC=F").trim().toUpperCase();
+  return TRADFI_SYMBOLS[s] || s;
+}
+
+function normalizeTradfiInterval(granularity) {
+  return TRADFI_INTERVALS[String(granularity || "1H")] || "1h";
+}
+
+function tradfiRangeFor(interval, limit) {
+  const n = clampNumber(limit, 300, 50, 1000);
+  if (interval === "15m") return n > 600 ? "30d" : "10d";
+  if (interval === "1h") return n > 500 ? "6mo" : "60d";
+  return n > 370 ? "5y" : "1y";
+}
+
+function normalizeYahooCandles(result, limit) {
+  const timestamps = result?.timestamp || [];
+  const quote = result?.indicators?.quote?.[0] || {};
+  const out = timestamps.map((ts, i) => ({
+    time: Number(ts) * 1000,
+    open: Number(quote.open?.[i]),
+    high: Number(quote.high?.[i]),
+    low: Number(quote.low?.[i]),
+    close: Number(quote.close?.[i]),
+    baseVolume: Number(quote.volume?.[i] || 0),
+    quoteVolume: Number(quote.volume?.[i] || 0),
+  }))
+    .filter(c =>
+      Number.isFinite(c.time) &&
+      Number.isFinite(c.open) &&
+      Number.isFinite(c.high) &&
+      Number.isFinite(c.low) &&
+      Number.isFinite(c.close) &&
+      c.close > 0
+    )
+    .sort((a, b) => a.time - b.time);
+  return out.slice(-Math.round(clampNumber(limit, 300, 50, 1000)));
+}
+
+async function fetchTradfiCandles(params, env) {
+  const requested = String(params.symbol || "GC=F").trim().toUpperCase();
+  const symbol = normalizeTradfiSymbol(requested);
+  const interval = normalizeTradfiInterval(params.granularity);
+  const limit = Math.round(clampNumber(params.limit, 300, 50, 1000));
+  const range = tradfiRangeFor(interval, limit);
+  const cacheKey = `tradfi:candles:${symbol}:${interval}:${range}:${limit}`;
+  const cached = await cacheGet(env, cacheKey);
+  if (cached) return { ...cached, cached: true };
+
+  const endpoint = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`);
+  endpoint.searchParams.set("interval", interval);
+  endpoint.searchParams.set("range", range);
+  endpoint.searchParams.set("includePrePost", "true");
+
+  const response = await fetch(endpoint, {
+    headers: {
+      "Accept": "application/json",
+      "User-Agent": "Mozilla/5.0 SiamFolio/1.0",
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  const result = data?.chart?.result?.[0];
+  const err = data?.chart?.error;
+  if (!response.ok || err || !result) {
+    throw new Error(err?.description || `TradFi candles failed (${response.status})`);
+  }
+
+  const payload = {
+    ok: true,
+    symbol: requested,
+    yahooSymbol: symbol,
+    productType: "tradfi",
+    granularity: params.granularity || interval,
+    interval,
+    range,
+    limit,
+    source: "yahoo",
+    sourceLabel: symbol === "GC=F" ? "TradFi Gold Futures (COMEX)" : "TradFi Spot Gold",
+    currency: result?.meta?.currency || "USD",
+    candles: normalizeYahooCandles(result, limit),
+    requestTime: Date.now(),
+    cached: false,
+  };
+  if (!payload.candles.length) throw new Error("Yahoo returned no TradFi candles");
+  await cacheSet(env, cacheKey, payload, 60);
+  return payload;
+}
+
 async function responseJson(response, fallback = {}) {
   if (!response || !response.ok) return fallback;
   return response.json().catch(() => fallback);
@@ -1683,6 +1789,19 @@ async function handleBitgetBacktest(req) {
   }
 }
 
+async function handleTradfiCandles(url, env) {
+  try {
+    const payload = await fetchTradfiCandles({
+      symbol: url.searchParams.get("symbol"),
+      granularity: url.searchParams.get("granularity"),
+      limit: url.searchParams.get("limit"),
+    }, env);
+    return json(payload);
+  } catch (e) {
+    return error(e.message || "TradFi candles failed", 502);
+  }
+}
+
 // Router
 async function handleRequest(req, env, ctx) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
@@ -1694,6 +1813,7 @@ async function handleRequest(req, env, ctx) {
   if (path === "/api/prices/fx") return handleFX(url, env);
   if (path === "/api/bitget/candles" && req.method === "GET") return handleBitgetCandles(url);
   if (path === "/api/bitget/backtest" && req.method === "POST") return handleBitgetBacktest(req);
+  if (path === "/api/tradfi/candles" && req.method === "GET") return handleTradfiCandles(url, env);
   if (path === "/api/health") return json({ ok: true, version: "2.0", time: new Date().toISOString() });
   if (path === "/api/line/status" && req.method === "GET") return json(await lineStatus(env));
   if (path === "/api/line/webhook" && req.method === "POST") return handleLineWebhook(req, env);
