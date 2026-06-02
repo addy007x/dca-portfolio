@@ -1247,6 +1247,261 @@ async function handleLineLinkCode(req, env) {
   return json({ code, expiresAt, command: `ผูก ${code}` });
 }
 
+const BITGET_PRODUCT_TYPES = {
+  "USDT-FUTURES": "usdt-futures",
+  "USDC-FUTURES": "usdc-futures",
+  "COIN-FUTURES": "coin-futures",
+  "usdt-futures": "usdt-futures",
+  "usdc-futures": "usdc-futures",
+  "coin-futures": "coin-futures",
+};
+
+const BITGET_GRANULARITIES = new Set([
+  "1m", "3m", "5m", "15m", "30m", "1H", "4H", "6H", "12H", "1D", "3D", "1W", "1M",
+]);
+
+function clampNumber(value, fallback, min, max) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
+function normalizeBitgetSymbol(value) {
+  const symbol = String(value || "BTCUSDT").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!symbol || symbol.length > 24) throw new Error("Invalid Bitget symbol");
+  return symbol;
+}
+
+function normalizeBitgetProductType(value) {
+  return BITGET_PRODUCT_TYPES[value] || BITGET_PRODUCT_TYPES[String(value || "").toUpperCase()] || "usdt-futures";
+}
+
+function normalizeBitgetGranularity(value) {
+  const g = String(value || "1H").trim();
+  if (!BITGET_GRANULARITIES.has(g)) throw new Error("Unsupported Bitget granularity");
+  return g;
+}
+
+function normalizeBitgetCandles(rows) {
+  return (Array.isArray(rows) ? rows : [])
+    .map(row => ({
+      time: Number(row[0]),
+      open: Number(row[1]),
+      high: Number(row[2]),
+      low: Number(row[3]),
+      close: Number(row[4]),
+      baseVolume: Number(row[5] || 0),
+      quoteVolume: Number(row[6] || 0),
+    }))
+    .filter(c => Number.isFinite(c.time) && Number.isFinite(c.close) && c.close > 0)
+    .sort((a, b) => a.time - b.time);
+}
+
+async function fetchBitgetCandles(params) {
+  const symbol = normalizeBitgetSymbol(params.symbol);
+  const productType = normalizeBitgetProductType(params.productType);
+  const granularity = normalizeBitgetGranularity(params.granularity);
+  const limit = Math.round(clampNumber(params.limit, 200, 50, 1000));
+
+  const endpoint = new URL("https://api.bitget.com/api/v2/mix/market/candles");
+  endpoint.searchParams.set("symbol", symbol);
+  endpoint.searchParams.set("productType", productType);
+  endpoint.searchParams.set("granularity", granularity);
+  endpoint.searchParams.set("limit", String(limit));
+
+  const cache = caches.default;
+  const cacheKey = new Request(endpoint.toString(), { method: "GET" });
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    const payload = await cached.json();
+    return { ...payload, cached: true };
+  }
+
+  const response = await fetch(endpoint, { headers: { "Accept": "application/json" } });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.code !== "00000") {
+    throw new Error(data.msg || `Bitget candles failed (${response.status})`);
+  }
+
+  const payload = {
+    ok: true,
+    symbol,
+    productType,
+    granularity,
+    limit,
+    source: endpoint.toString(),
+    candles: normalizeBitgetCandles(data.data),
+    requestTime: data.requestTime || Date.now(),
+    cached: false,
+  };
+
+  await cache.put(cacheKey, json(payload).clone());
+  return payload;
+}
+
+function ema(values, period) {
+  const out = new Array(values.length).fill(null);
+  if (!values.length) return out;
+  const k = 2 / (period + 1);
+  let prev = values[0];
+  out[0] = prev;
+  for (let i = 1; i < values.length; i++) {
+    prev = values[i] * k + prev * (1 - k);
+    out[i] = prev;
+  }
+  return out;
+}
+
+function maxDrawdownPct(equityCurve) {
+  let peak = equityCurve[0]?.equity || 0;
+  let maxDd = 0;
+  for (const point of equityCurve) {
+    peak = Math.max(peak, point.equity);
+    if (peak > 0) maxDd = Math.max(maxDd, ((peak - point.equity) / peak) * 100);
+  }
+  return maxDd;
+}
+
+function runBacktestEngine(input, candles) {
+  if (!candles || candles.length < 30) throw new Error("Not enough candles for backtest");
+
+  const strategy = String(input.strategy || "trend-dca");
+  const initialCapital = clampNumber(input.initialCapital, 1000, 50, 1000000);
+  const orderSize = clampNumber(input.orderSize, 25, 1, initialCapital);
+  const maxLossPct = clampNumber(input.maxLossPct, 8, 1, 80);
+  const feeRate = clampNumber(input.feeRate, 0.0006, 0, 0.01);
+  const closes = candles.map(c => c.close);
+  const ema9 = ema(closes, 9);
+  const ema20 = ema(closes, 20);
+  const ema21 = ema(closes, 21);
+  const ema50 = ema(closes, 50);
+
+  let cash = initialCapital;
+  let qty = 0;
+  let positionCost = 0;
+  let halted = false;
+  const trades = [];
+  const equityCurve = [];
+
+  function equityAt(price) {
+    return cash + qty * price;
+  }
+
+  function buy(i, price, reason) {
+    if (halted || cash < 1) return;
+    const quote = Math.min(orderSize, cash);
+    const fee = quote * feeRate;
+    const bought = (quote - fee) / price;
+    cash -= quote;
+    qty += bought;
+    positionCost += quote;
+    trades.push({ side: "BUY", time: candles[i].time, price, quote, qty: bought, fee, reason });
+  }
+
+  function sellAll(i, price, reason) {
+    if (qty <= 0) return;
+    const soldQty = qty;
+    const gross = soldQty * price;
+    const fee = gross * feeRate;
+    const pnl = gross - fee - positionCost;
+    cash += gross - fee;
+    qty = 0;
+    positionCost = 0;
+    trades.push({ side: "SELL", time: candles[i].time, price, quote: gross, qty: soldQty, fee, pnl, reason });
+  }
+
+  for (let i = 1; i < candles.length; i++) {
+    const price = candles[i].close;
+    const currentEquity = equityAt(price);
+    const lossPct = ((initialCapital - currentEquity) / initialCapital) * 100;
+    if (!halted && lossPct >= maxLossPct) {
+      sellAll(i, price, "risk guard");
+      halted = true;
+    }
+
+    if (!halted) {
+      if (strategy === "ema-cross") {
+        const crossedUp = ema9[i - 1] <= ema21[i - 1] && ema9[i] > ema21[i];
+        const crossedDown = ema9[i - 1] >= ema21[i - 1] && ema9[i] < ema21[i];
+        if (crossedUp && qty <= 0) buy(i, price, "EMA9 crossed above EMA21");
+        if (crossedDown && qty > 0) sellAll(i, price, "EMA9 crossed below EMA21");
+      } else if (strategy === "grid-rebalance") {
+        const lastTrade = trades[trades.length - 1];
+        const lastPrice = lastTrade?.price || candles[0].close;
+        if (qty <= 0 || price <= lastPrice * 0.985) buy(i, price, "grid buy zone");
+        if (qty > 0 && price >= lastPrice * 1.02) sellAll(i, price, "grid take profit");
+      } else {
+        const trendOk = ema20[i] > ema50[i] && price > ema50[i];
+        if (trendOk && i % 12 === 0) buy(i, price, "trend DCA");
+        if (!trendOk && qty > 0 && price < ema50[i]) sellAll(i, price, "trend broke EMA50");
+      }
+    }
+
+    equityCurve.push({ time: candles[i].time, equity: equityAt(price), price });
+  }
+
+  const last = candles[candles.length - 1];
+  const finalEquity = equityAt(last.close);
+  const closedSells = trades.filter(t => t.side === "SELL");
+  const wins = closedSells.filter(t => Number(t.pnl || 0) > 0).length;
+  const sampleEvery = Math.max(1, Math.ceil(equityCurve.length / 180));
+
+  return {
+    ok: true,
+    strategy,
+    candles: candles.length,
+    startedAt: new Date(candles[0].time).toISOString(),
+    endedAt: new Date(last.time).toISOString(),
+    metrics: {
+      initialCapital,
+      finalEquity,
+      totalReturnPct: ((finalEquity - initialCapital) / initialCapital) * 100,
+      maxDrawdownPct: maxDrawdownPct(equityCurve),
+      winRatePct: closedSells.length ? (wins / closedSells.length) * 100 : 0,
+      tradeCount: trades.length,
+      buyCount: trades.filter(t => t.side === "BUY").length,
+      sellCount: closedSells.length,
+      lastPrice: last.close,
+      openPositionQty: qty,
+      haltedByRisk: halted,
+      feeRate,
+    },
+    trades: trades.slice(-30),
+    equityCurve: equityCurve.filter((_, i) => i % sampleEvery === 0),
+  };
+}
+
+async function handleBitgetCandles(url) {
+  try {
+    const payload = await fetchBitgetCandles({
+      symbol: url.searchParams.get("symbol"),
+      productType: url.searchParams.get("productType"),
+      granularity: url.searchParams.get("granularity"),
+      limit: url.searchParams.get("limit"),
+    });
+    return json(payload);
+  } catch (e) {
+    return error(e.message || "Bitget candles failed", 502);
+  }
+}
+
+async function handleBitgetBacktest(req) {
+  try {
+    const body = await req.json().catch(() => ({}));
+    const market = await fetchBitgetCandles(body);
+    const result = runBacktestEngine(body, market.candles);
+    return json({
+      ...result,
+      symbol: market.symbol,
+      productType: market.productType,
+      granularity: market.granularity,
+      cached: market.cached,
+    });
+  } catch (e) {
+    return error(e.message || "Backtest failed", 502);
+  }
+}
+
 // Router
 async function handleRequest(req, env, ctx) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
@@ -1256,6 +1511,8 @@ async function handleRequest(req, env, ctx) {
   if (path === "/api/prices/crypto") return handleCrypto(url, env);
   if (path === "/api/prices/stocks") return handleStocks(url, env);
   if (path === "/api/prices/fx") return handleFX(url, env);
+  if (path === "/api/bitget/candles" && req.method === "GET") return handleBitgetCandles(url);
+  if (path === "/api/bitget/backtest" && req.method === "POST") return handleBitgetBacktest(req);
   if (path === "/api/health") return json({ ok: true, version: "2.0", time: new Date().toISOString() });
   if (path === "/api/line/status" && req.method === "GET") return json(await lineStatus(env));
   if (path === "/api/line/webhook" && req.method === "POST") return handleLineWebhook(req, env);

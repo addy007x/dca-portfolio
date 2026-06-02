@@ -6,11 +6,11 @@
 <title>SiamFolio - Bitget Backtest Lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #f3efe7;
-  --panel: rgba(255, 253, 248, .82);
+  --panel: rgba(255, 253, 248, .84);
   --ink: #17130f;
   --muted: #7c7167;
   --line: #e4d7c7;
@@ -21,7 +21,7 @@
   --blue: #2b8f8a;
   --radius: 18px;
   --shadow: 0 18px 52px rgba(65, 48, 31, .10);
-  --ui: "IBM Plex Sans Thai", "Plus Jakarta Sans", sans-serif;
+  --ui: "IBM Plex Sans Thai", sans-serif;
   --mono: "JetBrains Mono", monospace;
 }
 * { box-sizing: border-box; }
@@ -31,9 +31,9 @@ body {
   color: var(--ink);
   font-family: var(--ui);
   background:
-    linear-gradient(90deg, rgba(248, 243, 234, .92) 0%, rgba(248, 243, 234, .66) 50%, rgba(239, 232, 220, .38) 100%),
+    linear-gradient(90deg, rgba(248,243,234,.94) 0%, rgba(248,243,234,.72) 54%, rgba(239,232,220,.40) 100%),
     url("assets/anime-maid-dashboard-bg.png") center / cover fixed no-repeat,
-    linear-gradient(135deg, #f8f3ea 0%, var(--bg) 56%, #efe8dc 100%);
+    linear-gradient(135deg, #f8f3ea 0%, var(--bg) 58%, #efe8dc 100%);
 }
 body:before {
   content: "";
@@ -41,11 +41,12 @@ body:before {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 16% 18%, rgba(255,255,255,.48), transparent 28%),
-    radial-gradient(circle at 88% 14%, rgba(43,143,138,.18), transparent 30%),
-    linear-gradient(180deg, transparent 0 64%, rgba(32,24,15,.08) 100%);
+    radial-gradient(circle at 14% 18%, rgba(255,255,255,.50), transparent 28%),
+    radial-gradient(circle at 84% 18%, rgba(43,143,138,.18), transparent 30%),
+    linear-gradient(180deg, transparent 0 62%, rgba(32,24,15,.08) 100%);
 }
 a, button, input, select { font: inherit; }
+button { cursor: pointer; }
 .page {
   position: relative;
   min-height: 100vh;
@@ -56,7 +57,7 @@ a, button, input, select { font: inherit; }
   justify-content: space-between;
   align-items: center;
   gap: 18px;
-  margin-bottom: 24px;
+  margin-bottom: 22px;
 }
 .brand h1 {
   margin: 0;
@@ -73,7 +74,6 @@ a, button, input, select { font: inherit; }
   min-height: 46px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   padding: 0 16px;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -85,7 +85,7 @@ a, button, input, select { font: inherit; }
 }
 .grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(280px, .8fr);
+  grid-template-columns: minmax(0, 1.28fr) minmax(330px, .72fr);
   gap: 16px;
   align-items: start;
 }
@@ -97,11 +97,11 @@ a, button, input, select { font: inherit; }
   backdrop-filter: blur(10px);
 }
 .hero {
-  min-height: 288px;
+  min-height: 282px;
   padding: 24px;
   overflow: hidden;
   background:
-    linear-gradient(135deg, rgba(255,255,255,.84), rgba(255,253,248,.58)),
+    linear-gradient(135deg, rgba(255,255,255,.86), rgba(255,253,248,.60)),
     radial-gradient(circle at 14% 20%, rgba(43,143,138,.22), transparent 28%),
     radial-gradient(circle at 82% 70%, rgba(214,160,58,.24), transparent 30%);
 }
@@ -113,8 +113,6 @@ a, button, input, select { font: inherit; }
 }
 .eyebrow {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
   padding: 6px 10px;
   border: 1px solid rgba(17,16,14,.08);
   border-radius: 999px;
@@ -131,7 +129,7 @@ a, button, input, select { font: inherit; }
   letter-spacing: 0;
 }
 .hero-sub {
-  max-width: 620px;
+  max-width: 650px;
   margin-top: 12px;
   color: var(--muted);
   font-size: 15px;
@@ -150,6 +148,7 @@ a, button, input, select { font: inherit; }
   font-size: 20px;
 }
 .status span {
+  display: block;
   color: var(--muted);
   font-size: 12px;
 }
@@ -176,21 +175,18 @@ a, button, input, select { font: inherit; }
   font-family: var(--mono);
   font-size: 20px;
 }
-.panel {
-  padding: 20px;
-}
+.panel { padding: 20px; }
 .panel h2 {
   margin: 0 0 12px;
   font-size: 20px;
 }
-.stack {
+.stack { display: grid; gap: 12px; }
+.split {
   display: grid;
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
-.field {
-  display: grid;
-  gap: 6px;
-}
+.field { display: grid; gap: 6px; }
 .field label {
   color: var(--muted);
   font-size: 12px;
@@ -206,16 +202,11 @@ a, button, input, select { font: inherit; }
   color: var(--ink);
   outline: 0;
 }
-.split {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
 .actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 14px;
+  margin-top: 4px;
 }
 .btn {
   min-height: 46px;
@@ -235,8 +226,9 @@ a, button, input, select { font: inherit; }
   background: rgba(255,253,248,.72);
   color: var(--ink);
 }
+.btn:disabled { opacity: .65; cursor: wait; }
 .note {
-  margin-top: 12px;
+  margin-top: 8px;
   padding: 12px;
   border-radius: 14px;
   background: rgba(43,143,138,.10);
@@ -244,10 +236,7 @@ a, button, input, select { font: inherit; }
   font-size: 13px;
   line-height: 1.55;
 }
-.list {
-  display: grid;
-  gap: 10px;
-}
+.list { display: grid; gap: 10px; }
 .item {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -268,41 +257,100 @@ a, button, input, select { font: inherit; }
 }
 .item b { display: block; font-size: 14px; }
 .item span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.45; }
-.roadmap {
+.result {
   grid-column: 1 / -1;
   display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
+  gap: 16px;
+}
+.metric-grid {
+  display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
-.step {
-  padding: 16px;
-  border: 1px solid rgba(218,203,187,.92);
-  border-radius: 16px;
-  background: rgba(255,253,248,.72);
+.metric {
+  padding: 14px;
+  border: 1px solid rgba(17,16,14,.08);
+  border-radius: 15px;
+  background: rgba(255,255,255,.56);
 }
-.step em {
-  color: var(--gold);
-  font-family: var(--mono);
-  font-style: normal;
-  font-weight: 800;
-}
-.step b {
+.metric span {
   display: block;
-  margin-top: 8px;
-  font-size: 15px;
-}
-.step span {
-  display: block;
-  margin-top: 6px;
   color: var(--muted);
   font-size: 12px;
-  line-height: 1.45;
+}
+.metric b {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 20px;
+}
+.metric.good b { color: var(--green); }
+.metric.bad b { color: var(--red); }
+.chart {
+  width: 100%;
+  min-height: 300px;
+  border: 1px solid rgba(17,16,14,.08);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,253,248,.40)),
+    repeating-linear-gradient(0deg, transparent 0 68px, rgba(124,113,103,.10) 69px);
+  overflow: hidden;
+}
+.chart svg { width: 100%; height: 300px; display: block; }
+.trade-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  font-size: 13px;
+}
+.trade-table th, .trade-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid rgba(17,16,14,.08);
+  text-align: left;
+  vertical-align: top;
+}
+.trade-table th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.side-buy { color: var(--green); font-weight: 800; }
+.side-sell { color: var(--red); font-weight: 800; }
+.empty {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.60);
+  border: 1px solid rgba(17,16,14,.08);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.pill:before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
 }
 @media (max-width: 980px) {
   .page { padding: 20px; }
-  .topbar { align-items: flex-start; flex-direction: column; }
-  .grid, .roadmap { grid-template-columns: 1fr; }
-  .markets, .split { grid-template-columns: 1fr; }
+  .topbar, .hero-head { align-items: flex-start; flex-direction: column; }
+  .grid, .result { grid-template-columns: 1fr; }
+  .markets, .split, .metric-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -311,7 +359,7 @@ a, button, input, select { font: inherit; }
   <header class="topbar">
     <div class="brand">
       <h1>Bitget Backtest Lab</h1>
-      <p>ระบบทดลองกลยุทธ์เทรดคริปโตและทองคำ ก่อนเชื่อมต่อ Bitget เพื่อส่งคำสั่งจริง</p>
+      <p>ทดสอบกลยุทธ์จากแท่งเทียน Bitget จริง ก่อนต่อระบบแจ้งเตือนหรือเทรดจริง</p>
     </div>
     <a class="back" href="./dashboard-design.html">กลับหน้าเลือกโปรเจกต์</a>
   </header>
@@ -320,31 +368,32 @@ a, button, input, select { font: inherit; }
     <div class="card hero">
       <div class="hero-head">
         <div>
-          <div class="eyebrow">PAPER MODE FIRST</div>
+          <div class="eyebrow">REAL DATA / PAPER MODE</div>
           <div class="hero-title">Backtest before trading.</div>
           <div class="hero-sub">
-            แนะนำให้เริ่มจากโหมดจำลองเท่านั้น: ดึงราคา, ทดสอบกลยุทธ์, วัด drawdown, ตั้ง risk limit แล้วค่อยเปิด Bitget API แบบไม่มีสิทธิ์ถอนเงิน
+            หน้านี้ดึงราคา OHLCV จาก Bitget ผ่าน Cloudflare Worker แล้วคำนวณผลย้อนหลังจริง
+            ยังไม่ส่งคำสั่งซื้อขายเงินจริง เพื่อให้ลองกลยุทธ์และดูความเสี่ยงก่อน
           </div>
         </div>
         <div class="status">
           <span>สถานะ Bitget</span>
-          <b>Sandbox</b>
-          <span>ยังไม่ส่ง order จริง</span>
+          <b id="statusText">Ready</b>
+          <span id="statusSub">ยังไม่ส่ง order จริง</span>
         </div>
       </div>
       <div class="markets">
-        <div class="market"><span>Crypto Core</span><b>BTC / ETH</b></div>
-        <div class="market"><span>Gold Proxy</span><b>XAUT</b></div>
-        <div class="market"><span>Exchange</span><b>Bitget</b></div>
+        <div class="market"><span>Data Source</span><b>Bitget</b></div>
+        <div class="market"><span>Mode</span><b>Paper</b></div>
+        <div class="market"><span>Guard</span><b>Max Loss</b></div>
       </div>
     </div>
 
     <aside class="card panel">
       <h2>Bitget Connect</h2>
       <div class="list">
-        <div class="item"><span class="dot"></span><div><b>API Key แบบจำกัดสิทธิ์</b><span>ใช้ read + trade เท่านั้น ปิด withdrawal เสมอ</span></div></div>
-        <div class="item"><span class="dot"></span><div><b>Passphrase + Secret</b><span>เก็บเป็น Worker Secret ไม่แสดงในหน้าเว็บ</span></div></div>
-        <div class="item"><span class="dot"></span><div><b>Risk Guard</b><span>จำกัดขนาดไม้, max loss/day, และหยุดอัตโนมัติเมื่อ drawdown เกินกำหนด</span></div></div>
+        <div class="item"><span class="dot"></span><div><b>ตอนนี้ใช้ Public Market Data</b><span>ไม่ต้องใส่ API key และไม่แตะเงินจริง</span></div></div>
+        <div class="item"><span class="dot"></span><div><b>Live trade ต้องทำเพิ่ม</b><span>ต้องเก็บ API key เป็น Worker Secret, ปิดสิทธิ์ถอนเงิน, และมีปุ่มยืนยันก่อนส่ง order</span></div></div>
+        <div class="item"><span class="dot"></span><div><b>ต่อยอดได้</b><span>เพิ่ม LINE signal, paper trading log, และ auto trade แบบมี kill switch</span></div></div>
       </div>
     </aside>
 
@@ -354,57 +403,411 @@ a, button, input, select { font: inherit; }
         <div class="split">
           <div class="field">
             <label>ตลาด</label>
-            <select>
-              <option>BTCUSDT Perpetual</option>
-              <option>ETHUSDT Perpetual</option>
-              <option>XAUTUSDT Gold Proxy</option>
-            </select>
+            <input id="symbolInput" value="BTCUSDT" list="symbolList" spellcheck="false">
+            <datalist id="symbolList">
+              <option value="BTCUSDT"></option>
+              <option value="ETHUSDT"></option>
+              <option value="SOLUSDT"></option>
+              <option value="XRPUSDT"></option>
+            </datalist>
           </div>
           <div class="field">
-            <label>กลยุทธ์</label>
-            <select>
-              <option>Trend + DCA Safety</option>
-              <option>EMA Cross</option>
-              <option>Grid Rebalance</option>
+            <label>Product Type</label>
+            <select id="productTypeInput">
+              <option value="usdt-futures">USDT Futures</option>
+              <option value="usdc-futures">USDC Futures</option>
+              <option value="coin-futures">Coin Futures</option>
             </select>
           </div>
         </div>
         <div class="split">
           <div class="field">
-            <label>เงินต่อไม้</label>
-            <input value="25 USDT">
+            <label>กลยุทธ์</label>
+            <select id="strategyInput">
+              <option value="trend-dca">Trend + DCA Safety</option>
+              <option value="ema-cross">EMA Cross</option>
+              <option value="grid-rebalance">Grid Rebalance</option>
+            </select>
           </div>
           <div class="field">
-            <label>Max loss / day</label>
-            <input value="3%">
+            <label>Timeframe</label>
+            <select id="granularityInput">
+              <option value="15m">15m</option>
+              <option value="1H" selected>1H</option>
+              <option value="4H">4H</option>
+              <option value="1D">1D</option>
+            </select>
+          </div>
+        </div>
+        <div class="split">
+          <div class="field">
+            <label>จำนวนแท่ง</label>
+            <input id="limitInput" value="300" inputmode="numeric">
+          </div>
+          <div class="field">
+            <label>ทุนเริ่มต้น (USDT)</label>
+            <input id="initialCapitalInput" value="1000" inputmode="decimal">
+          </div>
+        </div>
+        <div class="split">
+          <div class="field">
+            <label>เงินต่อไม้ (USDT)</label>
+            <input id="orderSizeInput" value="25" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label>Max loss (%)</label>
+            <input id="maxLossInput" value="8" inputmode="decimal">
           </div>
         </div>
         <div class="actions">
-          <button class="btn">Run Backtest</button>
-          <button class="btn secondary">Connect Bitget Later</button>
+          <button id="runBtn" class="btn">Run Backtest</button>
+          <button id="connectBtn" class="btn secondary" type="button">Connect Bitget Later</button>
         </div>
-        <div class="note">
-          ข้อเสนอแนะ: ช่วงแรกให้บันทึกผล backtest ลง D1 ก่อน แล้วค่อยเพิ่ม live signal และ LINE แจ้งเตือนก่อนเปิด auto-trade จริง
+        <div id="setupNote" class="note">
+          ทองคำให้ใส่ symbol ที่ Bitget รองรับในตลาด futures นั้น ๆ เช่น PAXGUSDT หรือ XAUTUSDT ถ้ามีในรายการของ Bitget
         </div>
       </div>
     </section>
 
     <section class="card panel">
-      <h2>Backtest Result Preview</h2>
-      <div class="list">
-        <div class="item"><span class="dot"></span><div><b>Win Rate</b><span>รอข้อมูลย้อนหลังจาก Bitget candles</span></div></div>
-        <div class="item"><span class="dot"></span><div><b>Max Drawdown</b><span>ใช้ตัดสินว่ากลยุทธ์เสี่ยงเกินพอร์ตไหม</span></div></div>
-        <div class="item"><span class="dot"></span><div><b>LINE Alert</b><span>แจ้งเมื่อเกิดสัญญาณเข้าออก หรือ bot หยุดเพราะ risk guard</span></div></div>
+      <h2>Backtest Result</h2>
+      <div id="quickResult" class="list">
+        <div class="item"><span class="dot"></span><div><b>พร้อมรัน</b><span>กด Run Backtest เพื่อดึง candle จาก Bitget และคำนวณผลย้อนหลัง</span></div></div>
+        <div class="item"><span class="dot"></span><div><b>Paper mode</b><span>ผลลัพธ์เป็น simulation ไม่ใช่คำแนะนำการลงทุน</span></div></div>
       </div>
     </section>
 
-    <section class="roadmap">
-      <div class="step"><em>01</em><b>Backtest Engine</b><span>ดึง OHLCV จาก Bitget แล้วคำนวณผลย้อนหลัง</span></div>
-      <div class="step"><em>02</em><b>Paper Trading</b><span>ทดลองคำสั่งจำลองและบันทึกผลลงฐานข้อมูล</span></div>
-      <div class="step"><em>03</em><b>LINE Signal</b><span>แจ้งเตือนก่อนเข้า order ให้กดยืนยันได้</span></div>
-      <div class="step"><em>04</em><b>Auto Trade</b><span>เปิดเฉพาะหลังตั้ง risk guard และ API key ปลอดภัยแล้ว</span></div>
+    <section class="result">
+      <div class="card panel">
+        <h2>Equity Curve</h2>
+        <div id="metricGrid" class="metric-grid">
+          <div class="metric"><span>Final Equity</span><b>-</b></div>
+          <div class="metric"><span>Return</span><b>-</b></div>
+          <div class="metric"><span>Max Drawdown</span><b>-</b></div>
+          <div class="metric"><span>Trades</span><b>-</b></div>
+        </div>
+        <div id="chartBox" class="chart"><div class="empty">ยังไม่มีกราฟ<br>รัน backtest เพื่อดูเส้นพอร์ตจำลอง</div></div>
+      </div>
+
+      <div class="card panel">
+        <h2>Trade Log</h2>
+        <div id="tradeBox" class="empty">ยังไม่มีรายการซื้อขายจำลอง</div>
+      </div>
     </section>
   </section>
 </main>
+
+<script>
+const API_BASE = "https://siamfolio-api.kingbooms5678.workers.dev";
+const runBtn = document.getElementById("runBtn");
+const connectBtn = document.getElementById("connectBtn");
+const statusText = document.getElementById("statusText");
+const statusSub = document.getElementById("statusSub");
+const quickResult = document.getElementById("quickResult");
+const metricGrid = document.getElementById("metricGrid");
+const chartBox = document.getElementById("chartBox");
+const tradeBox = document.getElementById("tradeBox");
+const setupNote = document.getElementById("setupNote");
+
+const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+const qtyFmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 8 });
+const pctFmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
+
+function readNumber(id, fallback) {
+  const raw = document.getElementById(id).value.replace(/[^\d.-]/g, "");
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function payload() {
+  return {
+    symbol: document.getElementById("symbolInput").value.trim().toUpperCase(),
+    productType: document.getElementById("productTypeInput").value,
+    strategy: document.getElementById("strategyInput").value,
+    granularity: document.getElementById("granularityInput").value,
+    limit: readNumber("limitInput", 300),
+    initialCapital: readNumber("initialCapitalInput", 1000),
+    orderSize: readNumber("orderSizeInput", 25),
+    maxLossPct: readNumber("maxLossInput", 8),
+  };
+}
+
+function normalizeRows(rows) {
+  return (Array.isArray(rows) ? rows : [])
+    .map(row => ({
+      time: Number(row[0]),
+      open: Number(row[1]),
+      high: Number(row[2]),
+      low: Number(row[3]),
+      close: Number(row[4]),
+      baseVolume: Number(row[5] || 0),
+      quoteVolume: Number(row[6] || 0),
+    }))
+    .filter(c => Number.isFinite(c.time) && Number.isFinite(c.close) && c.close > 0)
+    .sort((a, b) => a.time - b.time);
+}
+
+async function fetchBitgetDirect(p) {
+  const url = new URL("https://api.bitget.com/api/v2/mix/market/candles");
+  url.searchParams.set("symbol", p.symbol);
+  url.searchParams.set("productType", p.productType);
+  url.searchParams.set("granularity", p.granularity);
+  url.searchParams.set("limit", String(Math.max(50, Math.min(1000, Number(p.limit) || 300))));
+  const res = await fetch(url.toString(), { headers: { "Accept": "application/json" } });
+  const data = await res.json();
+  if (!res.ok || data.code !== "00000") throw new Error(data.msg || "Bitget direct fetch failed");
+  return normalizeRows(data.data);
+}
+
+function ema(values, period) {
+  const out = new Array(values.length).fill(null);
+  if (!values.length) return out;
+  const k = 2 / (period + 1);
+  let prev = values[0];
+  out[0] = prev;
+  for (let i = 1; i < values.length; i++) {
+    prev = values[i] * k + prev * (1 - k);
+    out[i] = prev;
+  }
+  return out;
+}
+
+function runBrowserBacktest(p, candles) {
+  if (!candles || candles.length < 30) throw new Error("Not enough candles for backtest");
+  const closes = candles.map(c => c.close);
+  const ema9 = ema(closes, 9);
+  const ema20 = ema(closes, 20);
+  const ema21 = ema(closes, 21);
+  const ema50 = ema(closes, 50);
+  const initialCapital = Math.max(50, Number(p.initialCapital) || 1000);
+  const orderSize = Math.max(1, Math.min(initialCapital, Number(p.orderSize) || 25));
+  const maxLossPct = Math.max(1, Math.min(80, Number(p.maxLossPct) || 8));
+  const feeRate = 0.0006;
+  let cash = initialCapital;
+  let qty = 0;
+  let positionCost = 0;
+  let halted = false;
+  const trades = [];
+  const equityCurve = [];
+
+  const equityAt = price => cash + qty * price;
+  const buy = (i, price, reason) => {
+    if (halted || cash < 1) return;
+    const quote = Math.min(orderSize, cash);
+    const fee = quote * feeRate;
+    const bought = (quote - fee) / price;
+    cash -= quote;
+    qty += bought;
+    positionCost += quote;
+    trades.push({ side: "BUY", time: candles[i].time, price, quote, qty: bought, fee, reason });
+  };
+  const sellAll = (i, price, reason) => {
+    if (qty <= 0) return;
+    const soldQty = qty;
+    const gross = soldQty * price;
+    const fee = gross * feeRate;
+    const pnl = gross - fee - positionCost;
+    cash += gross - fee;
+    qty = 0;
+    positionCost = 0;
+    trades.push({ side: "SELL", time: candles[i].time, price, quote: gross, qty: soldQty, fee, pnl, reason });
+  };
+
+  for (let i = 1; i < candles.length; i++) {
+    const price = candles[i].close;
+    const lossPct = ((initialCapital - equityAt(price)) / initialCapital) * 100;
+    if (!halted && lossPct >= maxLossPct) {
+      sellAll(i, price, "risk guard");
+      halted = true;
+    }
+    if (!halted) {
+      if (p.strategy === "ema-cross") {
+        if (ema9[i - 1] <= ema21[i - 1] && ema9[i] > ema21[i] && qty <= 0) buy(i, price, "EMA9 crossed above EMA21");
+        if (ema9[i - 1] >= ema21[i - 1] && ema9[i] < ema21[i] && qty > 0) sellAll(i, price, "EMA9 crossed below EMA21");
+      } else if (p.strategy === "grid-rebalance") {
+        const lastTrade = trades[trades.length - 1];
+        const lastPrice = lastTrade?.price || candles[0].close;
+        if (qty <= 0 || price <= lastPrice * 0.985) buy(i, price, "grid buy zone");
+        if (qty > 0 && price >= lastPrice * 1.02) sellAll(i, price, "grid take profit");
+      } else {
+        const trendOk = ema20[i] > ema50[i] && price > ema50[i];
+        if (trendOk && i % 12 === 0) buy(i, price, "trend DCA");
+        if (!trendOk && qty > 0 && price < ema50[i]) sellAll(i, price, "trend broke EMA50");
+      }
+    }
+    equityCurve.push({ time: candles[i].time, equity: equityAt(price), price });
+  }
+
+  const last = candles[candles.length - 1];
+  const finalEquity = equityAt(last.close);
+  const closedSells = trades.filter(t => t.side === "SELL");
+  const wins = closedSells.filter(t => Number(t.pnl || 0) > 0).length;
+  let peak = equityCurve[0]?.equity || initialCapital;
+  let maxDd = 0;
+  for (const point of equityCurve) {
+    peak = Math.max(peak, point.equity);
+    if (peak > 0) maxDd = Math.max(maxDd, ((peak - point.equity) / peak) * 100);
+  }
+  const sampleEvery = Math.max(1, Math.ceil(equityCurve.length / 180));
+  return {
+    ok: true,
+    symbol: p.symbol,
+    productType: p.productType,
+    granularity: p.granularity,
+    strategy: p.strategy,
+    candles: candles.length,
+    cached: false,
+    metrics: {
+      initialCapital,
+      finalEquity,
+      totalReturnPct: ((finalEquity - initialCapital) / initialCapital) * 100,
+      maxDrawdownPct: maxDd,
+      winRatePct: closedSells.length ? (wins / closedSells.length) * 100 : 0,
+      tradeCount: trades.length,
+      buyCount: trades.filter(t => t.side === "BUY").length,
+      sellCount: closedSells.length,
+      lastPrice: last.close,
+      openPositionQty: qty,
+      haltedByRisk: halted,
+      feeRate,
+    },
+    trades: trades.slice(-30),
+    equityCurve: equityCurve.filter((_, i) => i % sampleEvery === 0),
+  };
+}
+
+function metricCard(label, value, tone = "") {
+  return `<div class="metric ${tone}"><span>${label}</span><b>${value}</b></div>`;
+}
+
+function renderQuick(data) {
+  const m = data.metrics;
+  const tone = m.totalReturnPct >= 0 ? "good" : "bad";
+  quickResult.innerHTML = `
+    <div class="item"><span class="dot"></span><div><b>${data.symbol} / ${data.granularity}</b><span>${data.candles} candles · ${data.cached ? "cached" : "fresh"} Bitget data</span></div></div>
+    <div class="item"><span class="dot"></span><div><b class="${tone === "good" ? "side-buy" : "side-sell"}">${pctFmt.format(m.totalReturnPct)}%</b><span>Final equity ${money.format(m.finalEquity)} · Last price ${money.format(m.lastPrice)}</span></div></div>
+    <div class="item"><span class="dot"></span><div><b>Risk Guard</b><span>${m.haltedByRisk ? "หยุดเพราะแตะ max loss" : "ยังไม่แตะ max loss"} · Drawdown ${pctFmt.format(m.maxDrawdownPct)}%</span></div></div>
+  `;
+}
+
+function renderMetrics(data) {
+  const m = data.metrics;
+  metricGrid.innerHTML = [
+    metricCard("Final Equity", money.format(m.finalEquity), m.totalReturnPct >= 0 ? "good" : "bad"),
+    metricCard("Return", `${pctFmt.format(m.totalReturnPct)}%`, m.totalReturnPct >= 0 ? "good" : "bad"),
+    metricCard("Max Drawdown", `${pctFmt.format(m.maxDrawdownPct)}%`, "bad"),
+    metricCard("Trades", `${m.tradeCount}`, ""),
+    metricCard("Win Rate", `${pctFmt.format(m.winRatePct)}%`, ""),
+    metricCard("Buy / Sell", `${m.buyCount} / ${m.sellCount}`, ""),
+    metricCard("Open Qty", qtyFmt.format(m.openPositionQty), ""),
+    metricCard("Fee", `${pctFmt.format(m.feeRate * 100)}%`, ""),
+  ].join("");
+}
+
+function renderChart(curve) {
+  if (!curve || curve.length < 2) {
+    chartBox.innerHTML = `<div class="empty">ข้อมูลไม่พอสำหรับวาดกราฟ</div>`;
+    return;
+  }
+  const width = 900;
+  const height = 300;
+  const pad = 26;
+  const min = Math.min(...curve.map(p => p.equity));
+  const max = Math.max(...curve.map(p => p.equity));
+  const spread = Math.max(1, max - min);
+  const points = curve.map((p, i) => {
+    const x = pad + (i / (curve.length - 1)) * (width - pad * 2);
+    const y = height - pad - ((p.equity - min) / spread) * (height - pad * 2);
+    return [x, y];
+  });
+  const d = points.map((p, i) => `${i ? "L" : "M"} ${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(" ");
+  const fill = `${d} L ${width - pad} ${height - pad} L ${pad} ${height - pad} Z`;
+  const up = curve[curve.length - 1].equity >= curve[0].equity;
+  chartBox.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Equity curve">
+      <path d="${fill}" fill="${up ? "rgba(47,155,104,.15)" : "rgba(212,86,69,.14)"}"></path>
+      <path d="${d}" fill="none" stroke="${up ? "#2f9b68" : "#d45645"}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+      <text x="${pad}" y="28" fill="#7c7167" font-size="14">Min ${money.format(min)}</text>
+      <text x="${width - pad}" y="28" fill="#7c7167" font-size="14" text-anchor="end">Max ${money.format(max)}</text>
+    </svg>
+  `;
+}
+
+function renderTrades(trades) {
+  if (!trades || !trades.length) {
+    tradeBox.innerHTML = `<div class="empty">กลยุทธ์นี้ยังไม่มีจุดซื้อขายในช่วงข้อมูลที่เลือก</div>`;
+    return;
+  }
+  tradeBox.innerHTML = `
+    <table class="trade-table">
+      <thead><tr><th>Side</th><th>เวลา</th><th>ราคา</th><th>มูลค่า</th><th>เหตุผล</th></tr></thead>
+      <tbody>
+        ${trades.slice().reverse().map(t => `
+          <tr>
+            <td class="${t.side === "BUY" ? "side-buy" : "side-sell"}">${t.side}</td>
+            <td>${new Date(t.time).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}</td>
+            <td>${money.format(t.price)}</td>
+            <td>${money.format(t.quote)}</td>
+            <td>${t.reason || "-"}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+async function runBacktest() {
+  const p = payload();
+  runBtn.disabled = true;
+  statusText.textContent = "Running";
+  statusSub.textContent = "กำลังดึงข้อมูลจาก Bitget";
+  setupNote.textContent = "กำลังประมวลผล backtest จากแท่งเทียนจริง...";
+
+  try {
+    const res = await fetch(`${API_BASE}/api/bitget/backtest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(p),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || "Backtest failed");
+    statusText.textContent = "Complete";
+    statusSub.textContent = `${data.symbol} · ${data.granularity}`;
+    setupNote.innerHTML = `<span class="pill">Paper result only</span> ใช้สำหรับทดลองกลยุทธ์ ยังไม่มีการส่งคำสั่งไป Bitget`;
+    renderQuick(data);
+    renderMetrics(data);
+    renderChart(data.equityCurve);
+    renderTrades(data.trades);
+  } catch (err) {
+    try {
+      statusSub.textContent = "Worker ถูก Bitget บล็อก ลองดึงตรงจาก browser";
+      const candles = await fetchBitgetDirect(p);
+      const data = runBrowserBacktest(p, candles);
+      statusText.textContent = "Complete";
+      statusSub.textContent = `${data.symbol} · direct Bitget`;
+      setupNote.innerHTML = `<span class="pill">Direct Bitget</span> Worker โดน Bitget 403 จึงใช้ browser fetch ตรงและคำนวณในหน้านี้แทน`;
+      renderQuick(data);
+      renderMetrics(data);
+      renderChart(data.equityCurve);
+      renderTrades(data.trades);
+    } catch (fallbackErr) {
+      statusText.textContent = "Error";
+      statusSub.textContent = "ลองเปลี่ยน symbol หรือ timeframe";
+      setupNote.textContent = fallbackErr.message || err.message || "Backtest failed";
+      quickResult.innerHTML = `<div class="item"><span class="dot"></span><div><b class="side-sell">รันไม่สำเร็จ</b><span>${fallbackErr.message || err.message || "Unknown error"}</span></div></div>`;
+    }
+  } finally {
+    runBtn.disabled = false;
+  }
+}
+
+runBtn.addEventListener("click", runBacktest);
+connectBtn.addEventListener("click", () => {
+  setupNote.innerHTML = `<span class="pill">Next phase</span> ระบบ live trade ต้องเพิ่มหน้าเก็บ API key แบบ secret, จำกัดสิทธิ์ถอนเงิน, และปุ่มยืนยันก่อนเปิดใช้งานจริง`;
+});
+if (new URLSearchParams(location.search).get("autorun") === "1") {
+  setTimeout(runBacktest, 300);
+}
+</script>
 </body>
 </html>
