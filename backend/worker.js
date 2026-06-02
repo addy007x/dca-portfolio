@@ -362,6 +362,95 @@ async function handleFX(url, env) {
   return json(out);
 }
 
+async function responseJson(response, fallback = {}) {
+  if (!response || !response.ok) return fallback;
+  return response.json().catch(() => fallback);
+}
+
+function uniqueSymbols(values) {
+  return [...new Set((values || [])
+    .map(v => String(v || "").trim())
+    .filter(Boolean))];
+}
+
+function stockLookupSymbol(holding) {
+  const ticker = String(holding?.ticker || "").trim().toUpperCase();
+  if (!ticker) return "";
+  const classKey = String(holding?.classKey || "").toLowerCase();
+  if (classKey === "th" && !ticker.endsWith(".BK")) return `${ticker}.BK`;
+  return ticker;
+}
+
+async function refreshSnapshotPrices(env, snapshot, userId = "") {
+  const holdings = Array.isArray(snapshot?.holdings) ? snapshot.holdings : [];
+  if (!holdings.length) return snapshot || {};
+
+  const cryptoSymbols = uniqueSymbols(holdings
+    .filter(h => {
+      const classKey = String(h.classKey || "").toLowerCase();
+      const ticker = String(h.ticker || "").toUpperCase();
+      return classKey === "crypto" || classKey === "gold" || COINGECKO_IDS[ticker];
+    })
+    .map(h => String(h.ticker || "").toUpperCase()));
+
+  const stockSymbols = uniqueSymbols(holdings
+    .filter(h => !cryptoSymbols.includes(String(h.ticker || "").toUpperCase()))
+    .map(stockLookupSymbol));
+
+  const [cryptoRes, stockRes, fxRes] = await Promise.allSettled([
+    cryptoSymbols.length
+      ? handleCrypto(new URL(`https://worker.local/api/prices/crypto?symbols=${encodeURIComponent(cryptoSymbols.join(","))}`), env)
+      : Promise.resolve(json({})),
+    stockSymbols.length
+      ? handleStocks(new URL(`https://worker.local/api/prices/stocks?symbols=${encodeURIComponent(stockSymbols.join(","))}`), env)
+      : Promise.resolve(json({})),
+    handleFX(new URL("https://worker.local/api/prices/fx?from=USD&to=THB"), env),
+  ]);
+
+  const cryptoPrices = cryptoRes.status === "fulfilled" ? await responseJson(cryptoRes.value) : {};
+  const stockPrices = stockRes.status === "fulfilled" ? await responseJson(stockRes.value) : {};
+  const fxData = fxRes.status === "fulfilled" ? await responseJson(fxRes.value, null) : null;
+  const fx = Number(fxData?.rate) || Number(snapshot?.fx) || 35.8;
+  let changed = false;
+
+  const nextHoldings = holdings.map(h => {
+    const ticker = String(h.ticker || "").toUpperCase();
+    const stockSymbol = stockLookupSymbol(h);
+    const info = cryptoPrices[ticker] || stockPrices[stockSymbol] || stockPrices[ticker];
+    if (!info || typeof info.price !== "number") return h;
+    const oldPrice = Number(h.price || 0);
+    const nextPrice = Number(info.price);
+    const nextChg = typeof info.chg1d === "number" ? info.chg1d : h.chg1d;
+    const nextSpark = [...(Array.isArray(h.spark) ? h.spark : []).slice(-7), nextPrice];
+    if (oldPrice !== nextPrice || h.chg1d !== nextChg) changed = true;
+    return {
+      ...h,
+      price: nextPrice,
+      chg1d: nextChg,
+      spark: nextSpark,
+      priceSource: info.source || h.priceSource || "worker",
+      priceUpdatedAt: Date.now(),
+    };
+  });
+
+  const nextSnapshot = {
+    ...(snapshot || {}),
+    holdings: nextHoldings,
+    fx,
+    pricesUpdatedAt: Date.now(),
+    priceRefreshSource: "line-worker",
+  };
+
+  if ((changed || fx !== Number(snapshot?.fx || 0)) && userId && env.DB) {
+    await env.DB.prepare("UPDATE portfolio_snapshots SET data = ?, updated_at = ? WHERE user_id = ?")
+      .bind(JSON.stringify(nextSnapshot), Date.now(), userId)
+      .run()
+      .catch(e => console.error("LINE price snapshot save failed:", e.stack || e));
+  }
+
+  return nextSnapshot;
+}
+
 // Legacy single-user D1 portfolio CRUD
 async function getPortfolio(env) {
   const [holdings, transactions, dca, earn, dcaLog] = await Promise.all([
@@ -906,7 +995,7 @@ async function lineCommandReply(env, text, targetId = "") {
   if (!userId) {
     return "LINE นี้ยังไม่ได้ผูกกับบัญชี SiamFolio\nเปิดเว็บ > Settings > LINE OA > สร้างรหัสผูก LINE แล้วพิมพ์ 'ผูก CODE' มาที่นี่";
   }
-  const snapshot = await getLatestPortfolioData(env, userId);
+  const snapshot = await refreshSnapshotPrices(env, await getLatestPortfolioData(env, userId), userId);
   if (command === "summary") {
     const flex = portfolioFlexMessage(snapshot);
     return {
