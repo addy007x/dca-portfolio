@@ -393,8 +393,8 @@ function EarnView({ ccy, onAddEarn }) {
         <div className="kpi">
           <div className="label">ยอดรวม Earn</div>
           <div className="value">{ccySym}{ccy === "THB" ? Math.round(totalWithEarnedUSD*FX).toLocaleString() : fmtNum(totalWithEarnedUSD,2)}</div>
-          <div className="delta up" style={{marginTop:4}}>
-            +{ccySym}{ccy === "THB" ? fmtNum(earnedAddedToTotalUSD*FX,2) : fmtNum(earnedAddedToTotalUSD,4)} ดอกเบี้ยสะสมถูกบวกในยอดนี้แล้ว
+          <div className="delta up" style={{marginTop:-2, marginBottom:4, fontWeight:700}}>
+            รวมดอกเบี้ยสะสม +{ccySym}{ccy === "THB" ? fmtNum(earnedAddedToTotalUSD*FX,2) : fmtNum(earnedAddedToTotalUSD,4)}
           </div>
           <div className="delta" style={{color:"var(--muted)"}}>มูลค่าตลาด + ดอกเบี้ยสะสม</div>
         </div>
