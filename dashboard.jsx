@@ -885,12 +885,25 @@ function EarnPanel({ ccy, positions, FX, holdings, askConfirm, onAdd }) {
     const price = getPrice(p.sym);
     return price > 0 ? earnedNative * price : earnedNative; // fallback: treat as USD
   };
+  const calcEarnedUSDForSeconds = (p, seconds) => {
+    const earnedNative = p.qty * (p.apy / 100) * (Math.max(0, seconds) / (365 * 24 * 60 * 60));
+    const price = getPrice(p.sym);
+    return price > 0 ? earnedNative * price : earnedNative;
+  };
+  const storedEarnedUSD = (p) => Number(p.accruedEarnedUSD ?? p.earnedToday ?? 0) || 0;
+  const pendingEarnedUSD = (p) => {
+    const last = Number(p.accruedEarnedAt) || 0;
+    if (!last) return calcEarnedTodayUSD(p);
+    return calcEarnedUSDForSeconds(p, (Date.now() - last) / 1000);
+  };
 
   const earnedTodayUSD = positions.reduce((s, p) => s + calcEarnedTodayUSD(p), 0);
+  const accumulatedEarnedUSD = positions.reduce((s, p) => s + storedEarnedUSD(p) + pendingEarnedUSD(p), 0);
   const totalUSD = positions.reduce((s, p) => s + p.qty * (getPrice(p.sym) || (p.sym.includes("USD") ? 1 : 0)), 0);
-  const totalWithEarnedUSD = totalUSD + earnedTodayUSD;
+  const totalWithEarnedUSD = totalUSD + accumulatedEarnedUSD;
   const stakedDisp = ccy === "THB" ? totalWithEarnedUSD * FX : totalWithEarnedUSD;
   const earnedTodayDisp = ccy === "THB" ? earnedTodayUSD * FX : earnedTodayUSD;
+  const accumulatedEarnedDisp = ccy === "THB" ? accumulatedEarnedUSD * FX : accumulatedEarnedUSD;
 
   const usdtPos = positions.find(p => p.sym === "USDT");
   const usdtBal = usdtPos ? usdtPos.qty : 0;
@@ -920,6 +933,9 @@ function EarnPanel({ ccy, positions, FX, holdings, askConfirm, onAdd }) {
           <div className="earn-amt">
             {ccySym}{ccy === "THB" ? Math.round(stakedDisp).toLocaleString() : fmtNum(stakedDisp, 2)}
             <span className="ccy">{ccy}</span>
+          </div>
+          <div style={{fontSize:12, color:"var(--up)", marginTop:2, fontFamily:"var(--font-num)", fontWeight:700}}>
+            {"\u0E23\u0E27\u0E21\u0E14\u0E2D\u0E01\u0E40\u0E1A\u0E35\u0E49\u0E22\u0E2A\u0E30\u0E2A\u0E21"} +{ccySym}{ccy === "THB" ? fmtNum(accumulatedEarnedDisp, 2) : fmtNum(accumulatedEarnedDisp, 4)}
           </div>
           {/* Real-time earned today — pulses every second */}
           <div style={{fontSize:13, color:"var(--up)", marginTop:6, fontFamily:"var(--font-num)", fontWeight:700, display:"flex", alignItems:"center", gap:6}}>
