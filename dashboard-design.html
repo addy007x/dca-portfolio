@@ -63,13 +63,16 @@ button { cursor: pointer; }
   grid-template-columns: 300px minmax(0, 1fr);
   grid-template-rows: 74px minmax(0, 1fr);
   gap: 10px;
+  transition: grid-template-columns .22s ease;
 }
 .top {
   grid-column: 1 / -1;
+  position: relative;
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: stretch;
+  transition: grid-template-columns .22s ease;
 }
 .brand, .nav, .actions, .side, .scene-wrap {
   border: 1px solid var(--line);
@@ -104,6 +107,29 @@ button { cursor: pointer; }
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+}
+.side-toggle {
+  position: absolute;
+  left: 300px;
+  top: 50%;
+  z-index: 8;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(34, 211, 238, .46);
+  background: linear-gradient(180deg, rgba(18, 27, 45, .96), rgba(7, 12, 23, .94));
+  color: var(--cyan);
+  box-shadow: 0 0 24px rgba(34,211,238,.16);
+  transform: translate(-50%, -50%);
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 800;
+}
+.side-toggle:before { content: "<"; }
+.side-toggle:hover {
+  border-color: var(--line-hot);
+  background: linear-gradient(180deg, rgba(28,42,66,.96), rgba(8,14,25,.94));
 }
 .nav {
   display: flex;
@@ -175,6 +201,23 @@ button { cursor: pointer; }
   gap: 10px;
   padding: 12px;
   overflow: hidden;
+  transition: padding .22s ease;
+}
+.side-rail {
+  display: none;
+  gap: 9px;
+}
+.rail-item {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(132,162,205,.18);
+  background: rgba(7, 11, 20, .54);
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 800;
 }
 .section-title {
   display: flex;
@@ -612,11 +655,48 @@ button { cursor: pointer; }
   transform: translateY(12px);
   animation: reveal .48s ease forwards;
 }
+body.side-collapsed .frame {
+  grid-template-columns: 82px minmax(0, 1fr);
+}
+body.side-collapsed .top {
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+}
+body.side-collapsed .brand {
+  justify-content: center;
+  padding: 10px;
+}
+body.side-collapsed .brand h1,
+body.side-collapsed .brand p {
+  display: none;
+}
+body.side-collapsed .side {
+  padding: 10px 12px;
+}
+body.side-collapsed .side section {
+  display: none;
+}
+body.side-collapsed .side-rail {
+  display: grid;
+}
+body.side-collapsed .side-toggle {
+  left: 82px;
+}
+body.side-collapsed .side-toggle:before {
+  content: ">";
+}
 @keyframes reveal { to { opacity: 1; transform: translateY(0); } }
 @keyframes fill { to { width: 100%; } }
 @media (max-width: 1120px) {
   .frame { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; }
   .top { grid-template-columns: 1fr; }
+  .side-toggle { left: auto; right: 12px; transform: translateY(-50%); }
+  body.side-collapsed .frame { grid-template-columns: 1fr; }
+  body.side-collapsed .top { grid-template-columns: 1fr; }
+  body.side-collapsed .brand { justify-content: flex-start; padding: 11px 13px; }
+  body.side-collapsed .brand h1,
+  body.side-collapsed .brand p { display: block; }
+  body.side-collapsed .side { display: none; }
+  body.side-collapsed .side-toggle { left: auto; right: 12px; }
   .nav, .actions { justify-content: flex-start; overflow-x: auto; }
   .side { grid-row: 3; }
   .scene-wrap { min-height: 520px; }
@@ -699,6 +779,7 @@ button { cursor: pointer; }
           <p>Realtime bot command center</p>
         </div>
       </a>
+      <button class="side-toggle" id="sideToggle" type="button" aria-label="พับเมนูซ้าย" aria-expanded="true"></button>
       <nav class="nav" aria-label="Trading office sections">
         <span class="tab active">Dashboard</span>
         <button class="tab" id="openAgentsTab" type="button">AI Agents</button>
@@ -714,6 +795,12 @@ button { cursor: pointer; }
     </header>
 
     <aside class="side reveal" style="animation-delay:.05s">
+      <div class="side-rail" aria-hidden="true">
+        <span class="rail-item">DCA</span>
+        <span class="rail-item">AI</span>
+        <span class="rail-item">EA</span>
+        <span class="rail-item">LINE</span>
+      </div>
       <section>
         <h2 class="section-title"><span>Project</span><span id="clockText">--:--:--</span></h2>
         <a class="project-card panel" href="./index.html#dashboard" data-loading-title="กำลังเปิด DCA-Portfolio">
@@ -822,6 +909,7 @@ button { cursor: pointer; }
   const timeInline = document.querySelectorAll(".time-inline");
   const commandInput = document.getElementById("commandInput");
   const commandBtn = document.getElementById("commandBtn");
+  const sideToggle = document.getElementById("sideToggle");
   const sceneWrap = document.querySelector(".scene-wrap");
   const openAgentsTab = document.getElementById("openAgentsTab");
   const openAgentsTask = document.getElementById("openAgentsTask");
@@ -833,6 +921,7 @@ button { cursor: pointer; }
   const agentTitle = document.getElementById("agentTitle");
   const agentDesc = document.getElementById("agentDesc");
   const SESSION_KEY = "siamfolio.googleSession";
+  const SIDE_COLLAPSED_KEY = "siamfolio.dashboardDesign.sideCollapsed";
   const apiUrl = (window.AUTH_CONFIG?.apiUrl || "").replace(/\/$/, "");
   let activeAgent = "portfolio";
   const history = [];
@@ -878,6 +967,21 @@ button { cursor: pointer; }
     setTimeout(() => {
       location.href = target;
     }, 3000);
+  }
+
+  function setSideCollapsed(collapsed) {
+    document.body.classList.toggle("side-collapsed", collapsed);
+    if (sideToggle) {
+      sideToggle.setAttribute("aria-expanded", String(!collapsed));
+      sideToggle.setAttribute("aria-label", collapsed ? "กางเมนูซ้าย" : "พับเมนูซ้าย");
+      sideToggle.title = collapsed ? "กางเมนูซ้าย" : "พับเมนูซ้าย";
+    }
+  }
+
+  function toggleSide() {
+    const collapsed = !document.body.classList.contains("side-collapsed");
+    localStorage.setItem(SIDE_COLLAPSED_KEY, collapsed ? "1" : "0");
+    setSideCollapsed(collapsed);
   }
 
   function getSession() {
@@ -1005,6 +1109,7 @@ button { cursor: pointer; }
   commandInput?.addEventListener("keydown", event => {
     if (event.key === "Enter") runCommand();
   });
+  sideToggle?.addEventListener("click", toggleSide);
   openAgentsTab?.addEventListener("click", () => openAgents("portfolio"));
   openAgentsTask?.addEventListener("click", () => openAgents("portfolio"));
   closeAgentsBtn?.addEventListener("click", closeAgents);
@@ -1017,9 +1122,12 @@ button { cursor: pointer; }
     askAgent(question);
   });
 
+  const params = new URLSearchParams(location.search);
+  const sideParam = params.get("side");
   updateClock();
+  setSideCollapsed(sideParam === "collapsed" || (sideParam !== "expanded" && localStorage.getItem(SIDE_COLLAPSED_KEY) === "1"));
   setAgent("portfolio");
-  if (new URLSearchParams(location.search).get("agents") === "1") openAgents("portfolio");
+  if (params.get("agents") === "1") openAgents("portfolio");
   setInterval(updateClock, 1000);
 })();
 </script>
