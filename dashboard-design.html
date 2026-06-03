@@ -334,9 +334,15 @@ button { cursor: pointer; }
   background:
     linear-gradient(90deg, rgba(4, 8, 16, .36), rgba(4, 8, 16, .05) 32%, rgba(4, 8, 16, .18)),
     linear-gradient(180deg, rgba(8, 13, 24, .34), transparent 22%, rgba(8, 13, 24, .24)),
-    url("assets/trading-office-scene.png") center 38% / cover no-repeat;
+    radial-gradient(circle at 50% 40%, rgba(57, 96, 134, .16), transparent 48%),
+    linear-gradient(180deg, #151b2a 0%, #0a101c 100%);
   image-rendering: auto;
-  transform: scale(1.01);
+}
+.scene:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("assets/trading-office-scene.png") center center / 100% 100% no-repeat;
 }
 .scene-wrap:after {
   content: "";
