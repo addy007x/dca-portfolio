@@ -121,6 +121,7 @@ button { cursor: pointer; }
   border: 1px solid transparent;
   background: transparent;
   color: #d9e6ff;
+  padding: 0 12px;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: .03em;
@@ -234,6 +235,7 @@ button { cursor: pointer; }
   padding: 8px;
 }
 .task {
+  width: 100%;
   min-height: 44px;
   display: grid;
   grid-template-columns: 26px 1fr auto;
@@ -242,6 +244,12 @@ button { cursor: pointer; }
   padding: 7px;
   border: 1px solid rgba(132,162,205,.14);
   background: rgba(7, 11, 20, .48);
+  color: var(--ink);
+  text-align: left;
+}
+.task:hover {
+  border-color: var(--line-hot);
+  box-shadow: 0 0 18px rgba(34,211,238,.10);
 }
 .task-mark {
   width: 24px;
@@ -250,6 +258,7 @@ button { cursor: pointer; }
   box-shadow: 0 0 14px rgba(78,123,255,.26);
 }
 .task:nth-child(2) .task-mark { background: #9b4ded; }
+.task:nth-child(3) .task-mark { background: var(--cyan); }
 .task b {
   display: block;
   font-size: 13px;
@@ -401,6 +410,154 @@ button { cursor: pointer; }
   font-size: 18px;
   font-weight: 800;
 }
+.agent-console {
+  position: absolute;
+  right: 20px;
+  top: 96px;
+  bottom: 20px;
+  z-index: 4;
+  width: min(560px, calc(100% - 40px));
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  border: 1px solid rgba(34,211,238,.42);
+  background: linear-gradient(180deg, rgba(12, 19, 33, .94), rgba(5, 9, 17, .90));
+  box-shadow: 0 22px 60px rgba(0,0,0,.42), 0 0 34px rgba(34,211,238,.12);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(18px) scale(.985);
+  transition: opacity .18s ease, transform .18s ease;
+  backdrop-filter: blur(6px);
+}
+.scene-wrap.agents-open .agent-console {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0) scale(1);
+}
+.agent-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid rgba(132,162,205,.22);
+}
+.agent-head > div {
+  min-width: 0;
+}
+.agent-head h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.1;
+}
+.agent-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.agent-close {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(132,162,205,.28);
+  background: rgba(7,11,20,.72);
+  color: #fff;
+  font-weight: 800;
+}
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(132,162,205,.18);
+}
+.mini-agent {
+  min-height: 58px;
+  border: 1px solid rgba(132,162,205,.20);
+  background: rgba(7,11,20,.54);
+  color: #dce8fb;
+  padding: 8px;
+  text-align: left;
+}
+.mini-agent.active,
+.mini-agent:hover {
+  border-color: var(--line-hot);
+  background: linear-gradient(180deg, rgba(28,42,66,.78), rgba(8,14,25,.76));
+}
+.mini-agent b {
+  display: block;
+  color: #fff;
+  font-size: 12px;
+}
+.mini-agent span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.25;
+}
+.agent-chat {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px;
+  overflow: auto;
+}
+.agent-msg {
+  max-width: 92%;
+  padding: 10px 11px;
+  border: 1px solid rgba(132,162,205,.18);
+  background: rgba(7,11,20,.52);
+  color: #eef6ff;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+.agent-msg.user {
+  justify-self: end;
+  border-color: rgba(34,211,238,.34);
+  background: rgba(19,74,91,.46);
+}
+.agent-msg b {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.agent-msg span {
+  display: block;
+  line-height: 1.55;
+}
+.agent-compose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 86px;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid rgba(132,162,205,.22);
+}
+.agent-compose input {
+  min-width: 0;
+  height: 38px;
+  border: 1px solid rgba(132,162,205,.22);
+  background: rgba(4,8,16,.72);
+  color: #e6f0ff;
+  padding: 0 11px;
+  outline: 0;
+}
+.agent-compose button {
+  border: 1px solid rgba(34,211,238,.46);
+  background: linear-gradient(180deg, rgba(27,162,183,.78), rgba(14,93,118,.82));
+  color: #fff;
+  font-weight: 800;
+}
+.agent-compose button:disabled {
+  opacity: .6;
+  cursor: wait;
+}
 .loading-gate {
   position: fixed;
   inset: 0;
@@ -487,6 +644,47 @@ button { cursor: pointer; }
   .hotspot.dca { bottom: 112px; }
   .hotspot.gold { bottom: 24px; }
   .command { display: block; }
+  .agent-console {
+    display: none;
+    position: relative;
+    inset: auto;
+    width: auto;
+    margin: 10px;
+    min-height: 430px;
+    opacity: 1;
+    transform: none;
+  }
+  .scene-wrap.agents-open .agent-console {
+    display: grid;
+    position: fixed;
+    inset: 8px;
+    width: auto;
+    min-height: 0;
+    z-index: 40;
+  }
+  .agent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .agent-compose { grid-template-columns: 1fr; }
+  body.agents-mode .top,
+  body.agents-mode .side,
+  body.agents-mode .scene,
+  body.agents-mode .status-card,
+  body.agents-mode .hotspot {
+    display: none;
+  }
+  body.agents-mode .frame {
+    display: block;
+    min-height: calc(100vh - 16px);
+  }
+  body.agents-mode .scene-wrap {
+    min-height: calc(100vh - 16px);
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  body.agents-mode .agent-console {
+    margin: 0;
+    min-height: calc(100vh - 16px);
+  }
 }
 </style>
 </head>
@@ -503,7 +701,7 @@ button { cursor: pointer; }
       </a>
       <nav class="nav" aria-label="Trading office sections">
         <span class="tab active">Dashboard</span>
-        <span class="tab">AI Agents</span>
+        <button class="tab" id="openAgentsTab" type="button">AI Agents</button>
         <span class="tab">Trades</span>
         <span class="tab">Analytics</span>
         <span class="tab">Risk</span>
@@ -532,6 +730,7 @@ button { cursor: pointer; }
         <div class="task-list panel">
           <div class="task"><span class="task-mark"></span><div><b>Portfolio Tracker</b><span>Sync values + LINE OA</span></div><span class="on">ON</span></div>
           <div class="task"><span class="task-mark"></span><div><b>Gold EA Paper</b><span>TradFi gold signal lab</span></div><span class="on">ON</span></div>
+          <button class="task" id="openAgentsTask" type="button"><span class="task-mark"></span><div><b>AI Agents Hub</b><span>Portfolio, DCA, Risk, Gold</span></div><span class="on">NEW</span></button>
         </div>
       </section>
 
@@ -585,6 +784,22 @@ button { cursor: pointer; }
         <span>กราฟแท่งเทียน จุดเข้าออก และ paper signal</span>
       </a>
 
+      <section class="agent-console" id="agentConsole" aria-label="AI Agents console">
+        <div class="agent-head">
+          <div>
+            <h2 id="agentTitle">Portfolio Agent</h2>
+            <p id="agentDesc">Ask about your DCA portfolio, schedules, risk, and LINE OA setup.</p>
+          </div>
+          <button class="agent-close" id="closeAgentsBtn" type="button" aria-label="Close AI Agents">×</button>
+        </div>
+        <div class="agent-grid" id="agentGrid"></div>
+        <div class="agent-chat" id="agentChat" aria-live="polite"></div>
+        <form class="agent-compose" id="agentForm">
+          <input id="agentInput" autocomplete="off" placeholder="Ask: portfolio summary, next DCA, LINE OA, risk...">
+          <button id="agentSend" type="submit">Ask</button>
+        </form>
+      </section>
+
     </section>
   </section>
 </main>
@@ -597,6 +812,7 @@ button { cursor: pointer; }
   </div>
 </div>
 
+<script src="auth-config.js?v=34"></script>
 <script>
 (() => {
   const gate = document.getElementById("loadingGate");
@@ -606,6 +822,47 @@ button { cursor: pointer; }
   const timeInline = document.querySelectorAll(".time-inline");
   const commandInput = document.getElementById("commandInput");
   const commandBtn = document.getElementById("commandBtn");
+  const sceneWrap = document.querySelector(".scene-wrap");
+  const openAgentsTab = document.getElementById("openAgentsTab");
+  const openAgentsTask = document.getElementById("openAgentsTask");
+  const closeAgentsBtn = document.getElementById("closeAgentsBtn");
+  const agentGrid = document.getElementById("agentGrid");
+  const agentChat = document.getElementById("agentChat");
+  const agentForm = document.getElementById("agentForm");
+  const agentInput = document.getElementById("agentInput");
+  const agentTitle = document.getElementById("agentTitle");
+  const agentDesc = document.getElementById("agentDesc");
+  const SESSION_KEY = "siamfolio.googleSession";
+  const apiUrl = (window.AUTH_CONFIG?.apiUrl || "").replace(/\/$/, "");
+  let activeAgent = "portfolio";
+  const history = [];
+
+  const agents = {
+    portfolio: {
+      label: "Portfolio",
+      short: "Portfolio value, P/L, allocation",
+      desc: "Summarize portfolio value, winners, losers, allocation, and what changed.",
+      prefix: "You are the SiamFolio Portfolio Agent. Answer using the user's portfolio data and explain clearly in Thai."
+    },
+    dca: {
+      label: "DCA",
+      short: "Schedule, overdue, history",
+      desc: "Check DCA plans, missed rounds, next buy dates, and transaction history.",
+      prefix: "You are the SiamFolio DCA Agent. Focus on DCA schedules, overdue items, executions, and next actions."
+    },
+    risk: {
+      label: "Risk",
+      short: "Drawdown, concentration, balance",
+      desc: "Review asset concentration, negative positions, and portfolio risk guardrails.",
+      prefix: "You are the SiamFolio Risk Agent. Focus on portfolio risk, concentration, drawdown, and practical warnings."
+    },
+    gold: {
+      label: "Gold EA",
+      short: "TradFi gold bot ideas",
+      desc: "Plan the gold EA workflow, paper trading, entry/exit notes, and risk rules.",
+      prefix: "You are the TradFi Gold EA planning agent. Keep answers practical and remind the user this is not financial advice."
+    }
+  };
 
   function updateClock() {
     const text = new Date().toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok", hour12: false });
@@ -623,6 +880,107 @@ button { cursor: pointer; }
     }, 3000);
   }
 
+  function getSession() {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data?.token) return null;
+      if (data.expiresAt && Date.now() > Number(data.expiresAt)) return null;
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function addAgentMessage(role, text) {
+    if (!agentChat) return;
+    const node = document.createElement("div");
+    node.className = `agent-msg ${role}`;
+    node.innerHTML = `<b>${role === "user" ? "You" : agents[activeAgent].label}</b><span>${escapeHtml(text)}</span>`;
+    agentChat.appendChild(node);
+    agentChat.scrollTop = agentChat.scrollHeight;
+  }
+
+  function renderAgentGrid() {
+    if (!agentGrid) return;
+    agentGrid.innerHTML = Object.entries(agents).map(([key, agent]) => `
+      <button class="mini-agent ${key === activeAgent ? "active" : ""}" type="button" data-agent="${key}">
+        <b>${agent.label}</b>
+        <span>${agent.short}</span>
+      </button>
+    `).join("");
+    agentGrid.querySelectorAll("[data-agent]").forEach(button => {
+      button.addEventListener("click", () => setAgent(button.dataset.agent));
+    });
+  }
+
+  function setAgent(key) {
+    activeAgent = agents[key] ? key : "portfolio";
+    if (agentTitle) agentTitle.textContent = `${agents[activeAgent].label} Agent`;
+    if (agentDesc) agentDesc.textContent = agents[activeAgent].desc;
+    renderAgentGrid();
+    if (!agentChat?.children.length) {
+      addAgentMessage("agent", "เลือก agent แล้วถามได้เลย เช่น สรุปพอร์ต, DCA รอบต่อไป, สินทรัพย์ติดลบ, หรือวิธีผูก LINE OA");
+    }
+  }
+
+  function openAgents(key = "portfolio") {
+    sceneWrap?.classList.add("agents-open");
+    document.body.classList.add("agents-mode");
+    setAgent(key);
+    setTimeout(() => agentInput?.focus(), 80);
+  }
+
+  function closeAgents() {
+    sceneWrap?.classList.remove("agents-open");
+    document.body.classList.remove("agents-mode");
+  }
+
+  async function askAgent(question) {
+    const session = getSession();
+    if (!apiUrl || !session?.token) {
+      addAgentMessage("agent", "ยังไม่พบ session Google ในหน้านี้ ให้เปิดจากหลังล็อกอิน หรือกลับไปล็อกอินก่อน แล้วค่อยถาม AI อีกครั้ง");
+      return;
+    }
+    const agent = agents[activeAgent];
+    const payload = {
+      question: `${agent.prefix}\n\nUser question: ${question}`,
+      history: history.slice(-8)
+    };
+    try {
+      addAgentMessage("agent", "กำลังอ่านข้อมูลพอร์ตและคิดคำตอบ...");
+      const response = await fetch(`${apiUrl}/api/ai/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json().catch(() => ({}));
+      const last = agentChat?.lastElementChild;
+      if (last?.classList.contains("agent")) last.remove();
+      if (!response.ok) throw new Error(data?.error || "AI request failed");
+      const answer = data?.answer || data?.message || "ยังไม่มีคำตอบจาก AI";
+      history.push({ role: "user", content: question }, { role: "assistant", content: answer });
+      addAgentMessage("agent", answer);
+    } catch (error) {
+      const last = agentChat?.lastElementChild;
+      if (last?.classList.contains("agent")) last.remove();
+      addAgentMessage("agent", `AI ยังตอบไม่ได้ตอนนี้: ${error.message}`);
+    }
+  }
+
   links.forEach(link => link.addEventListener("click", event => {
     const target = link.getAttribute("href");
     if (!target || target.startsWith("#")) return;
@@ -632,6 +990,10 @@ button { cursor: pointer; }
 
   function runCommand() {
     const value = (commandInput?.value || "").trim().toLowerCase();
+    if (value.includes("ai") || value.includes("agent") || value.includes("เอไอ")) {
+      openAgents();
+      return;
+    }
     if (value.includes("gold") || value.includes("ทอง") || value.includes("ea")) {
       openWithDelay("./bitget-bot.html?preset=gold-ea", "กำลังเปิด TradFi Gold EA");
       return;
@@ -643,8 +1005,21 @@ button { cursor: pointer; }
   commandInput?.addEventListener("keydown", event => {
     if (event.key === "Enter") runCommand();
   });
+  openAgentsTab?.addEventListener("click", () => openAgents("portfolio"));
+  openAgentsTask?.addEventListener("click", () => openAgents("portfolio"));
+  closeAgentsBtn?.addEventListener("click", closeAgents);
+  agentForm?.addEventListener("submit", event => {
+    event.preventDefault();
+    const question = (agentInput?.value || "").trim();
+    if (!question) return;
+    agentInput.value = "";
+    addAgentMessage("user", question);
+    askAgent(question);
+  });
 
   updateClock();
+  setAgent("portfolio");
+  if (new URLSearchParams(location.search).get("agents") === "1") openAgents("portfolio");
   setInterval(updateClock, 1000);
 })();
 </script>
