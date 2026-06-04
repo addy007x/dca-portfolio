@@ -3,38 +3,37 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SiamFolio Trading Office</title>
+<title>SiamFolio Pixel Command</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #090d17;
-  --panel: rgba(13, 19, 32, .88);
-  --panel-2: rgba(23, 32, 50, .86);
-  --line: rgba(132, 162, 205, .28);
-  --line-hot: rgba(34, 211, 238, .70);
-  --ink: #f8fbff;
-  --muted: #9aa8bd;
-  --cyan: #22d3ee;
-  --green: #18f08b;
-  --red: #ef6b5e;
-  --amber: #f6ad45;
-  --blue: #4e7bff;
-  --shadow: 0 14px 38px rgba(0, 0, 0, .30);
-  --ui: "IBM Plex Sans Thai", system-ui, sans-serif;
+  --bg: #040814;
+  --panel: rgba(6, 16, 31, .86);
+  --panel-soft: rgba(8, 22, 42, .72);
+  --line: rgba(25, 172, 255, .34);
+  --line-hot: rgba(34, 217, 255, .82);
+  --text: #eef8ff;
+  --muted: #8da8c6;
+  --cyan: #22d9ff;
+  --green: #20f08b;
+  --red: #ff596f;
+  --amber: #ffbe4d;
+  --blue: #3d76ff;
   --mono: "JetBrains Mono", ui-monospace, monospace;
+  --ui: "IBM Plex Sans Thai", system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { min-height: 100%; }
 body {
   margin: 0;
-  color: var(--ink);
+  color: var(--text);
   font-family: var(--ui);
   background:
-    radial-gradient(circle at 76% 18%, rgba(84, 125, 255, .22), transparent 30%),
-    radial-gradient(circle at 12% 90%, rgba(34, 211, 238, .14), transparent 34%),
-    linear-gradient(135deg, #080b12 0%, #12172a 52%, #080b12 100%);
+    radial-gradient(circle at 14% 10%, rgba(34, 217, 255, .16), transparent 28%),
+    radial-gradient(circle at 78% 5%, rgba(61, 118, 255, .18), transparent 32%),
+    linear-gradient(135deg, #02050d, #08172a 48%, #02050d);
   overflow-x: hidden;
 }
 body:before {
@@ -42,841 +41,568 @@ body:before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: .32;
+  opacity: .24;
   background:
-    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
-  background-size: 36px 36px;
-  mask-image: linear-gradient(to bottom, rgba(0,0,0,.85), transparent 76%);
+    linear-gradient(rgba(80, 198, 255, .08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 198, 255, .06) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.8), transparent 88%);
+}
+body:after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: .16;
+  background: linear-gradient(rgba(255,255,255,.04) 50%, rgba(0,0,0,.04) 50%);
+  background-size: 100% 4px;
+  mix-blend-mode: overlay;
 }
 a, button, input { font: inherit; }
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; }
-.app {
-  position: relative;
-  min-height: 100vh;
-  padding: 12px;
-}
-.frame {
+.page { position: relative; min-height: 100vh; padding: 12px; }
+.screen {
   min-height: calc(100vh - 24px);
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
-  grid-template-rows: 74px minmax(0, 1fr);
+  grid-template-columns: 305px minmax(580px, 1fr) 315px;
+  grid-template-rows: 64px minmax(0, 1fr);
   gap: 10px;
+  border: 1px solid rgba(55, 178, 255, .24);
+  background:
+    linear-gradient(180deg, rgba(10, 20, 39, .62), rgba(2, 5, 12, .82)),
+    radial-gradient(circle at 50% 0%, rgba(29, 93, 171, .20), transparent 48%);
+  box-shadow: 0 28px 80px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);
+  overflow: hidden;
   transition: grid-template-columns .22s ease;
 }
-.top {
-  grid-column: 1 / -1;
-  position: relative;
-  display: grid;
-  grid-template-columns: 300px minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: stretch;
-  transition: grid-template-columns .22s ease;
-}
-.brand, .nav, .actions, .side, .scene-wrap {
+.panel {
   border: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(21, 29, 46, .92), rgba(10, 15, 26, .88));
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.08);
+  background: linear-gradient(180deg, var(--panel), rgba(4, 9, 19, .82));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 10px 30px rgba(0,0,0,.22);
+}
+.topbar {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 305px minmax(0, 1fr) 315px;
+  gap: 10px;
+  transition: grid-template-columns .22s ease;
 }
 .brand {
+  position: relative;
   display: flex;
-  gap: 11px;
   align-items: center;
-  padding: 11px 13px;
+  gap: 10px;
+  padding: 9px 12px;
 }
-.logo {
+.brand-mark {
   width: 42px;
   height: 42px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(34, 211, 238, .55);
-  background: linear-gradient(135deg, #14b8ff, #16f08d);
-  color: #06101b;
+  border: 1px solid rgba(34, 217, 255, .75);
+  background: linear-gradient(135deg, #22d9ff, #19ef9b);
+  color: #03111f;
   font-family: var(--mono);
   font-weight: 800;
-  box-shadow: 0 0 24px rgba(34,211,238,.26);
+  box-shadow: 0 0 28px rgba(34,217,255,.28);
 }
-.brand h1 {
-  margin: 0;
-  font-size: 19px;
-  line-height: 1.05;
-}
-.brand p {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
+.brand h1 { margin: 0; font-size: 18px; line-height: 1.05; }
+.brand p { margin: 3px 0 0; color: var(--muted); font-size: 12px; font-weight: 700; }
 .side-toggle {
   position: absolute;
-  left: 300px;
+  right: -17px;
   top: 50%;
-  z-index: 8;
-  width: 32px;
-  height: 32px;
+  z-index: 10;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(34, 211, 238, .46);
-  background: linear-gradient(180deg, rgba(18, 27, 45, .96), rgba(7, 12, 23, .94));
+  border: 1px solid rgba(34, 217, 255, .66);
+  background: rgba(5, 13, 26, .96);
   color: var(--cyan);
-  box-shadow: 0 0 24px rgba(34,211,238,.16);
-  transform: translate(-50%, -50%);
   font-family: var(--mono);
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 800;
+  transform: translateY(-50%);
+  box-shadow: 0 0 22px rgba(34,217,255,.18);
 }
 .side-toggle:before { content: "<"; }
-.side-toggle:hover {
-  border-color: var(--line-hot);
-  background: linear-gradient(180deg, rgba(28,42,66,.96), rgba(8,14,25,.94));
-}
 .nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 9px;
-}
-.tab {
-  min-width: 94px;
-  min-height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
-  background: transparent;
-  color: #d9e6ff;
-  padding: 0 12px;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: .03em;
-  text-transform: uppercase;
-}
-.tab.active, .tab:hover {
-  border-color: rgba(88, 129, 255, .55);
-  background: linear-gradient(180deg, rgba(88, 129, 255, .42), rgba(52, 70, 122, .28));
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 0 18px rgba(78,123,255,.20);
-}
-.actions {
-  display: flex;
-  align-items: center;
   gap: 8px;
   padding: 9px;
 }
-.cmd-btn {
-  min-width: 74px;
-  min-height: 38px;
-  border: 1px solid rgba(255,255,255,.16);
-  color: white;
+.tab {
+  min-width: 90px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #cae7ff;
+  font-family: var(--mono);
+  font-size: 11px;
   font-weight: 800;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.15);
+  text-transform: uppercase;
 }
-.cmd-btn.start { background: linear-gradient(180deg, #0f8f65, #075f48); }
-.cmd-btn.stop { background: linear-gradient(180deg, #b94338, #74241f); }
-.bot-chip {
-  min-height: 38px;
+.tab.active, .tab:hover {
+  border-color: rgba(34,217,255,.65);
+  background: linear-gradient(180deg, rgba(39, 110, 255, .52), rgba(10, 43, 88, .58));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 0 22px rgba(34,217,255,.16);
+}
+.top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 9px;
+}
+.action {
+  min-width: 72px;
+  height: 36px;
+  border: 1px solid rgba(255,255,255,.14);
+  color: #fff;
+  font-weight: 800;
+}
+.action.start { background: linear-gradient(180deg, #0f9f71, #05644c); }
+.action.stop { background: linear-gradient(180deg, #be3e3b, #7d201f); }
+.status-pill {
+  height: 36px;
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   padding: 0 12px;
-  border: 1px solid rgba(132,162,205,.38);
-  background: rgba(8,13,24,.72);
-  color: #e9f2ff;
+  border: 1px solid rgba(52, 173, 255, .38);
+  background: rgba(2, 8, 18, .62);
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 800;
   white-space: nowrap;
 }
-.bot-chip:before {
+.status-pill:before {
   content: "";
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   background: var(--green);
   box-shadow: 0 0 14px var(--green);
 }
-.side {
+.left, .right {
   display: grid;
   align-content: start;
-  gap: 10px;
-  padding: 12px;
-  overflow: hidden;
-  transition: padding .22s ease;
-}
-.side-rail {
-  display: none;
   gap: 9px;
+  padding: 10px;
+  overflow: auto;
 }
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.mini-panel { padding: 10px; }
+.wallet-value {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+}
+.wallet-value strong { font-family: var(--mono); font-size: 24px; }
+.wallet-value span { color: var(--green); font-family: var(--mono); font-size: 12px; font-weight: 800; }
+.small-lines { display: grid; gap: 6px; margin-top: 8px; color: #c8dcf6; font-family: var(--mono); font-size: 11px; }
+.small-lines div { display: flex; justify-content: space-between; gap: 10px; }
+.negative { color: var(--red) !important; }
+.positive { color: var(--green) !important; }
+.agent-list { display: grid; gap: 7px; }
+.agent-row, .asset-row, .event-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 42px;
+  padding: 8px;
+  border: 1px solid rgba(63, 174, 255, .18);
+  background: rgba(3, 12, 25, .58);
+  color: var(--text);
+  text-align: left;
+}
+.agent-row b, .asset-row b, .event-row b { display: block; font-size: 12px; }
+.agent-row span, .asset-row span, .event-row span { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+.chip {
+  min-width: 48px;
+  padding: 4px 6px;
+  border: 1px solid rgba(34,217,255,.28);
+  background: rgba(34,217,255,.09);
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+}
+.scene-board {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(63, 174, 255, .28);
+  background: radial-gradient(circle at 50% 20%, rgba(37, 109, 180, .14), transparent 42%), linear-gradient(180deg, #091526, #040812);
+}
+.scene-bg {
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(34,217,255,.18);
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.03), rgba(0,0,0,.18)),
+    url("assets/trading-office-scene.png") center center / 100% 100% no-repeat;
+}
+.scene-board:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(5, 9, 18, .34), transparent 18%, transparent 78%, rgba(5, 9, 18, .28)), linear-gradient(180deg, rgba(5, 9, 18, .22), transparent 36%, rgba(5, 9, 18, .40));
+}
+.floating {
+  position: absolute;
+  z-index: 2;
+  border: 1px solid rgba(34,217,255,.42);
+  background: linear-gradient(180deg, rgba(5, 16, 31, .82), rgba(3, 8, 17, .72));
+  box-shadow: 0 14px 34px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.07);
+  backdrop-filter: blur(5px);
+}
+.window-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px;
+  border-bottom: 1px solid rgba(63, 174, 255, .20);
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.window-body { padding: 9px; color: #dbeeff; font-family: var(--mono); font-size: 11px; }
+.window-body p { margin: 0 0 6px; }
+.status-card.one { left: 18px; top: 20px; width: 250px; }
+.status-card.two { left: 285px; top: 20px; width: 250px; }
+.terminal { left: 24px; bottom: 24px; width: 290px; }
+.project-link { left: 335px; bottom: 24px; width: 260px; }
+.team-chat { right: 24px; bottom: 24px; width: 260px; }
+.gold-link { right: 34px; bottom: 118px; width: 260px; border-color: rgba(255, 191, 75, .42); }
+.command-row, .agent-compose { display: grid; grid-template-columns: 1fr 44px; gap: 8px; }
+.command-row input, .agent-compose input {
+  min-width: 0;
+  height: 38px;
+  border: 1px solid rgba(63, 174, 255, .24);
+  background: rgba(2, 8, 18, .78);
+  color: var(--text);
+  padding: 0 10px;
+  outline: 0;
+}
+.command-row button, .agent-compose button {
+  border: 1px solid rgba(34,217,255,.46);
+  background: linear-gradient(180deg, rgba(22, 142, 193, .86), rgba(8, 66, 111, .82));
+  color: #fff;
+  font-weight: 800;
+}
+.metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.metric { min-height: 64px; padding: 9px; border: 1px solid rgba(63, 174, 255, .18); background: rgba(3, 12, 25, .54); }
+.metric span { display: block; color: var(--muted); font-size: 11px; }
+.metric b { display: block; margin-top: 3px; font-family: var(--mono); font-size: 18px; }
+.bar { height: 8px; overflow: hidden; border: 1px solid rgba(63, 174, 255, .18); background: rgba(2, 8, 18, .72); }
+.bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--green)); }
+.asset-row { grid-template-columns: 1fr auto auto; }
+.side-rail { display: none; gap: 9px; padding: 10px; }
 .rail-item {
   width: 44px;
   height: 44px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(132,162,205,.18);
-  background: rgba(7, 11, 20, .54);
+  border: 1px solid rgba(63, 174, 255, .22);
+  background: rgba(2, 8, 18, .62);
   color: var(--cyan);
   font-family: var(--mono);
   font-size: 11px;
-  font-weight: 800;
-}
-.section-title {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  margin: 0 0 7px;
-  color: var(--cyan);
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-.panel {
-  border: 1px solid rgba(132,162,205,.20);
-  background: linear-gradient(180deg, rgba(20, 29, 47, .86), rgba(10, 15, 25, .72));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
-}
-.project-card {
-  display: grid;
-  grid-template-columns: 54px 1fr;
-  gap: 10px;
-  align-items: center;
-  min-height: 78px;
-  padding: 10px;
-  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
-}
-.project-card:hover {
-  border-color: var(--line-hot);
-  transform: translateY(-2px);
-  box-shadow: 0 0 0 1px rgba(34,211,238,.20), 0 12px 28px rgba(0,0,0,.28);
-}
-.project-icon {
-  width: 54px;
-  height: 46px;
-  display: grid;
-  place-items: center;
-  background:
-    linear-gradient(90deg, #7dd3fc 0 38%, #7c3aed 38% 70%, #22c55e 70%),
-    #111827;
-  color: white;
-  font-family: var(--mono);
-  font-weight: 800;
-}
-.project-card h2 {
-  margin: 0;
-  font-size: 16px;
-  line-height: 1.1;
-}
-.project-card p {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-.task-list, .stats {
-  display: grid;
-  gap: 7px;
-  padding: 8px;
-}
-.task {
-  width: 100%;
-  min-height: 44px;
-  display: grid;
-  grid-template-columns: 26px 1fr auto;
-  align-items: center;
-  gap: 8px;
-  padding: 7px;
-  border: 1px solid rgba(132,162,205,.14);
-  background: rgba(7, 11, 20, .48);
-  color: var(--ink);
-  text-align: left;
-}
-.task:hover {
-  border-color: var(--line-hot);
-  box-shadow: 0 0 18px rgba(34,211,238,.10);
-}
-.task-mark {
-  width: 24px;
-  height: 24px;
-  background: var(--blue);
-  box-shadow: 0 0 14px rgba(78,123,255,.26);
-}
-.task:nth-child(2) .task-mark { background: #9b4ded; }
-.task:nth-child(3) .task-mark { background: var(--cyan); }
-.task b {
-  display: block;
-  font-size: 13px;
-}
-.task span {
-  display: block;
-  color: var(--muted);
-  font-size: 11px;
-}
-.on { color: var(--green); font-family: var(--mono); font-size: 11px; font-weight: 800; }
-.stat {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 5px;
-  border-bottom: 1px solid rgba(132,162,205,.16);
-  color: #dce8fb;
-  font-family: var(--mono);
-}
-.stat:last-child { border-bottom: 0; }
-.stat span { color: var(--muted); font-family: var(--ui); }
-.scene-wrap {
-  position: relative;
-  min-height: 590px;
-  overflow: hidden;
-}
-.scene {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(4, 8, 16, .36), rgba(4, 8, 16, .05) 32%, rgba(4, 8, 16, .18)),
-    linear-gradient(180deg, rgba(8, 13, 24, .34), transparent 22%, rgba(8, 13, 24, .24)),
-    radial-gradient(circle at 50% 40%, rgba(57, 96, 134, .16), transparent 48%),
-    linear-gradient(180deg, #151b2a 0%, #0a101c 100%);
-  image-rendering: auto;
-}
-.scene:before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: url("assets/trading-office-scene.png") center center / 100% 100% no-repeat;
-}
-.scene-wrap:after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(rgba(255,255,255,.06) 50%, rgba(0,0,0,.06) 50%),
-    radial-gradient(circle at 52% 58%, transparent 0 48%, rgba(2,5,12,.24) 100%);
-  background-size: 100% 4px, auto;
-  mix-blend-mode: soft-light;
-}
-.status-card {
-  position: absolute;
-  top: 20px;
-  min-width: 218px;
-  padding: 10px 12px 0;
-  border: 1px solid rgba(132,162,205,.45);
-  background: rgba(7, 12, 23, .78);
-  box-shadow: 0 12px 28px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.08);
-  backdrop-filter: blur(4px);
-}
-.status-card.one { left: 22px; }
-.status-card.two { left: 258px; }
-.status-card b {
-  display: block;
-  font-family: var(--mono);
-  font-size: 11px;
-  line-height: 1.42;
-}
-.status-card .label {
-  display: block;
-  margin: 8px -12px 0;
-  padding: 8px 10px;
-  border-top: 1px solid rgba(132,162,205,.28);
-  background: linear-gradient(180deg, rgba(28, 42, 66, .82), rgba(13, 21, 37, .82));
-  color: var(--cyan);
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 800;
-  text-align: center;
-}
-.hotspot {
-  position: absolute;
-  display: grid;
-  align-content: center;
-  min-width: 188px;
-  min-height: 74px;
-  padding: 12px 14px;
-  border: 1px solid rgba(34,211,238,.42);
-  background: linear-gradient(180deg, rgba(7, 12, 23, .86), rgba(10, 18, 33, .72));
-  box-shadow: 0 12px 30px rgba(0,0,0,.30), 0 0 0 1px rgba(34,211,238,.08);
-  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
-  z-index: 2;
-}
-.hotspot:hover {
-  transform: translateY(-3px);
-  border-color: rgba(34,211,238,.90);
-  box-shadow: 0 18px 44px rgba(0,0,0,.36), 0 0 28px rgba(34,211,238,.22);
-}
-.hotspot.dca { left: 205px; bottom: 96px; }
-.hotspot.gold { right: 76px; bottom: 132px; border-color: rgba(246,173,69,.52); }
-.hotspot .mini {
-  color: var(--cyan);
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-.hotspot.gold .mini { color: var(--amber); }
-.hotspot strong {
-  display: block;
-  margin-top: 3px;
-  font-size: 17px;
-  line-height: 1.1;
-}
-.hotspot span:last-child {
-  margin-top: 5px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-}
-.command {
-  position: relative;
-  width: 100%;
-  padding: 10px;
-  border: 1px solid rgba(132,162,205,.44);
-  background: rgba(7, 12, 23, .86);
-}
-.command b {
-  display: block;
-  margin-bottom: 7px;
-  font-family: var(--mono);
-  font-size: 12px;
-}
-.command-row {
-  display: grid;
-  grid-template-columns: 1fr 38px;
-  gap: 7px;
-}
-.command input {
-  min-width: 0;
-  height: 38px;
-  border: 1px solid rgba(132,162,205,.22);
-  background: rgba(4, 8, 16, .72);
-  color: #e6f0ff;
-  padding: 0 12px;
-  outline: 0;
-}
-.command button {
-  border: 1px solid rgba(132,162,205,.32);
-  background: linear-gradient(180deg, rgba(87,112,154,.78), rgba(39,52,79,.82));
-  color: white;
-  font-size: 18px;
   font-weight: 800;
 }
 .agent-console {
   position: absolute;
-  right: 20px;
-  top: 96px;
-  bottom: 20px;
-  z-index: 4;
-  width: min(560px, calc(100% - 40px));
+  right: 24px;
+  top: 80px;
+  bottom: 24px;
+  z-index: 5;
+  width: min(590px, calc(100% - 48px));
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
-  border: 1px solid rgba(34,211,238,.42);
-  background: linear-gradient(180deg, rgba(12, 19, 33, .94), rgba(5, 9, 17, .90));
-  box-shadow: 0 22px 60px rgba(0,0,0,.42), 0 0 34px rgba(34,211,238,.12);
+  border: 1px solid rgba(34,217,255,.52);
+  background: linear-gradient(180deg, rgba(6, 19, 36, .95), rgba(2, 8, 18, .92));
+  box-shadow: 0 24px 70px rgba(0,0,0,.48), 0 0 40px rgba(34,217,255,.14);
   opacity: 0;
   pointer-events: none;
   transform: translateX(18px) scale(.985);
   transition: opacity .18s ease, transform .18s ease;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(7px);
 }
-.scene-wrap.agents-open .agent-console {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateX(0) scale(1);
-}
+.scene-board.agents-open .agent-console { opacity: 1; pointer-events: auto; transform: translateX(0) scale(1); }
 .agent-head {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   align-items: center;
   padding: 12px;
-  border-bottom: 1px solid rgba(132,162,205,.22);
+  border-bottom: 1px solid rgba(63, 174, 255, .24);
 }
-.agent-head > div {
-  min-width: 0;
-}
-.agent-head h2 {
-  margin: 0;
-  font-size: 18px;
-  line-height: 1.1;
-}
-.agent-head p {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
+.agent-head > div { min-width: 0; }
+.agent-head h2 { margin: 0; font-size: 18px; }
+.agent-head p { margin: 4px 0 0; color: var(--muted); font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
 .agent-close {
   width: 34px;
   height: 34px;
-  border: 1px solid rgba(132,162,205,.28);
-  background: rgba(7,11,20,.72);
+  border: 1px solid rgba(63, 174, 255, .32);
+  background: rgba(2, 8, 18, .72);
   color: #fff;
   font-weight: 800;
 }
-.agent-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(132,162,205,.18);
-}
+.agent-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 10px 12px; border-bottom: 1px solid rgba(63, 174, 255, .18); }
 .mini-agent {
   min-height: 58px;
-  border: 1px solid rgba(132,162,205,.20);
-  background: rgba(7,11,20,.54);
-  color: #dce8fb;
+  border: 1px solid rgba(63, 174, 255, .20);
+  background: rgba(3, 12, 25, .54);
+  color: #dcecff;
   padding: 8px;
   text-align: left;
 }
-.mini-agent.active,
-.mini-agent:hover {
-  border-color: var(--line-hot);
-  background: linear-gradient(180deg, rgba(28,42,66,.78), rgba(8,14,25,.76));
-}
-.mini-agent b {
-  display: block;
-  color: #fff;
-  font-size: 12px;
-}
-.mini-agent span {
-  display: block;
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1.25;
-}
-.agent-chat {
-  min-height: 0;
-  display: grid;
-  align-content: start;
-  gap: 8px;
-  padding: 12px;
-  overflow: auto;
-}
+.mini-agent.active, .mini-agent:hover { border-color: var(--line-hot); background: linear-gradient(180deg, rgba(18, 55, 98, .86), rgba(4, 12, 26, .80)); }
+.mini-agent b { display: block; color: #fff; font-size: 12px; }
+.mini-agent span { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.25; }
+.agent-chat { min-height: 0; display: grid; align-content: start; gap: 8px; padding: 12px; overflow: auto; }
 .agent-msg {
   max-width: 92%;
   padding: 10px 11px;
-  border: 1px solid rgba(132,162,205,.18);
-  background: rgba(7,11,20,.52);
-  color: #eef6ff;
+  border: 1px solid rgba(63, 174, 255, .18);
+  background: rgba(2, 8, 18, .56);
+  color: #eef8ff;
   font-size: 12px;
   line-height: 1.55;
   white-space: pre-wrap;
 }
-.agent-msg.user {
-  justify-self: end;
-  border-color: rgba(34,211,238,.34);
-  background: rgba(19,74,91,.46);
-}
-.agent-msg b {
-  display: block;
-  margin-bottom: 5px;
-  color: var(--cyan);
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-.agent-msg span {
-  display: block;
-  line-height: 1.55;
-}
-.agent-compose {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 86px;
-  gap: 8px;
-  padding: 10px;
-  border-top: 1px solid rgba(132,162,205,.22);
-}
-.agent-compose input {
-  min-width: 0;
-  height: 38px;
-  border: 1px solid rgba(132,162,205,.22);
-  background: rgba(4,8,16,.72);
-  color: #e6f0ff;
-  padding: 0 11px;
-  outline: 0;
-}
-.agent-compose button {
-  border: 1px solid rgba(34,211,238,.46);
-  background: linear-gradient(180deg, rgba(27,162,183,.78), rgba(14,93,118,.82));
-  color: #fff;
-  font-weight: 800;
-}
-.agent-compose button:disabled {
-  opacity: .6;
-  cursor: wait;
-}
+.agent-msg.user { justify-self: end; border-color: rgba(34,217,255,.34); background: rgba(19,74,91,.46); }
+.agent-msg b { display: block; margin-bottom: 5px; color: var(--cyan); font-family: var(--mono); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.agent-msg span { display: block; line-height: 1.55; }
+.agent-compose { grid-template-columns: minmax(0, 1fr) 86px; padding: 10px; border-top: 1px solid rgba(63, 174, 255, .24); }
 .loading-gate {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 30;
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(5, 8, 14, .78);
+  background: rgba(2, 5, 12, .82);
   opacity: 0;
   pointer-events: none;
   backdrop-filter: blur(0);
-  transition: opacity .22s ease, backdrop-filter .22s ease;
+  transition: opacity .2s ease, backdrop-filter .2s ease;
 }
-.loading-gate.is-active {
-  opacity: 1;
-  pointer-events: auto;
-  backdrop-filter: blur(6px);
-}
+.loading-gate.is-active { opacity: 1; pointer-events: auto; backdrop-filter: blur(6px); }
 .loading-panel {
-  width: min(390px, 92vw);
+  width: min(420px, 92vw);
   padding: 22px;
-  border: 1px solid rgba(34,211,238,.44);
-  background: linear-gradient(180deg, rgba(18, 27, 45, .96), rgba(7, 12, 23, .94));
-  box-shadow: 0 28px 80px rgba(0,0,0,.48), 0 0 42px rgba(34,211,238,.12);
+  border: 1px solid rgba(34,217,255,.52);
+  background: linear-gradient(180deg, rgba(7, 21, 40, .96), rgba(2, 8, 18, .94));
+  box-shadow: 0 28px 80px rgba(0,0,0,.52), 0 0 42px rgba(34,217,255,.14);
 }
-.loading-title {
-  font-size: 20px;
-  font-weight: 800;
-}
-.loading-subtitle {
-  margin: 6px 0 14px;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 800;
-}
-.loading-bar {
-  height: 8px;
-  overflow: hidden;
-  border: 1px solid rgba(132,162,205,.28);
-  background: rgba(5,8,14,.8);
-}
-.loading-bar span {
-  display: block;
-  width: 0;
-  height: 100%;
-  background: linear-gradient(90deg, var(--cyan), var(--green));
-}
+.loading-title { font-size: 20px; font-weight: 800; }
+.loading-subtitle { margin: 6px 0 14px; color: var(--muted); font-family: var(--mono); font-size: 12px; font-weight: 800; }
+.loading-bar { height: 8px; overflow: hidden; border: 1px solid rgba(63, 174, 255, .26); background: rgba(2,8,18,.8); }
+.loading-bar span { display: block; width: 0; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--green)); }
 .loading-gate.is-active .loading-bar span { animation: fill 3s linear forwards; }
-.reveal {
-  opacity: 0;
-  transform: translateY(12px);
-  animation: reveal .48s ease forwards;
-}
-body.side-collapsed .frame {
-  grid-template-columns: 82px minmax(0, 1fr);
-}
-body.side-collapsed .top {
-  grid-template-columns: 82px minmax(0, 1fr) auto;
-}
-body.side-collapsed .brand {
-  justify-content: center;
-  padding: 10px;
-}
-body.side-collapsed .brand h1,
-body.side-collapsed .brand p {
-  display: none;
-}
-body.side-collapsed .side {
-  padding: 10px 12px;
-}
-body.side-collapsed .side section {
-  display: none;
-}
-body.side-collapsed .side-rail {
-  display: grid;
-}
-body.side-collapsed .side-toggle {
-  left: 82px;
-}
-body.side-collapsed .side-toggle:before {
-  content: ">";
-}
+.reveal { opacity: 0; transform: translateY(12px); animation: reveal .48s ease forwards; }
+body.side-collapsed .screen { grid-template-columns: 82px minmax(620px, 1fr) 315px; }
+body.side-collapsed .topbar { grid-template-columns: 82px minmax(0, 1fr) 315px; }
+body.side-collapsed .brand { justify-content: center; padding: 9px; }
+body.side-collapsed .brand h1, body.side-collapsed .brand p { display: none; }
+body.side-collapsed .left > section { display: none; }
+body.side-collapsed .side-rail { display: grid; }
+body.side-collapsed .side-toggle:before { content: ">"; }
 @keyframes reveal { to { opacity: 1; transform: translateY(0); } }
 @keyframes fill { to { width: 100%; } }
-@media (max-width: 1120px) {
-  .frame { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; }
-  .top { grid-template-columns: 1fr; }
-  .side-toggle { left: auto; right: 12px; transform: translateY(-50%); }
-  body.side-collapsed .frame { grid-template-columns: 1fr; }
-  body.side-collapsed .top { grid-template-columns: 1fr; }
-  body.side-collapsed .brand { justify-content: flex-start; padding: 11px 13px; }
-  body.side-collapsed .brand h1,
-  body.side-collapsed .brand p { display: block; }
-  body.side-collapsed .side { display: none; }
-  body.side-collapsed .side-toggle { left: auto; right: 12px; }
-  .nav, .actions { justify-content: flex-start; overflow-x: auto; }
-  .side { grid-row: 3; }
-  .scene-wrap { min-height: 520px; }
-  .status-card.two { left: auto; right: 20px; }
+@media (max-width: 1280px) {
+  .screen { grid-template-columns: 286px minmax(520px, 1fr); grid-template-rows: 64px auto minmax(520px, 1fr); }
+  .topbar { grid-template-columns: 286px minmax(0, 1fr); }
+  .top-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .right { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  body.side-collapsed .screen { grid-template-columns: 82px minmax(520px, 1fr); }
+  body.side-collapsed .topbar { grid-template-columns: 82px minmax(0, 1fr); }
 }
-@media (max-width: 720px) {
-  .app { padding: 8px; }
-  .frame { min-height: calc(100vh - 16px); gap: 8px; }
-  .nav { display: none; }
-  .actions { flex-wrap: wrap; }
-  .scene-wrap { min-height: 540px; }
-  .status-card {
-    position: relative;
-    left: auto !important;
-    right: auto !important;
-    top: auto;
-    margin: 10px;
+@media (max-width: 820px) {
+  .page { padding: 8px; }
+  .screen { min-height: calc(100vh - 16px); grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; }
+  .topbar { grid-template-columns: 1fr; }
+  .screen,
+  .topbar,
+  .brand,
+  .nav,
+  .top-actions,
+  .left,
+  .right,
+  .scene-board,
+  .mini-panel,
+  .panel {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .left,
+  .right {
+    overflow: visible;
+  }
+  .section-head {
     min-width: 0;
   }
-  .hotspot {
-    left: 12px !important;
-    right: 12px !important;
+  .section-head span {
     min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .hotspot.dca { bottom: 112px; }
-  .hotspot.gold { bottom: 24px; }
-  .command { display: block; }
-  .agent-console {
+  .section-head span:last-child {
     display: none;
-    position: relative;
-    inset: auto;
-    width: auto;
-    margin: 10px;
-    min-height: 430px;
-    opacity: 1;
-    transform: none;
   }
-  .scene-wrap.agents-open .agent-console {
-    display: grid;
-    position: fixed;
-    inset: 8px;
-    width: auto;
-    min-height: 0;
-    z-index: 40;
+  .wallet-value,
+  .small-lines div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
   }
+  .agent-row,
+  .asset-row,
+  .event-row {
+    grid-template-columns: 1fr;
+  }
+  .chip {
+    justify-self: start;
+  }
+  .side-toggle { right: 10px; }
+  .nav, .top-actions { justify-content: flex-start; overflow-x: auto; }
+  .scene-board { min-height: 620px; }
+  .status-card.one, .status-card.two, .project-link, .gold-link, .terminal, .team-chat { left: 10px; right: 10px; width: auto; }
+  .status-card.one { top: 12px; }
+  .status-card.two { top: 122px; }
+  .gold-link { bottom: 222px; }
+  .project-link { bottom: 126px; }
+  .terminal { bottom: 16px; }
+  .team-chat { display: none; }
+  .agent-console { position: fixed; inset: 8px; width: auto; top: 8px; bottom: 8px; }
   .agent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .agent-compose { grid-template-columns: 1fr; }
-  body.agents-mode .top,
-  body.agents-mode .side,
-  body.agents-mode .scene,
-  body.agents-mode .status-card,
-  body.agents-mode .hotspot {
-    display: none;
-  }
-  body.agents-mode .frame {
-    display: block;
-    min-height: calc(100vh - 16px);
-  }
-  body.agents-mode .scene-wrap {
-    min-height: calc(100vh - 16px);
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-  }
-  body.agents-mode .agent-console {
-    margin: 0;
-    min-height: calc(100vh - 16px);
-  }
+  body.side-collapsed .screen, body.side-collapsed .topbar { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
-<main class="app">
-  <section class="frame">
-    <header class="top reveal">
-      <a class="brand" href="./index.html#dashboard" data-loading-title="กำลังเปิด DCA-Portfolio">
-        <div class="logo">SF</div>
+<main class="page">
+  <section class="screen">
+    <header class="topbar reveal">
+      <a class="brand panel" href="./index.html#dashboard" data-loading-title="กำลังเปิด DCA-Portfolio">
+        <div class="brand-mark">SF</div>
         <div>
-          <h1>SiamFolio Office</h1>
-          <p>Realtime bot command center</p>
+          <h1>Pixel Dream</h1>
+          <p>SiamFolio command center</p>
         </div>
+        <button class="side-toggle" id="sideToggle" type="button" aria-label="พับเมนูซ้าย" aria-expanded="true"></button>
       </a>
-      <button class="side-toggle" id="sideToggle" type="button" aria-label="พับเมนูซ้าย" aria-expanded="true"></button>
-      <nav class="nav" aria-label="Trading office sections">
+      <nav class="nav panel" aria-label="Pixel command sections">
         <span class="tab active">Dashboard</span>
         <button class="tab" id="openAgentsTab" type="button">AI Agents</button>
-        <span class="tab">Trades</span>
-        <span class="tab">Analytics</span>
-        <span class="tab">Risk</span>
+        <a class="tab" href="./index.html#transactions" data-loading-title="กำลังเปิด Trades">Trades</a>
+        <a class="tab" href="./index.html#compare" data-loading-title="กำลังเปิด Analytics">Analytics</a>
+        <a class="tab" href="./bitget-bot.html?preset=gold-ea" data-loading-title="กำลังเปิด Risk Lab">Risk</a>
       </nav>
-      <div class="actions">
-        <button class="cmd-btn start" type="button">Start</button>
-        <button class="cmd-btn stop" type="button">Stop</button>
-        <span class="bot-chip">2/2 bots running</span>
+      <div class="top-actions panel">
+        <button class="action start" type="button">Start</button>
+        <button class="action stop" type="button">Stop</button>
+        <span class="status-pill">2/2 bots running</span>
       </div>
     </header>
 
-    <aside class="side reveal" style="animation-delay:.05s">
+    <aside class="left panel reveal" style="animation-delay:.05s">
       <div class="side-rail" aria-hidden="true">
         <span class="rail-item">DCA</span>
         <span class="rail-item">AI</span>
         <span class="rail-item">EA</span>
         <span class="rail-item">LINE</span>
       </div>
-      <section>
-        <h2 class="section-title"><span>Project</span><span id="clockText">--:--:--</span></h2>
-        <a class="project-card panel" href="./index.html#dashboard" data-loading-title="กำลังเปิด DCA-Portfolio">
-          <div class="project-icon">DCA</div>
-          <div>
-            <h2>DCA-Portfolio</h2>
-            <p>พอร์ตลงทุนและ DCA schedule</p>
-          </div>
-        </a>
-      </section>
-
-      <section>
-        <h2 class="section-title"><span>Tasks</span><span>Live</span></h2>
-        <div class="task-list panel">
-          <div class="task"><span class="task-mark"></span><div><b>Portfolio Tracker</b><span>Sync values + LINE OA</span></div><span class="on">ON</span></div>
-          <div class="task"><span class="task-mark"></span><div><b>Gold EA Paper</b><span>TradFi gold signal lab</span></div><span class="on">ON</span></div>
-          <button class="task" id="openAgentsTask" type="button"><span class="task-mark"></span><div><b>AI Agents Hub</b><span>Portfolio, DCA, Risk, Gold</span></div><span class="on">NEW</span></button>
+      <section class="mini-panel panel">
+        <div class="section-head"><span>Wallet Affiliate</span><span id="clockText">--:--:--</span></div>
+        <div class="wallet-value"><strong>$7.59</strong><span>Live</span></div>
+        <div class="small-lines">
+          <div><span>Bybit pending</span><b>$2.24</b></div>
+          <div><span>Bitget grid</span><b>$4.85</b></div>
+          <div><span>Local time</span><b class="time-inline">--:--:--</b></div>
         </div>
       </section>
-
-      <section>
-        <h2 class="section-title"><span>Account Status</span><span>Realtime</span></h2>
-        <div class="stats panel">
-          <div class="stat"><span>Equity</span><b>$20,882.27</b></div>
-          <div class="stat"><span>DCA Systems</span><b>1</b></div>
-          <div class="stat"><span>Gold EA</span><b>Paper</b></div>
-          <div class="stat"><span>Risk Guard</span><b>Ready</b></div>
+      <section class="mini-panel panel">
+        <div class="section-head"><span>Grid Bot</span><span>Running</span></div>
+        <div class="small-lines">
+          <div><span>ROI</span><b class="negative">-44.54%</b></div>
+          <div><span>Drawdown</span><b class="negative">-$179.13</b></div>
+          <div><span>Grid Profit</span><b class="positive">+$220.39</b></div>
+          <div><span>Spread</span><b>0.0045</b></div>
         </div>
       </section>
-
-      <section>
-        <h2 class="section-title"><span>Command</span><span>Ready</span></h2>
-        <div class="command">
-          <b>Quick Open</b>
-          <div class="command-row">
-            <input id="commandInput" placeholder="พิมพ์ dca หรือ gold...">
-            <button id="commandBtn" type="button" aria-label="Run command">›</button>
-          </div>
+      <section class="mini-panel panel">
+        <div class="section-head"><span>AI Agents</span><button class="chip" id="openAgentsSide" type="button">OPEN</button></div>
+        <div class="agent-list">
+          <button class="agent-row" type="button" data-open-agent="portfolio"><span><b>Housekeeper</b><span>portfolio summary</span></span><i class="chip">ON</i></button>
+          <button class="agent-row" type="button" data-open-agent="dca"><span><b>Policy Refresh</b><span>DCA schedule check</span></span><i class="chip">ON</i></button>
+          <button class="agent-row" type="button" data-open-agent="risk"><span><b>Risk Guard</b><span>drawdown review</span></span><i class="chip">ON</i></button>
+          <button class="agent-row" type="button" data-open-agent="gold"><span><b>Gold EA</b><span>paper signal lab</span></span><i class="chip">NEW</i></button>
         </div>
       </section>
     </aside>
 
-    <section class="scene-wrap reveal" style="animation-delay:.1s" aria-label="Trading office scene">
-      <div class="scene"></div>
-      <div class="status-card one">
-        <b>STATUS : Running</b>
-        <b>DCA Sync : Online</b>
-        <b>LINE OA : Linked</b>
-        <b>Last Update : <span class="time-inline">--:--:--</span></b>
-        <span class="label">DCA-PORTFOLIO</span>
+    <section class="scene-board reveal" style="animation-delay:.1s" aria-label="Pixel trading office scene">
+      <div class="scene-bg"></div>
+      <div class="floating status-card one">
+        <div class="window-bar"><span>DCA Portfolio</span><span>Live</span></div>
+        <div class="window-body">
+          <p>STATUS : Running</p><p>DCA Sync : Online</p><p>LINE OA : Linked</p><p>Last Update : <span class="time-inline">--:--:--</span></p>
+        </div>
       </div>
-      <div class="status-card two">
-        <b>STATUS : Paper</b>
-        <b>Market : GC=F / XAUUSD</b>
-        <b>Trade : Signal Only</b>
-        <b>Last Update : <span class="time-inline">--:--:--</span></b>
-        <span class="label">TRADFI GOLD EA</span>
+      <div class="floating status-card two">
+        <div class="window-bar"><span>XAU / PAXG</span><span>Paper</span></div>
+        <div class="window-body">
+          <p>STATUS : Running</p><p>Market : GC=F / XAUUSD</p><p>Trade : Wait / In Range</p><p>Last Update : <span class="time-inline">--:--:--</span></p>
+        </div>
       </div>
-
-      <a class="hotspot dca" href="./index.html#dashboard" data-loading-title="กำลังเปิด DCA-Portfolio">
-        <span class="mini">Open Dashboard</span>
-        <strong>DCA-Portfolio</strong>
-        <span>พอร์ตหลัก ตาราง DCA และแจ้งเตือน LINE</span>
+      <a class="floating project-link" href="./index.html#dashboard" data-loading-title="กำลังเปิด DCA-Portfolio">
+        <div class="window-bar"><span>Open Dashboard</span><span>DCA</span></div>
+        <div class="window-body"><p><b>DCA-Portfolio</b></p><p>พอร์ตหลัก ตาราง DCA และแจ้งเตือน LINE</p></div>
       </a>
-      <a class="hotspot gold" href="./bitget-bot.html?preset=gold-ea" data-loading-title="กำลังเปิด TradFi Gold EA">
-        <span class="mini">Open EA Lab</span>
-        <strong>TradFi Gold EA</strong>
-        <span>กราฟแท่งเทียน จุดเข้าออก และ paper signal</span>
+      <a class="floating gold-link" href="./bitget-bot.html?preset=gold-ea" data-loading-title="กำลังเปิด TradFi Gold EA">
+        <div class="window-bar"><span>Open EA Lab</span><span>Gold</span></div>
+        <div class="window-body"><p><b>TradFi Gold EA</b></p><p>กราฟแท่งเทียน จุดเข้าออก และ paper signal</p></div>
       </a>
-
+      <div class="floating team-chat">
+        <div class="window-bar"><span>Team Chat</span><span>AI</span></div>
+        <div class="window-body"><p>ถาม AI เรื่องพอร์ต, DCA, LINE OA, หรือ Gold EA ได้จากหน้านี้</p></div>
+      </div>
+      <div class="floating terminal">
+        <div class="window-bar"><span>Command</span><span>Ready</span></div>
+        <div class="window-body">
+          <div class="command-row">
+            <input id="commandInput" placeholder="พิมพ์ dca, ai, gold...">
+            <button id="commandBtn" type="button" aria-label="Run command">›</button>
+          </div>
+        </div>
+      </div>
       <section class="agent-console" id="agentConsole" aria-label="AI Agents console">
         <div class="agent-head">
           <div>
@@ -892,8 +618,36 @@ body.side-collapsed .side-toggle:before {
           <button id="agentSend" type="submit">Ask</button>
         </form>
       </section>
-
     </section>
+
+    <aside class="right panel reveal" style="animation-delay:.15s">
+      <section class="mini-panel panel">
+        <div class="section-head"><span>Account Status</span><span>Realtime</span></div>
+        <div class="metric-grid">
+          <div class="metric"><span>Equity</span><b>$20,882</b></div>
+          <div class="metric"><span>DCA Systems</span><b>1</b></div>
+          <div class="metric"><span>Gold EA</span><b>Paper</b></div>
+          <div class="metric"><span>Risk Guard</span><b>Ready</b></div>
+        </div>
+        <div class="bar"><span style="width:72%"></span></div>
+      </section>
+      <section class="mini-panel panel">
+        <div class="section-head"><span>Crypto Prices</span><span>Market</span></div>
+        <div class="agent-list">
+          <div class="asset-row"><span><b>BTC</b><span>Bitcoin</span></span><b>$72,599</b><i class="chip positive">+0.4%</i></div>
+          <div class="asset-row"><span><b>XAUT</b><span>Tether Gold</span></span><b>$4,490</b><i class="chip negative">-0.9%</i></div>
+          <div class="asset-row"><span><b>TRX</b><span>Tron</span></span><b>$0.34</b><i class="chip positive">+1.2%</i></div>
+        </div>
+      </section>
+      <section class="mini-panel panel">
+        <div class="section-head"><span>Latest Events</span><span>Log</span></div>
+        <div class="agent-list">
+          <div class="event-row"><span><b>LINE OA linked</b><span>Webhook active</span></span><i class="chip">OK</i></div>
+          <div class="event-row"><span><b>DCA reminder</b><span>next weekly round</span></span><i class="chip">7D</i></div>
+          <div class="event-row"><span><b>AI context</b><span>portfolio ready</span></span><i class="chip">ON</i></div>
+        </div>
+      </section>
+    </aside>
   </section>
 </main>
 
@@ -916,9 +670,9 @@ body.side-collapsed .side-toggle:before {
   const commandInput = document.getElementById("commandInput");
   const commandBtn = document.getElementById("commandBtn");
   const sideToggle = document.getElementById("sideToggle");
-  const sceneWrap = document.querySelector(".scene-wrap");
+  const sceneBoard = document.querySelector(".scene-board");
   const openAgentsTab = document.getElementById("openAgentsTab");
-  const openAgentsTask = document.getElementById("openAgentsTask");
+  const openAgentsSide = document.getElementById("openAgentsSide");
   const closeAgentsBtn = document.getElementById("closeAgentsBtn");
   const agentGrid = document.getElementById("agentGrid");
   const agentChat = document.getElementById("agentChat");
@@ -931,50 +685,24 @@ body.side-collapsed .side-toggle:before {
   const apiUrl = (window.AUTH_CONFIG?.apiUrl || "").replace(/\/$/, "");
   let activeAgent = "portfolio";
   const history = [];
-
   const agents = {
-    portfolio: {
-      label: "Portfolio",
-      short: "Portfolio value, P/L, allocation",
-      desc: "Summarize portfolio value, winners, losers, allocation, and what changed.",
-      prefix: "You are the SiamFolio Portfolio Agent. Answer using the user's portfolio data and explain clearly in Thai."
-    },
-    dca: {
-      label: "DCA",
-      short: "Schedule, overdue, history",
-      desc: "Check DCA plans, missed rounds, next buy dates, and transaction history.",
-      prefix: "You are the SiamFolio DCA Agent. Focus on DCA schedules, overdue items, executions, and next actions."
-    },
-    risk: {
-      label: "Risk",
-      short: "Drawdown, concentration, balance",
-      desc: "Review asset concentration, negative positions, and portfolio risk guardrails.",
-      prefix: "You are the SiamFolio Risk Agent. Focus on portfolio risk, concentration, drawdown, and practical warnings."
-    },
-    gold: {
-      label: "Gold EA",
-      short: "TradFi gold bot ideas",
-      desc: "Plan the gold EA workflow, paper trading, entry/exit notes, and risk rules.",
-      prefix: "You are the TradFi Gold EA planning agent. Keep answers practical and remind the user this is not financial advice."
-    }
+    portfolio: { label: "Portfolio", short: "Portfolio value, P/L, allocation", desc: "Summarize portfolio value, winners, losers, allocation, and what changed.", prefix: "You are the SiamFolio Portfolio Agent. Answer using the user's portfolio data and explain clearly in Thai." },
+    dca: { label: "DCA", short: "Schedule, overdue, history", desc: "Check DCA plans, missed rounds, next buy dates, and transaction history.", prefix: "You are the SiamFolio DCA Agent. Focus on DCA schedules, overdue items, executions, and next actions." },
+    risk: { label: "Risk", short: "Drawdown, concentration, balance", desc: "Review asset concentration, negative positions, and portfolio risk guardrails.", prefix: "You are the SiamFolio Risk Agent. Focus on portfolio risk, concentration, drawdown, and practical warnings." },
+    gold: { label: "Gold EA", short: "TradFi gold bot ideas", desc: "Plan the gold EA workflow, paper trading, entry/exit notes, and risk rules.", prefix: "You are the TradFi Gold EA planning agent. Keep answers practical and remind the user this is not financial advice." }
   };
-
   function updateClock() {
     const text = new Date().toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok", hour12: false });
     if (clockText) clockText.textContent = text;
     timeInline.forEach(el => { el.textContent = text; });
   }
-
   function openWithDelay(target, title) {
     if (!target) return;
     if (loadingTitle) loadingTitle.textContent = title || "กำลังเปิดระบบ";
     gate?.classList.add("is-active");
     gate?.setAttribute("aria-hidden", "false");
-    setTimeout(() => {
-      location.href = target;
-    }, 3000);
+    setTimeout(() => { location.href = target; }, 3000);
   }
-
   function setSideCollapsed(collapsed) {
     document.body.classList.toggle("side-collapsed", collapsed);
     if (sideToggle) {
@@ -983,13 +711,13 @@ body.side-collapsed .side-toggle:before {
       sideToggle.title = collapsed ? "กางเมนูซ้าย" : "พับเมนูซ้าย";
     }
   }
-
-  function toggleSide() {
+  function toggleSide(event) {
+    event?.preventDefault();
+    event?.stopPropagation();
     const collapsed = !document.body.classList.contains("side-collapsed");
     localStorage.setItem(SIDE_COLLAPSED_KEY, collapsed ? "1" : "0");
     setSideCollapsed(collapsed);
   }
-
   function getSession() {
     try {
       const raw = localStorage.getItem(SESSION_KEY);
@@ -1002,16 +730,9 @@ body.side-collapsed .side-toggle:before {
       return null;
     }
   }
-
   function escapeHtml(value) {
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
+    return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   }
-
   function addAgentMessage(role, text) {
     if (!agentChat) return;
     const node = document.createElement("div");
@@ -1020,7 +741,6 @@ body.side-collapsed .side-toggle:before {
     agentChat.appendChild(node);
     agentChat.scrollTop = agentChat.scrollHeight;
   }
-
   function renderAgentGrid() {
     if (!agentGrid) return;
     agentGrid.innerHTML = Object.entries(agents).map(([key, agent]) => `
@@ -1033,29 +753,21 @@ body.side-collapsed .side-toggle:before {
       button.addEventListener("click", () => setAgent(button.dataset.agent));
     });
   }
-
   function setAgent(key) {
     activeAgent = agents[key] ? key : "portfolio";
     if (agentTitle) agentTitle.textContent = `${agents[activeAgent].label} Agent`;
     if (agentDesc) agentDesc.textContent = agents[activeAgent].desc;
     renderAgentGrid();
-    if (!agentChat?.children.length) {
-      addAgentMessage("agent", "เลือก agent แล้วถามได้เลย เช่น สรุปพอร์ต, DCA รอบต่อไป, สินทรัพย์ติดลบ, หรือวิธีผูก LINE OA");
-    }
+    if (!agentChat?.children.length) addAgentMessage("agent", "เลือก agent แล้วถามได้เลย เช่น สรุปพอร์ต, DCA รอบต่อไป, สินทรัพย์ติดลบ, หรือวิธีผูก LINE OA");
   }
-
   function openAgents(key = "portfolio") {
-    sceneWrap?.classList.add("agents-open");
-    document.body.classList.add("agents-mode");
+    sceneBoard?.classList.add("agents-open");
     setAgent(key);
     setTimeout(() => agentInput?.focus(), 80);
   }
-
   function closeAgents() {
-    sceneWrap?.classList.remove("agents-open");
-    document.body.classList.remove("agents-mode");
+    sceneBoard?.classList.remove("agents-open");
   }
-
   async function askAgent(question) {
     const session = getSession();
     if (!apiUrl || !session?.token) {
@@ -1063,18 +775,12 @@ body.side-collapsed .side-toggle:before {
       return;
     }
     const agent = agents[activeAgent];
-    const payload = {
-      question: `${agent.prefix}\n\nUser question: ${question}`,
-      history: history.slice(-8)
-    };
+    const payload = { question: `${agent.prefix}\n\nUser question: ${question}`, history: history.slice(-8) };
     try {
       addAgentMessage("agent", "กำลังอ่านข้อมูลพอร์ตและคิดคำตอบ...");
       const response = await fetch(`${apiUrl}/api/ai/chat`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.token}`
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
         body: JSON.stringify(payload)
       });
       const data = await response.json().catch(() => ({}));
@@ -1090,34 +796,26 @@ body.side-collapsed .side-toggle:before {
       addAgentMessage("agent", `AI ยังตอบไม่ได้ตอนนี้: ${error.message}`);
     }
   }
-
   links.forEach(link => link.addEventListener("click", event => {
     const target = link.getAttribute("href");
     if (!target || target.startsWith("#")) return;
     event.preventDefault();
     openWithDelay(target, link.dataset.loadingTitle);
   }));
-
   function runCommand() {
     const value = (commandInput?.value || "").trim().toLowerCase();
-    if (value.includes("ai") || value.includes("agent") || value.includes("เอไอ")) {
-      openAgents();
-      return;
-    }
-    if (value.includes("gold") || value.includes("ทอง") || value.includes("ea")) {
-      openWithDelay("./bitget-bot.html?preset=gold-ea", "กำลังเปิด TradFi Gold EA");
-      return;
-    }
+    if (value.includes("ai") || value.includes("agent") || value.includes("เอไอ")) return openAgents();
+    if (value.includes("gold") || value.includes("ทอง") || value.includes("ea")) return openWithDelay("./bitget-bot.html?preset=gold-ea", "กำลังเปิด TradFi Gold EA");
     openWithDelay("./index.html#dashboard", "กำลังเปิด DCA-Portfolio");
   }
-
   commandBtn?.addEventListener("click", runCommand);
-  commandInput?.addEventListener("keydown", event => {
-    if (event.key === "Enter") runCommand();
-  });
+  commandInput?.addEventListener("keydown", event => { if (event.key === "Enter") runCommand(); });
   sideToggle?.addEventListener("click", toggleSide);
   openAgentsTab?.addEventListener("click", () => openAgents("portfolio"));
-  openAgentsTask?.addEventListener("click", () => openAgents("portfolio"));
+  openAgentsSide?.addEventListener("click", () => openAgents("portfolio"));
+  document.querySelectorAll("[data-open-agent]").forEach(button => {
+    button.addEventListener("click", () => openAgents(button.dataset.openAgent));
+  });
   closeAgentsBtn?.addEventListener("click", closeAgents);
   agentForm?.addEventListener("submit", event => {
     event.preventDefault();
@@ -1127,7 +825,6 @@ body.side-collapsed .side-toggle:before {
     addAgentMessage("user", question);
     askAgent(question);
   });
-
   const params = new URLSearchParams(location.search);
   const sideParam = params.get("side");
   updateClock();
