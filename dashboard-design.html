@@ -156,8 +156,9 @@ button { cursor: pointer; }
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 9px;
-  padding: 8px 10px 8px 12px;
+  gap: 0;
+  min-height: 58px;
+  padding: 5px 8px 5px 10px;
   overflow: hidden;
   background:
     linear-gradient(90deg, rgba(1, 10, 23, .92), rgba(5, 26, 45, .82) 48%, rgba(2, 8, 18, .94)),
@@ -188,85 +189,112 @@ button { cursor: pointer; }
     -8px -8px 0 -7px rgba(255,226,108,.9),
     8px 8px 0 -7px rgba(34,217,255,.8);
 }
-.hud-level {
+.hud-core {
   position: relative;
   z-index: 1;
-  flex: 0 0 auto;
-  color: #f3c76b;
+  flex: 0 0 58px;
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  margin-right: -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(34, 242, 244, .92);
+  background:
+    radial-gradient(circle at center, rgba(2, 8, 18, .92) 0 44%, transparent 45%),
+    repeating-conic-gradient(from -10deg, rgba(34,242,244,.95) 0 5deg, transparent 5deg 9deg),
+    radial-gradient(circle, rgba(34,242,244,.22), rgba(2,8,18,.9) 66%);
+  box-shadow: 0 0 16px rgba(34,242,244,.32), inset 0 0 18px rgba(34,242,244,.16);
+}
+.hud-core:after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(34,242,244,.72);
+  border-radius: 50%;
+}
+.hud-core span {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin-bottom: -2px;
+  color: #8ff8ff;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 800;
   line-height: 1;
-  text-shadow: 0 0 8px rgba(243,199,107,.34);
-  white-space: nowrap;
+  text-transform: uppercase;
 }
-.hud-level b {
-  color: #fff4a0;
-  font-size: 14px;
+.hud-core b {
+  position: relative;
+  z-index: 1;
+  color: #c9ffff;
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 0 12px rgba(34,242,244,.62);
 }
 .hud-track {
   position: relative;
   z-index: 1;
   flex: 1 1 auto;
-  flex: 0 0 118px;
-  min-width: 118px;
-  height: 9px;
+  min-width: 0;
+  height: 35px;
   overflow: hidden;
-  border: 1px solid rgba(54, 182, 255, .48);
+  border: 2px solid rgba(34,242,244,.82);
+  clip-path: polygon(0 0, 88% 0, 100% 28%, 100% 72%, 88% 100%, 0 100%, 9% 50%);
   background:
-    linear-gradient(180deg, rgba(255,255,255,.07), transparent),
-    rgba(2, 8, 18, .9);
-  box-shadow: inset 0 0 8px rgba(0,0,0,.55);
+    linear-gradient(90deg, rgba(34,242,244,.22), transparent 14% 86%, rgba(34,242,244,.20)),
+    rgba(2, 8, 18, .92);
+  box-shadow: inset 0 0 18px rgba(34,242,244,.16);
 }
 .hud-track span {
+  position: absolute;
+  left: 26px;
+  top: 9px;
   display: block;
-  width: 60.4%;
-  height: 100%;
+  width: 0;
+  max-width: calc(100% - 72px);
+  height: 16px;
   background:
-    linear-gradient(90deg, #f7cf59, #68f2ff),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.20) 0 2px, transparent 2px 7px);
-  box-shadow: 0 0 14px rgba(104,242,255,.52);
+    repeating-linear-gradient(90deg, #29f7ff 0 7px, transparent 7px 13px),
+    linear-gradient(90deg, rgba(34,242,244,.88), rgba(34,242,244,.88));
+  filter: drop-shadow(0 0 7px rgba(34,242,244,.72));
   transition: width .42s ease;
 }
 .hud-track span:after {
   content: "";
+  position: absolute;
+  inset: 0;
   display: block;
-  height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent);
   animation: hud-fill-shine 2.4s ease-in-out infinite;
 }
-.hud-xp {
+.hud-track:after {
+  content: "";
+  position: absolute;
+  right: 42px;
+  top: 5px;
+  width: 56px;
+  height: 7px;
+  transform: skewX(-28deg);
+  background: repeating-linear-gradient(90deg, rgba(34,242,244,.88) 0 5px, transparent 5px 9px);
+  opacity: .9;
+}
+.hud-time {
   position: relative;
   z-index: 1;
   flex: 0 0 auto;
-  color: #cce6fb;
+  min-width: 58px;
+  margin-left: 7px;
+  color: #92fbff;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
-  min-width: 82px;
   text-align: right;
-  text-shadow: 0 0 8px rgba(34,217,255,.28);
+  text-shadow: 0 0 10px rgba(34,242,244,.48);
   white-space: nowrap;
-}
-.hud-bot {
-  position: relative;
-  z-index: 1;
-  flex: 0 0 30px;
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border: 1px solid rgba(34,217,255,.5);
-  background: radial-gradient(circle at 45% 30%, rgba(34,217,255,.32), rgba(2,8,18,.88) 70%);
-  box-shadow: 0 0 18px rgba(34,217,255,.24);
-  animation: hud-bot-pulse 2.6s ease-in-out infinite;
-}
-.hud-bot img {
-  width: 30px;
-  height: 30px;
-  object-fit: contain;
-  filter: drop-shadow(0 0 7px rgba(34,217,255,.38));
 }
 .left, .right {
   display: grid;
@@ -505,10 +533,6 @@ button { cursor: pointer; }
   45% { opacity: .9; }
   100% { transform: translateX(100%); opacity: 0; }
 }
-@keyframes hud-bot-pulse {
-  0%, 100% { transform: translateY(0); box-shadow: 0 0 18px rgba(34,217,255,.24); }
-  50% { transform: translateY(-1px); box-shadow: 0 0 26px rgba(34,217,255,.42); }
-}
 @media (max-width: 1280px) {
   .screen { grid-template-columns: 286px minmax(520px, 1fr); grid-template-rows: 64px auto minmax(520px, 1fr); }
   .topbar { grid-template-columns: 286px minmax(0, 1fr) 315px; }
@@ -598,10 +622,9 @@ button { cursor: pointer; }
         <a class="tab" href="./index.html#compare" data-loading-title="กำลังเปิด Risk">Risk</a>
       </nav>
       <div class="player-hud panel" aria-label="Player progress">
-        <span class="hud-level">Lv.<b id="hudLevelValue">24</b></span>
+        <span class="hud-core"><span>Lv</span><b id="hudLevelValue">1</b></span>
         <span class="hud-track" aria-hidden="true"><span id="hudTrackFill"></span></span>
-        <span class="hud-xp" id="hudXpValue">1,208/2,000</span>
-        <span class="hud-bot"><img src="assets/ai-chatbot-icon.webp" alt=""></span>
+        <span class="hud-time" id="hudXpValue">00:00</span>
       </div>
     </header>
 
@@ -761,16 +784,11 @@ button { cursor: pointer; }
   const agentTitle = document.getElementById("agentTitle");
   const agentDesc = document.getElementById("agentDesc");
   const SESSION_KEY = "siamfolio.googleSession";
-  const HUD_STARTED_KEY = "siamfolio.dashboardDesign.hudStartedAt";
-  const HUD_BASE_LEVEL = 24;
-  const HUD_BASE_XP = 1208;
-  const HUD_XP_MAX = 2000;
+  const HUD_TOTAL_MS_KEY = "siamfolio.dashboardDesign.hudTotalMs";
+  const HUD_BASE_LEVEL = 1;
   const HUD_LEVEL_MS = 60 * 60 * 1000;
-  let hudStartedAt = Number(sessionStorage.getItem(HUD_STARTED_KEY) || 0);
-  if (!hudStartedAt || hudStartedAt > Date.now()) {
-    hudStartedAt = Date.now();
-    sessionStorage.setItem(HUD_STARTED_KEY, String(hudStartedAt));
-  }
+  let hudTotalMs = Math.max(0, Number(localStorage.getItem(HUD_TOTAL_MS_KEY) || 0));
+  let hudLastTick = Date.now();
   const apiUrl = (window.AUTH_CONFIG?.apiUrl || "").replace(/\/$/, "");
   let activeAgent = "portfolio";
   const history = [];
@@ -785,14 +803,27 @@ button { cursor: pointer; }
     if (clockText) clockText.textContent = text;
     timeInline.forEach(el => { el.textContent = text; });
   }
+  function formatHudTime(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
   function updateHudLevel() {
-    const elapsed = Math.max(0, Date.now() - hudStartedAt);
-    const gainedLevels = Math.floor(elapsed / HUD_LEVEL_MS);
-    const phase = (elapsed % HUD_LEVEL_MS) / HUD_LEVEL_MS;
-    const xp = Math.min(HUD_XP_MAX - 1, Math.floor(HUD_BASE_XP + phase * (HUD_XP_MAX - HUD_BASE_XP)));
-    const pct = Math.max(0, Math.min(100, (xp / HUD_XP_MAX) * 100));
+    const now = Date.now();
+    const delta = Math.max(0, Math.min(now - hudLastTick, 60 * 1000));
+    hudLastTick = now;
+    if (!document.hidden) {
+      hudTotalMs += delta;
+      localStorage.setItem(HUD_TOTAL_MS_KEY, String(Math.floor(hudTotalMs)));
+    }
+    const gainedLevels = Math.floor(hudTotalMs / HUD_LEVEL_MS);
+    const progressMs = hudTotalMs % HUD_LEVEL_MS;
+    const pct = Math.max(0, Math.min(100, (progressMs / HUD_LEVEL_MS) * 100));
     if (hudLevelValue) hudLevelValue.textContent = String(HUD_BASE_LEVEL + gainedLevels);
-    if (hudXpValue) hudXpValue.textContent = `${xp.toLocaleString("en-US")}/${HUD_XP_MAX.toLocaleString("en-US")}`;
+    if (hudXpValue) hudXpValue.textContent = formatHudTime(hudTotalMs);
     if (hudTrackFill) hudTrackFill.style.width = `${pct}%`;
   }
   function openWithDelay(target, title) {
