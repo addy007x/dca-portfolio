@@ -297,7 +297,7 @@ button { cursor: pointer; }
 .terminal { left: 24px; bottom: 24px; width: 290px; }
 .project-link { left: 335px; bottom: 24px; width: 260px; }
 .team-chat { right: 24px; bottom: 24px; width: 260px; }
-.gold-link { right: 34px; bottom: 118px; width: 260px; border-color: rgba(255, 191, 75, .42); }
+.line-link { right: 34px; bottom: 118px; width: 260px; border-color: rgba(32, 240, 139, .42); }
 .command-row, .agent-compose { display: grid; grid-template-columns: 1fr 44px; gap: 8px; }
 .command-row input, .agent-compose input {
   min-width: 0;
@@ -492,10 +492,10 @@ body.side-collapsed .side-toggle:before { content: ">"; }
   .side-toggle { right: 10px; }
   .nav, .top-actions { justify-content: flex-start; overflow-x: auto; }
   .scene-board { min-height: 620px; }
-  .status-card.one, .status-card.two, .project-link, .gold-link, .terminal, .team-chat { left: 10px; right: 10px; width: auto; }
+  .status-card.one, .status-card.two, .project-link, .line-link, .terminal, .team-chat { left: 10px; right: 10px; width: auto; }
   .status-card.one { top: 12px; }
   .status-card.two { top: 122px; }
-  .gold-link { bottom: 222px; }
+  .line-link { bottom: 222px; }
   .project-link { bottom: 126px; }
   .terminal { bottom: 16px; }
   .team-chat { display: none; }
@@ -523,12 +523,12 @@ body.side-collapsed .side-toggle:before { content: ">"; }
         <button class="tab" id="openAgentsTab" type="button">AI Agents</button>
         <a class="tab" href="./index.html#transactions" data-loading-title="กำลังเปิด Trades">Trades</a>
         <a class="tab" href="./index.html#compare" data-loading-title="กำลังเปิด Analytics">Analytics</a>
-        <a class="tab" href="./bitget-bot.html?preset=gold-ea" data-loading-title="กำลังเปิด Risk Lab">Risk</a>
+        <a class="tab" href="./index.html#compare" data-loading-title="กำลังเปิด Risk">Risk</a>
       </nav>
       <div class="top-actions panel">
-        <button class="action start" type="button">Start</button>
-        <button class="action stop" type="button">Stop</button>
-        <span class="status-pill">2/2 bots running</span>
+        <a class="action start" href="./index.html#dashboard" data-loading-title="กำลังเปิด DCA-Portfolio">DCA</a>
+        <button class="action stop" id="openAgentsTop" type="button">AI</button>
+        <span class="status-pill">Portfolio online</span>
       </div>
     </header>
 
@@ -536,7 +536,7 @@ body.side-collapsed .side-toggle:before { content: ">"; }
       <div class="side-rail" aria-hidden="true">
         <span class="rail-item">DCA</span>
         <span class="rail-item">AI</span>
-        <span class="rail-item">EA</span>
+        <span class="rail-item">EARN</span>
         <span class="rail-item">LINE</span>
       </div>
       <section class="mini-panel panel">
@@ -544,17 +544,17 @@ body.side-collapsed .side-toggle:before { content: ">"; }
         <div class="wallet-value"><strong>$7.59</strong><span>Live</span></div>
         <div class="small-lines">
           <div><span>Bybit pending</span><b>$2.24</b></div>
-          <div><span>Bitget grid</span><b>$4.85</b></div>
+          <div><span>DCA value</span><b>$4.85</b></div>
           <div><span>Local time</span><b class="time-inline">--:--:--</b></div>
         </div>
       </section>
       <section class="mini-panel panel">
-        <div class="section-head"><span>Grid Bot</span><span>Running</span></div>
+        <div class="section-head"><span>DCA Monitor</span><span>Running</span></div>
         <div class="small-lines">
-          <div><span>ROI</span><b class="negative">-44.54%</b></div>
-          <div><span>Drawdown</span><b class="negative">-$179.13</b></div>
-          <div><span>Grid Profit</span><b class="positive">+$220.39</b></div>
-          <div><span>Spread</span><b>0.0045</b></div>
+          <div><span>Portfolio P/L</span><b class="positive">+8.61%</b></div>
+          <div><span>DCA plans</span><b>Active</b></div>
+          <div><span>LINE OA</span><b class="positive">Linked</b></div>
+          <div><span>AI context</span><b>Ready</b></div>
         </div>
       </section>
       <section class="mini-panel panel">
@@ -563,7 +563,7 @@ body.side-collapsed .side-toggle:before { content: ">"; }
           <button class="agent-row" type="button" data-open-agent="portfolio"><span><b>Housekeeper</b><span>portfolio summary</span></span><i class="chip">ON</i></button>
           <button class="agent-row" type="button" data-open-agent="dca"><span><b>Policy Refresh</b><span>DCA schedule check</span></span><i class="chip">ON</i></button>
           <button class="agent-row" type="button" data-open-agent="risk"><span><b>Risk Guard</b><span>drawdown review</span></span><i class="chip">ON</i></button>
-          <button class="agent-row" type="button" data-open-agent="gold"><span><b>Gold EA</b><span>paper signal lab</span></span><i class="chip">NEW</i></button>
+          <button class="agent-row" type="button" data-open-agent="line"><span><b>LINE Helper</b><span>OA setup guide</span></span><i class="chip">NEW</i></button>
         </div>
       </section>
     </aside>
@@ -577,28 +577,28 @@ body.side-collapsed .side-toggle:before { content: ">"; }
         </div>
       </div>
       <div class="floating status-card two">
-        <div class="window-bar"><span>XAU / PAXG</span><span>Paper</span></div>
+        <div class="window-bar"><span>LINE OA</span><span>Linked</span></div>
         <div class="window-body">
-          <p>STATUS : Running</p><p>Market : GC=F / XAUUSD</p><p>Trade : Wait / In Range</p><p>Last Update : <span class="time-inline">--:--:--</span></p>
+          <p>STATUS : Ready</p><p>Webhook : Active</p><p>Command : พอร์ต / dca</p><p>Last Update : <span class="time-inline">--:--:--</span></p>
         </div>
       </div>
       <a class="floating project-link" href="./index.html#dashboard" data-loading-title="กำลังเปิด DCA-Portfolio">
         <div class="window-bar"><span>Open Dashboard</span><span>DCA</span></div>
         <div class="window-body"><p><b>DCA-Portfolio</b></p><p>พอร์ตหลัก ตาราง DCA และแจ้งเตือน LINE</p></div>
       </a>
-      <a class="floating gold-link" href="./bitget-bot.html?preset=gold-ea" data-loading-title="กำลังเปิด TradFi Gold EA">
-        <div class="window-bar"><span>Open EA Lab</span><span>Gold</span></div>
-        <div class="window-body"><p><b>TradFi Gold EA</b></p><p>กราฟแท่งเทียน จุดเข้าออก และ paper signal</p></div>
+      <a class="floating line-link" href="./index.html#dashboard" data-loading-title="กำลังเปิด LINE OA Status">
+        <div class="window-bar"><span>LINE OA</span><span>Notify</span></div>
+        <div class="window-body"><p><b>Portfolio Alerts</b></p><p>แจ้งเตือนพอร์ต DCA และคำสั่งเช็กพอร์ตผ่าน LINE</p></div>
       </a>
       <div class="floating team-chat">
         <div class="window-bar"><span>Team Chat</span><span>AI</span></div>
-        <div class="window-body"><p>ถาม AI เรื่องพอร์ต, DCA, LINE OA, หรือ Gold EA ได้จากหน้านี้</p></div>
+        <div class="window-body"><p>ถาม AI เรื่องพอร์ต, DCA, LINE OA, ภาษี หรือความเสี่ยงได้จากหน้านี้</p></div>
       </div>
       <div class="floating terminal">
         <div class="window-bar"><span>Command</span><span>Ready</span></div>
         <div class="window-body">
           <div class="command-row">
-            <input id="commandInput" placeholder="พิมพ์ dca, ai, gold...">
+            <input id="commandInput" placeholder="พิมพ์ dca, ai, line...">
             <button id="commandBtn" type="button" aria-label="Run command">›</button>
           </div>
         </div>
@@ -626,7 +626,7 @@ body.side-collapsed .side-toggle:before { content: ">"; }
         <div class="metric-grid">
           <div class="metric"><span>Equity</span><b>$20,882</b></div>
           <div class="metric"><span>DCA Systems</span><b>1</b></div>
-          <div class="metric"><span>Gold EA</span><b>Paper</b></div>
+          <div class="metric"><span>LINE OA</span><b>Linked</b></div>
           <div class="metric"><span>Risk Guard</span><b>Ready</b></div>
         </div>
         <div class="bar"><span style="width:72%"></span></div>
@@ -689,7 +689,7 @@ body.side-collapsed .side-toggle:before { content: ">"; }
     portfolio: { label: "Portfolio", short: "Portfolio value, P/L, allocation", desc: "Summarize portfolio value, winners, losers, allocation, and what changed.", prefix: "You are the SiamFolio Portfolio Agent. Answer using the user's portfolio data and explain clearly in Thai." },
     dca: { label: "DCA", short: "Schedule, overdue, history", desc: "Check DCA plans, missed rounds, next buy dates, and transaction history.", prefix: "You are the SiamFolio DCA Agent. Focus on DCA schedules, overdue items, executions, and next actions." },
     risk: { label: "Risk", short: "Drawdown, concentration, balance", desc: "Review asset concentration, negative positions, and portfolio risk guardrails.", prefix: "You are the SiamFolio Risk Agent. Focus on portfolio risk, concentration, drawdown, and practical warnings." },
-    gold: { label: "Gold EA", short: "TradFi gold bot ideas", desc: "Plan the gold EA workflow, paper trading, entry/exit notes, and risk rules.", prefix: "You are the TradFi Gold EA planning agent. Keep answers practical and remind the user this is not financial advice." }
+    line: { label: "LINE OA", short: "Linking, commands, alerts", desc: "Explain LINE OA linking, portfolio commands, and notification setup.", prefix: "You are the SiamFolio LINE OA helper. Explain LINE OA linking, commands, and notifications clearly in Thai." }
   };
   function updateClock() {
     const text = new Date().toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok", hour12: false });
@@ -805,7 +805,7 @@ body.side-collapsed .side-toggle:before { content: ">"; }
   function runCommand() {
     const value = (commandInput?.value || "").trim().toLowerCase();
     if (value.includes("ai") || value.includes("agent") || value.includes("เอไอ")) return openAgents();
-    if (value.includes("gold") || value.includes("ทอง") || value.includes("ea")) return openWithDelay("./bitget-bot.html?preset=gold-ea", "กำลังเปิด TradFi Gold EA");
+    if (value.includes("line") || value.includes("ไลน์")) return openAgents("line");
     openWithDelay("./index.html#dashboard", "กำลังเปิด DCA-Portfolio");
   }
   commandBtn?.addEventListener("click", runCommand);
