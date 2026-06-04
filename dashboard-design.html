@@ -285,6 +285,7 @@ button { cursor: pointer; }
   white-space: nowrap;
 }
 .hud-book {
+  --hud-fire: .38;
   position: relative;
   z-index: 1;
   flex: 0 0 38px;
@@ -297,29 +298,42 @@ button { cursor: pointer; }
     radial-gradient(circle at 50% 50%, rgba(255,226,108,.18), rgba(0,0,0,.10) 58%, rgba(2,8,18,.60)),
     url("assets/level-magic-book.png") center / cover no-repeat;
   box-shadow:
-    0 0 16px rgba(255, 226, 108, .22),
+    0 0 calc(18px + (var(--hud-fire) * 20px)) rgba(255, 156, 28, calc(.24 + var(--hud-fire) * .28)),
     0 0 22px rgba(34, 217, 255, .10),
+    0 0 calc(10px + (var(--hud-fire) * 15px)) rgba(255, 55, 18, calc(.10 + var(--hud-fire) * .28)),
     inset 0 0 0 1px rgba(255,255,255,.06);
-  filter: saturate(1.12) contrast(1.06);
+  filter: saturate(1.18) contrast(1.07) drop-shadow(0 0 calc(4px + var(--hud-fire) * 8px) rgba(255,119,24,.42));
+  animation: hud-book-float 3.8s ease-in-out infinite;
 }
 .hud-book:before {
   content: "";
   position: absolute;
-  inset: -4px;
-  border-radius: 14px;
-  background: conic-gradient(from 90deg, transparent, rgba(255,226,108,.34), transparent, rgba(34,217,255,.28), transparent);
-  opacity: .62;
-  filter: blur(5px);
+  inset: calc(-6px - (var(--hud-fire) * 4px));
+  border-radius: 15px;
+  background:
+    radial-gradient(10px 21px at 18% 104%, rgba(255,56,18,calc(.20 + var(--hud-fire) * .48)), transparent 68%),
+    radial-gradient(12px 24px at 48% 106%, rgba(255,203,66,calc(.22 + var(--hud-fire) * .56)), transparent 70%),
+    radial-gradient(9px 20px at 82% 103%, rgba(255,94,20,calc(.18 + var(--hud-fire) * .46)), transparent 72%),
+    linear-gradient(0deg, rgba(255,94,20,calc(.10 + var(--hud-fire) * .20)), transparent 42%),
+    conic-gradient(from calc(90deg + var(--fire-rotate, 0deg)), transparent, rgba(255,226,108,calc(.20 + var(--hud-fire) * .34)), transparent, rgba(255,82,22,calc(.06 + var(--hud-fire) * .34)), transparent, rgba(34,217,255,.18), transparent);
+  opacity: calc(.58 + var(--hud-fire) * .34);
+  filter: blur(calc(4px + var(--hud-fire) * 3px));
   z-index: -1;
+  animation: hud-book-fire 1.35s ease-in-out infinite alternate;
 }
 .hud-book:after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -1px;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(255,255,255,.36), transparent 32%, transparent 68%, rgba(34,217,255,.18));
+  background:
+    radial-gradient(circle at 20% calc(92% - var(--hud-spark-y, 0%)), rgba(255,245,158,.98) 0 1.2px, transparent 2.4px),
+    radial-gradient(circle at 64% calc(100% - var(--hud-spark-y, 0%)), rgba(255,126,38,.92) 0 1.2px, transparent 2.4px),
+    radial-gradient(circle at 86% calc(86% - var(--hud-spark-y, 0%)), rgba(255,215,72,.78) 0 1.2px, transparent 2.4px),
+    linear-gradient(135deg, rgba(255,255,255,.36), transparent 32%, transparent 68%, rgba(34,217,255,.18));
   mix-blend-mode: screen;
   pointer-events: none;
+  animation: hud-book-sparks 1.05s linear infinite;
 }
 .left, .right {
   display: grid;
@@ -580,6 +594,31 @@ button { cursor: pointer; }
   45% { opacity: .9; }
   100% { transform: translateX(100%); opacity: 0; }
 }
+@keyframes hud-book-float {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-1px) rotate(1deg); }
+}
+@keyframes hud-book-fire {
+  0% {
+    transform: scale(.96) rotate(-2deg);
+    --fire-rotate: 0deg;
+  }
+  100% {
+    transform: scale(1.05) rotate(2deg);
+    --fire-rotate: 42deg;
+  }
+}
+@keyframes hud-book-sparks {
+  0% {
+    --hud-spark-y: 0%;
+    opacity: .55;
+  }
+  70% { opacity: .95; }
+  100% {
+    --hud-spark-y: 38%;
+    opacity: .42;
+  }
+}
 @media (max-width: 1280px) {
   .screen { grid-template-columns: 286px minmax(520px, 1fr); grid-template-rows: 64px auto minmax(520px, 1fr); }
   .topbar { grid-template-columns: 286px minmax(0, 1fr) 315px; }
@@ -828,6 +867,7 @@ button { cursor: pointer; }
   const hudLevelValue = document.getElementById("hudLevelValue");
   const hudTrackFill = document.getElementById("hudTrackFill");
   const hudXpValue = document.getElementById("hudXpValue");
+  const hudBook = document.querySelector(".hud-book");
   const sceneBoard = document.querySelector(".scene-board");
   const openAgentsTab = document.getElementById("openAgentsTab");
   const openAgentsSide = document.getElementById("openAgentsSide");
@@ -876,11 +916,14 @@ button { cursor: pointer; }
       localStorage.setItem(HUD_TOTAL_MS_KEY, String(Math.floor(hudTotalMs)));
     }
     const gainedLevels = Math.floor(hudTotalMs / HUD_LEVEL_MS);
+    const currentLevel = HUD_BASE_LEVEL + gainedLevels;
     const progressMs = hudTotalMs % HUD_LEVEL_MS;
     const pct = Math.max(0, Math.min(100, (progressMs / HUD_LEVEL_MS) * 100));
-    if (hudLevelValue) hudLevelValue.textContent = String(HUD_BASE_LEVEL + gainedLevels);
+    const fire = Math.max(0.38, Math.min(1, 0.38 + (currentLevel - 1) * 0.06));
+    if (hudLevelValue) hudLevelValue.textContent = String(currentLevel);
     if (hudXpValue) hudXpValue.textContent = formatHudTime(hudTotalMs);
     if (hudTrackFill) hudTrackFill.style.width = `${pct}%`;
+    if (hudBook) hudBook.style.setProperty("--hud-fire", fire.toFixed(2));
   }
   function openWithDelay(target, title) {
     if (!target) return;
