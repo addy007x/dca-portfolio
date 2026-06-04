@@ -275,7 +275,7 @@ button { cursor: pointer; }
   position: relative;
   z-index: 1;
   flex: 0 0 auto;
-  min-width: 60px;
+  min-width: 56px;
   color: #d9f4ff;
   font-family: var(--mono);
   font-size: 12px;
@@ -283,6 +283,43 @@ button { cursor: pointer; }
   text-align: right;
   text-shadow: 0 0 12px rgba(34,217,255,.46);
   white-space: nowrap;
+}
+.hud-book {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  margin-left: -2px;
+  border: 1px solid rgba(255, 226, 108, .42);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,226,108,.18), rgba(0,0,0,.10) 58%, rgba(2,8,18,.60)),
+    url("assets/level-magic-book.png") center / cover no-repeat;
+  box-shadow:
+    0 0 16px rgba(255, 226, 108, .22),
+    0 0 22px rgba(34, 217, 255, .10),
+    inset 0 0 0 1px rgba(255,255,255,.06);
+  filter: saturate(1.12) contrast(1.06);
+}
+.hud-book:before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 14px;
+  background: conic-gradient(from 90deg, transparent, rgba(255,226,108,.34), transparent, rgba(34,217,255,.28), transparent);
+  opacity: .62;
+  filter: blur(5px);
+  z-index: -1;
+}
+.hud-book:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,.36), transparent 32%, transparent 68%, rgba(34,217,255,.18));
+  mix-blend-mode: screen;
+  pointer-events: none;
 }
 .left, .right {
   display: grid;
@@ -635,6 +672,7 @@ button { cursor: pointer; }
         <span class="hud-level">Lv.<b id="hudLevelValue">1</b></span>
         <span class="hud-track" aria-hidden="true"><span id="hudTrackFill"></span></span>
         <span class="hud-time" id="hudXpValue">00:00</span>
+        <span class="hud-book" aria-hidden="true"></span>
       </div>
     </header>
 
