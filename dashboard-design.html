@@ -84,7 +84,7 @@ button { cursor: pointer; }
 .topbar {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 305px minmax(0, 1fr) 315px;
+  grid-template-columns: 305px minmax(0, 1fr);
   gap: 10px;
   transition: grid-template-columns .22s ease;
 }
@@ -152,42 +152,6 @@ button { cursor: pointer; }
   border-color: rgba(34,217,255,.65);
   background: linear-gradient(180deg, rgba(39, 110, 255, .52), rgba(10, 43, 88, .58));
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 0 22px rgba(34,217,255,.16);
-}
-.top-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 9px;
-}
-.action {
-  min-width: 72px;
-  height: 36px;
-  border: 1px solid rgba(255,255,255,.14);
-  color: #fff;
-  font-weight: 800;
-}
-.action.start { background: linear-gradient(180deg, #0f9f71, #05644c); }
-.action.stop { background: linear-gradient(180deg, #be3e3b, #7d201f); }
-.status-pill {
-  height: 36px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  border: 1px solid rgba(52, 173, 255, .38);
-  background: rgba(2, 8, 18, .62);
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-.status-pill:before {
-  content: "";
-  width: 9px;
-  height: 9px;
-  background: var(--green);
-  box-shadow: 0 0 14px var(--green);
 }
 .left, .right {
   display: grid;
@@ -427,7 +391,7 @@ button { cursor: pointer; }
 .loading-gate.is-active .loading-bar span { animation: fill 3s linear forwards; }
 .reveal { opacity: 0; transform: translateY(12px); animation: reveal .48s ease forwards; }
 body.side-collapsed .screen { grid-template-columns: 82px minmax(620px, 1fr) 315px; }
-body.side-collapsed .topbar { grid-template-columns: 82px minmax(0, 1fr) 315px; }
+body.side-collapsed .topbar { grid-template-columns: 82px minmax(0, 1fr); }
 body.side-collapsed .brand { justify-content: center; padding: 9px; }
 body.side-collapsed .brand h1, body.side-collapsed .brand p { display: none; }
 body.side-collapsed .left > section { display: none; }
@@ -438,7 +402,6 @@ body.side-collapsed .side-toggle:before { content: ">"; }
 @media (max-width: 1280px) {
   .screen { grid-template-columns: 286px minmax(520px, 1fr); grid-template-rows: 64px auto minmax(520px, 1fr); }
   .topbar { grid-template-columns: 286px minmax(0, 1fr); }
-  .top-actions { grid-column: 1 / -1; justify-content: flex-start; }
   .right { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   body.side-collapsed .screen { grid-template-columns: 82px minmax(520px, 1fr); }
   body.side-collapsed .topbar { grid-template-columns: 82px minmax(0, 1fr); }
@@ -451,7 +414,6 @@ body.side-collapsed .side-toggle:before { content: ">"; }
   .topbar,
   .brand,
   .nav,
-  .top-actions,
   .left,
   .right,
   .scene-board,
@@ -490,7 +452,7 @@ body.side-collapsed .side-toggle:before { content: ">"; }
     justify-self: start;
   }
   .side-toggle { right: 10px; }
-  .nav, .top-actions { justify-content: flex-start; overflow-x: auto; }
+  .nav { justify-content: flex-start; overflow-x: auto; }
   .scene-board { min-height: 620px; }
   .status-card.one, .status-card.two, .project-link, .line-link, .terminal, .team-chat { left: 10px; right: 10px; width: auto; }
   .status-card.one { top: 12px; }
@@ -525,11 +487,6 @@ body.side-collapsed .side-toggle:before { content: ">"; }
         <a class="tab" href="./index.html#compare" data-loading-title="กำลังเปิด Analytics">Analytics</a>
         <a class="tab" href="./index.html#compare" data-loading-title="กำลังเปิด Risk">Risk</a>
       </nav>
-      <div class="top-actions panel">
-        <a class="action start" href="./index.html#dashboard" data-loading-title="กำลังเปิด DCA-Portfolio">DCA</a>
-        <button class="action stop" id="openAgentsTop" type="button">AI</button>
-        <span class="status-pill">Portfolio online</span>
-      </div>
     </header>
 
     <aside class="left panel reveal" style="animation-delay:.05s">
