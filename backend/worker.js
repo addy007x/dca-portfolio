@@ -222,6 +222,19 @@ async function getUserPortfolio(env, user) {
   }
 }
 
+async function getUserPortfolioFresh(env, user) {
+  const row = await env.DB.prepare("SELECT data FROM portfolio_snapshots WHERE user_id = ?")
+    .bind(user.id)
+    .first();
+  if (!row?.data) return json({});
+  try {
+    const snapshot = JSON.parse(row.data);
+    return json(await refreshSnapshotPrices(env, snapshot, user.id));
+  } catch (_) {
+    return json({});
+  }
+}
+
 async function putUserPortfolio(req, env, user) {
   const incoming = await req.json();
   const body = await mergePortfolioSnapshotForSave(env, user, incoming);
@@ -1465,6 +1478,7 @@ async function handleRequest(req, env, ctx) {
   const user = hasBearer ? await getSessionUser(req, env) : null;
   if (hasBearer && !user) return error("Unauthorized", 401);
 
+  if (user && path === "/api/portfolio/refresh" && req.method === "GET") return getUserPortfolioFresh(env, user);
   if (user && path === "/api/portfolio" && req.method === "GET") return getUserPortfolio(env, user);
   if (user && path === "/api/portfolio" && req.method === "PUT") return putUserPortfolio(req, env, user);
 

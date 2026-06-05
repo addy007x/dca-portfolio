@@ -105,6 +105,7 @@ GET  /api/prices/fx?from=USD&to=THB                → { rate, date, base, quote
 
 # Authenticated (X-Api-Key header)
 GET  /api/portfolio                                → { holdings, transactions, dca, earn, dueDcaLog }
+GET  /api/portfolio/refresh                        → refresh prices, save snapshot, return { holdings, transactions, dca, earn }
 PUT  /api/portfolio                                → full replace { holdings: [...], ... }
 GET  /api/dca/due                                  → { due: [{...}] }
 GET  /api/line/status                              → { enabled, hasToken, targets }

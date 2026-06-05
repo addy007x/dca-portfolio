@@ -956,10 +956,16 @@ button { cursor: pointer; }
     const session = getSession();
     if (!apiUrl || !session?.token) return null;
     try {
-      const response = await fetch(`${apiUrl}/api/portfolio`, {
+      const response = await fetch(`${apiUrl}/api/portfolio/refresh`, {
         headers: { Authorization: `Bearer ${session.token}` }
       });
-      if (!response.ok) return null;
+      if (!response.ok) {
+        const fallback = await fetch(`${apiUrl}/api/portfolio`, {
+          headers: { Authorization: `Bearer ${session.token}` }
+        });
+        if (!fallback.ok) return null;
+        return await fallback.json();
+      }
       return await response.json();
     } catch {
       return null;
