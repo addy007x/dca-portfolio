@@ -407,8 +407,13 @@ function LocalDatabasePanel({ priceStatus }) {
   const handleSignOut = async () => {
     setSigningOut(true);
     setMsg("กำลังออกจากระบบ...");
-    await window.signOutSupabase?.();
-    setMsg("ออกจากระบบสำเร็จ กำลังรีเฟรชใน 5 วินาที...");
+    try {
+      await window.pushCloudPortfolio?.();
+    } catch (_) {}
+    setMsg("กำลังกลับไปหน้า dashboard-design.html ใน 5 วินาที...");
+    setTimeout(() => {
+      location.assign(new URL("dashboard-design.html", location.href).href);
+    }, 5000);
   };
 
   return (

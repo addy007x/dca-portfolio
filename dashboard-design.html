@@ -200,6 +200,14 @@ button { cursor: pointer; }
   background: linear-gradient(180deg, rgba(39, 110, 255, .52), rgba(10, 43, 88, .58));
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 0 22px rgba(34,217,255,.16);
 }
+.danger-tab {
+  color: #ffd8d8;
+}
+.danger-tab:hover {
+  border-color: rgba(255, 82, 82, .72);
+  background: linear-gradient(180deg, rgba(176, 44, 44, .66), rgba(67, 12, 18, .72));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.05), 0 0 22px rgba(255,82,82,.16);
+}
 .player-hud {
   position: relative;
   display: flex;
@@ -772,6 +780,7 @@ button { cursor: pointer; }
         <button class="tab" type="button">Trades</button>
         <button class="tab" type="button">Analytics</button>
         <button class="tab" type="button">Risk</button>
+        <button class="tab danger-tab" id="designLogoutBtn" type="button">Logout</button>
       </nav>
       <div class="player-hud panel" aria-label="Player progress">
         <span class="hud-level">Lv.<b id="hudLevelValue">1</b></span>
@@ -944,6 +953,7 @@ button { cursor: pointer; }
   const agentInput = document.getElementById("agentInput");
   const agentTitle = document.getElementById("agentTitle");
   const agentDesc = document.getElementById("agentDesc");
+  const designLogoutBtn = document.getElementById("designLogoutBtn");
   const SESSION_KEY = "siamfolio.googleSession";
   const LAST_PROFILE_KEY = "siamfolio.lastProfile";
   const STORE_KEY = "siamfolio.v1";
@@ -998,6 +1008,25 @@ button { cursor: pointer; }
     gate?.classList.add("is-active");
     gate?.setAttribute("aria-hidden", "false");
     setTimeout(() => { location.href = target; }, 3000);
+  }
+  async function clearDesignSession() {
+    const session = getSession();
+    if (designLogoutBtn) {
+      designLogoutBtn.disabled = true;
+      designLogoutBtn.textContent = "Logging out";
+    }
+    try {
+      if (apiUrl && session?.token) {
+        await fetch(`${apiUrl}/api/auth/logout`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.token}` }
+        });
+      }
+    } catch (_) {}
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(LAST_PROFILE_KEY);
+    window.dispatchEvent(new Event("siamfolio.auth.changed"));
+    location.assign(new URL("dashboard-design.html", location.href).href);
   }
   function getSession() {
     try {
@@ -1346,6 +1375,7 @@ button { cursor: pointer; }
   }
   commandBtn?.addEventListener("click", runCommand);
   commandInput?.addEventListener("keydown", event => { if (event.key === "Enter") runCommand(); });
+  designLogoutBtn?.addEventListener("click", clearDesignSession);
   openAgentsTab?.addEventListener("click", () => openAgents("portfolio"));
   openAgentsSide?.addEventListener("click", () => openAgents("portfolio"));
   document.querySelectorAll("[data-open-agent]").forEach(button => {
