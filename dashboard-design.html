@@ -350,28 +350,33 @@ button { cursor: pointer; }
   height: 42px;
   margin-left: -2px;
   overflow: hidden;
-  border: 1px solid rgba(34, 217, 255, .62);
+  border: 1px solid rgba(255, 207, 73, calc(.50 + var(--hud-fire) * .28));
   border-radius: 13px;
   background:
-    radial-gradient(circle at 50% 24%, rgba(255,226,108,.22), transparent 34%),
-    linear-gradient(180deg, rgba(12,37,67,.72), rgba(1,7,18,.94));
+    radial-gradient(circle at 50% 42%, rgba(255,226,108,calc(.18 + var(--hud-fire) * .20)), transparent 34%),
+    radial-gradient(circle at 82% 12%, rgba(34,217,255,calc(.10 + var(--hud-fire) * .14)), transparent 30%),
+    linear-gradient(180deg, rgba(45,25,6,.78), rgba(3,8,18,.96));
   box-shadow:
-    0 0 calc(12px + (var(--hud-fire) * 14px)) rgba(34, 217, 255, calc(.20 + var(--hud-fire) * .20)),
-    0 0 calc(9px + (var(--hud-fire) * 12px)) rgba(255, 226, 108, calc(.16 + var(--hud-fire) * .18)),
+    0 0 calc(12px + (var(--hud-fire) * 26px)) rgba(255, 176, 35, calc(.20 + var(--hud-fire) * .36)),
+    0 0 calc(8px + (var(--hud-fire) * 15px)) rgba(34, 217, 255, calc(.08 + var(--hud-fire) * .16)),
     inset 0 0 0 1px rgba(255,255,255,.06);
-  filter: saturate(1.16) contrast(1.06) drop-shadow(0 0 calc(3px + var(--hud-fire) * 7px) rgba(34,217,255,.38));
-  animation: hud-maid-run 1.18s ease-in-out infinite;
+  filter: saturate(1.24) contrast(1.08) drop-shadow(0 0 calc(4px + var(--hud-fire) * 10px) rgba(255,198,52,.46));
+  animation: hud-hourglass-pulse 2.6s ease-in-out infinite;
 }
 .hud-book img {
   position: absolute;
   z-index: 1;
   left: 50%;
   top: 50%;
-  width: 70px;
+  width: 54px;
+  height: 54px;
   max-width: none;
-  transform: translate(-50%, -42%);
-  filter: saturate(1.12) contrast(1.04) drop-shadow(0 0 6px rgba(255,226,108,.38));
+  object-fit: cover;
+  object-position: center;
+  transform: translate(-50%, -50%) scale(calc(.96 + var(--hud-fire) * .07));
+  filter: saturate(1.20) contrast(1.08) drop-shadow(0 0 calc(4px + var(--hud-fire) * 9px) rgba(255,226,108,.48));
   pointer-events: none;
+  animation: hud-hourglass-drift 3.4s ease-in-out infinite;
 }
 .hud-book:before {
   content: "";
@@ -379,30 +384,28 @@ button { cursor: pointer; }
   inset: calc(-5px - (var(--hud-fire) * 3px));
   border-radius: 16px;
   background:
-    radial-gradient(circle at 70% 24%, rgba(255,226,108,calc(.20 + var(--hud-fire) * .30)), transparent 28%),
-    radial-gradient(circle at 28% 70%, rgba(34,217,255,calc(.22 + var(--hud-fire) * .24)), transparent 38%),
-    conic-gradient(from calc(90deg + var(--fire-rotate, 0deg)), transparent, rgba(34,217,255,.28), transparent, rgba(255,226,108,.18), transparent);
-  opacity: calc(.62 + var(--hud-fire) * .18);
-  filter: blur(calc(4px + var(--hud-fire) * 2px));
+    radial-gradient(circle at 50% 46%, rgba(255,238,150,calc(.22 + var(--hud-fire) * .34)), transparent 22%),
+    radial-gradient(circle at 22% 80%, rgba(255,145,30,calc(.18 + var(--hud-fire) * .28)), transparent 34%),
+    conic-gradient(from calc(90deg + var(--fire-rotate, 0deg)), transparent, rgba(255,216,88,.44), transparent, rgba(34,217,255,.20), transparent, rgba(255,112,35,.22), transparent);
+  opacity: calc(.54 + var(--hud-fire) * .34);
+  filter: blur(calc(4px + var(--hud-fire) * 4px));
   z-index: -1;
-  animation: hud-maid-aura 1.55s ease-in-out infinite alternate;
+  animation: hud-hourglass-aura 1.65s ease-in-out infinite alternate;
 }
 .hud-book:after {
   content: "";
   position: absolute;
-  left: 7px;
-  right: 7px;
-  bottom: 4px;
-  height: 4px;
-  border-radius: 999px;
+  inset: -1px;
+  border-radius: inherit;
   background:
-    linear-gradient(90deg, transparent, rgba(255,226,108,.95), rgba(34,217,255,.82), transparent),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.0) 0 5px, rgba(255,255,255,.62) 5px 7px);
-  background-size: 100% 100%, 18px 100%;
+    radial-gradient(circle at 18% calc(92% - var(--hud-spark-y, 0%)), rgba(255,245,158,.98) 0 1.2px, transparent 2.6px),
+    radial-gradient(circle at 50% calc(104% - var(--hud-spark-y, 0%)), rgba(255,170,38,.90) 0 1.1px, transparent 2.5px),
+    radial-gradient(circle at 82% calc(86% - var(--hud-spark-y, 0%)), rgba(34,217,255,.80) 0 1.1px, transparent 2.5px),
+    linear-gradient(135deg, rgba(255,255,255,calc(.18 + var(--hud-fire) * .18)), transparent 32%, transparent 68%, rgba(255,226,108,.22));
   mix-blend-mode: screen;
   pointer-events: none;
-  box-shadow: 0 0 10px rgba(34,217,255,.55);
-  animation: hud-maid-road .78s linear infinite;
+  opacity: calc(.54 + var(--hud-fire) * .34);
+  animation: hud-hourglass-sparks calc(1.45s - (var(--hud-fire) * .45s)) linear infinite;
 }
 .left, .right {
   display: grid;
@@ -674,24 +677,34 @@ button { cursor: pointer; }
   45% { opacity: .9; }
   100% { transform: translateX(100%); opacity: 0; }
 }
-@keyframes hud-maid-run {
-  0%, 100% { transform: translate3d(0, 0, 0) rotate(-.8deg); }
-  35% { transform: translate3d(1px, -1px, 0) rotate(.8deg); }
-  70% { transform: translate3d(-1px, 0, 0) rotate(.35deg); }
+@keyframes hud-hourglass-pulse {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(0, -1px, 0) scale(calc(1 + var(--hud-fire) * .025)); }
 }
-@keyframes hud-maid-aura {
+@keyframes hud-hourglass-drift {
+  0%, 100% { transform: translate(-50%, -50%) scale(calc(.96 + var(--hud-fire) * .07)) rotate(-1deg); }
+  50% { transform: translate(-50%, -51%) scale(calc(.98 + var(--hud-fire) * .08)) rotate(1deg); }
+}
+@keyframes hud-hourglass-aura {
   0% {
-    transform: scale(.96) rotate(-2deg);
+    transform: scale(.96) rotate(-3deg);
     --fire-rotate: 0deg;
   }
   100% {
-    transform: scale(1.05) rotate(2deg);
-    --fire-rotate: 42deg;
+    transform: scale(calc(1.04 + var(--hud-fire) * .08)) rotate(3deg);
+    --fire-rotate: 58deg;
   }
 }
-@keyframes hud-maid-road {
-  0% { background-position: 0 0, 0 0; opacity: .64; }
-  100% { background-position: 0 0, -18px 0; opacity: .92; }
+@keyframes hud-hourglass-sparks {
+  0% {
+    --hud-spark-y: 0%;
+    filter: blur(.1px);
+  }
+  70% { filter: blur(0); }
+  100% {
+    --hud-spark-y: 46%;
+    filter: blur(.25px);
+  }
 }
 @media (max-width: 1280px) {
   .screen { grid-template-columns: 286px minmax(520px, 1fr); grid-template-rows: 64px auto minmax(520px, 1fr); }
@@ -786,7 +799,7 @@ button { cursor: pointer; }
         <span class="hud-level">Lv.<b id="hudLevelValue">1</b></span>
         <span class="hud-track" aria-hidden="true"><span id="hudTrackFill"></span></span>
         <span class="hud-time" id="hudXpValue">00:00</span>
-        <span class="hud-book" aria-hidden="true"><img src="assets/maid-runner.png" alt=""></span>
+        <span class="hud-book" aria-hidden="true"><img src="assets/level-hourglass.png" alt=""></span>
       </div>
     </header>
 
