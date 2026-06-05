@@ -1147,12 +1147,13 @@ button { cursor: pointer; }
   }
   function applyProfile() {
     const user = getSession()?.user || {};
-    const displayName = "PORTFOLIO";
+    const name = getDisplayName(user);
+    const displayName = name.toLocaleUpperCase("en-US");
     const email = (user.email || "DCA Portfolio Tracker").trim();
     const picture = user.picture || user.avatar || user.avatarUrl || user.photoURL || "";
     if (profileName) profileName.textContent = displayName;
     if (profileEmail) profileEmail.textContent = email;
-    if (profileInitials) profileInitials.textContent = "PF";
+    if (profileInitials) profileInitials.textContent = getInitials(name, email);
     if (profileAvatarImg && profileAvatar) {
       if (picture) {
         profileAvatarImg.src = picture;
