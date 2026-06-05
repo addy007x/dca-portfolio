@@ -444,6 +444,15 @@ button { cursor: pointer; }
   background: linear-gradient(180deg, rgba(5, 16, 31, .82), rgba(3, 8, 17, .72));
   box-shadow: 0 14px 34px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.07);
   backdrop-filter: blur(5px);
+  touch-action: none;
+  user-select: none;
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.floating.is-dragging {
+  z-index: 8;
+  border-color: rgba(255, 215, 94, .82);
+  box-shadow: 0 20px 44px rgba(0,0,0,.46), 0 0 24px rgba(34,217,255,.22), inset 0 1px 0 rgba(255,255,255,.11);
+  transform: scale(1.01);
 }
 .window-bar {
   display: flex;
@@ -457,7 +466,9 @@ button { cursor: pointer; }
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
+  cursor: grab;
 }
+.floating.is-dragging .window-bar { cursor: grabbing; }
 .window-body { padding: 9px; color: #dbeeff; font-family: var(--mono); font-size: 11px; }
 .window-body p { margin: 0 0 6px; }
 .status-card.one { left: 18px; top: 20px; width: 250px; }
@@ -1165,7 +1176,98 @@ button { cursor: pointer; }
       addAgentMessage("agent", `AI ยังตอบไม่ได้ตอนนี้: ${error.message}`);
     }
   }
+  function initDraggablePanels() {
+    if (!sceneBoard) return;
+    const panels = [...sceneBoard.querySelectorAll(".floating")];
+    const storageKey = "siamfolio.dashboardDesign.panelPositions.v1";
+    const getSaved = () => {
+      try { return JSON.parse(localStorage.getItem(storageKey) || "{}"); }
+      catch { return {}; }
+    };
+    const savePanel = (id, data) => {
+      const saved = getSaved();
+      saved[id] = data;
+      localStorage.setItem(storageKey, JSON.stringify(saved));
+    };
+    const panelId = panel => {
+      if (panel.dataset.dragId) return panel.dataset.dragId;
+      const id = [...panel.classList].filter(name => name !== "floating").join("-");
+      panel.dataset.dragId = id || `panel-${Math.random().toString(36).slice(2)}`;
+      return panel.dataset.dragId;
+    };
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const applySavedPositions = () => {
+      if (window.matchMedia("(max-width: 900px)").matches) return;
+      const saved = getSaved();
+      const board = sceneBoard.getBoundingClientRect();
+      panels.forEach(panel => {
+        const data = saved[panelId(panel)];
+        if (!data) return;
+        const leftMax = Math.max(0, board.width - panel.offsetWidth - 8);
+        const topMax = Math.max(0, board.height - panel.offsetHeight - 8);
+        panel.style.left = `${clamp(data.x * leftMax, 8, leftMax)}px`;
+        panel.style.top = `${clamp(data.y * topMax, 8, topMax)}px`;
+        panel.style.right = "auto";
+        panel.style.bottom = "auto";
+      });
+    };
+    panels.forEach(panel => {
+      panel.setAttribute("draggable", "false");
+      const handle = panel.querySelector(".window-bar") || panel;
+      handle.title = "ลากเพื่อจัดตำแหน่งกรอบ";
+      handle.addEventListener("pointerdown", event => {
+        if (window.matchMedia("(max-width: 900px)").matches) return;
+        if (event.button !== undefined && event.button !== 0) return;
+        const board = sceneBoard.getBoundingClientRect();
+        const rect = panel.getBoundingClientRect();
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const originLeft = rect.left - board.left;
+        const originTop = rect.top - board.top;
+        const leftMax = Math.max(0, board.width - rect.width - 8);
+        const topMax = Math.max(0, board.height - rect.height - 8);
+        let moved = false;
+        panel.style.left = `${originLeft}px`;
+        panel.style.top = `${originTop}px`;
+        panel.style.right = "auto";
+        panel.style.bottom = "auto";
+        panel.classList.add("is-dragging");
+        panel.setPointerCapture?.(event.pointerId);
+        event.preventDefault();
+        const onMove = moveEvent => {
+          const nextLeft = clamp(originLeft + moveEvent.clientX - startX, 8, leftMax);
+          const nextTop = clamp(originTop + moveEvent.clientY - startY, 8, topMax);
+          if (Math.abs(moveEvent.clientX - startX) > 4 || Math.abs(moveEvent.clientY - startY) > 4) moved = true;
+          panel.style.left = `${nextLeft}px`;
+          panel.style.top = `${nextTop}px`;
+        };
+        const onEnd = () => {
+          panel.classList.remove("is-dragging");
+          panel.removeEventListener("pointermove", onMove);
+          panel.removeEventListener("pointerup", onEnd);
+          panel.removeEventListener("pointercancel", onEnd);
+          if (moved) {
+            panel.dataset.dragSuppressed = "1";
+            window.setTimeout(() => { delete panel.dataset.dragSuppressed; }, 120);
+          }
+          savePanel(panelId(panel), {
+            x: leftMax ? parseFloat(panel.style.left) / leftMax : 0,
+            y: topMax ? parseFloat(panel.style.top) / topMax : 0
+          });
+        };
+        panel.addEventListener("pointermove", onMove);
+        panel.addEventListener("pointerup", onEnd);
+        panel.addEventListener("pointercancel", onEnd);
+      });
+    });
+    applySavedPositions();
+    window.addEventListener("resize", applySavedPositions);
+  }
   links.forEach(link => link.addEventListener("click", event => {
+    if (link.dataset.dragSuppressed) {
+      event.preventDefault();
+      return;
+    }
     const target = link.getAttribute("href");
     if (!target || target.startsWith("#")) return;
     event.preventDefault();
@@ -1199,6 +1301,7 @@ button { cursor: pointer; }
   applyProfile();
   refreshWalletSummary();
   setAgent("portfolio");
+  initDraggablePanels();
   if (params.get("agents") === "1") openAgents("portfolio");
   window.addEventListener("storage", () => {
     applyProfile();
