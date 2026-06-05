@@ -90,22 +90,57 @@ button { cursor: pointer; }
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
+  gap: 12px;
+  min-height: 62px;
+  padding: 10px 14px;
+  overflow: hidden;
+  border-color: rgba(34, 217, 255, .36);
+  background:
+    linear-gradient(135deg, rgba(34, 217, 255, .12), transparent 28%),
+    radial-gradient(circle at 8% 16%, rgba(255, 213, 92, .18), transparent 30%),
+    linear-gradient(180deg, rgba(7, 21, 40, .96), rgba(2, 8, 18, .88));
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255, 255, 255, .10);
+}
+.brand:before,
+.brand:after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+.brand:before {
+  inset: 7px;
+  border: 1px solid rgba(34, 217, 255, .16);
+}
+.brand:after {
+  width: 90px;
+  height: 1px;
+  left: 72px;
+  bottom: 9px;
+  background: linear-gradient(90deg, rgba(34, 217, 255, .86), transparent);
+  box-shadow: 0 0 14px rgba(34, 217, 255, .42);
 }
 .brand-mark {
-  width: 42px;
-  height: 42px;
+  position: relative;
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
-  flex: 0 0 42px;
+  flex: 0 0 46px;
   overflow: hidden;
-  border: 1px solid rgba(34, 217, 255, .75);
+  border: 1px solid rgba(255, 215, 94, .70);
   background: linear-gradient(135deg, #22d9ff, #19ef9b);
   color: #03111f;
   font-family: var(--mono);
-  font-weight: 800;
-  box-shadow: 0 0 28px rgba(34,217,255,.28);
+  font-weight: 900;
+  box-shadow: 0 0 0 3px rgba(34, 217, 255, .10), 0 0 28px rgba(34,217,255,.34);
+}
+.brand-mark:after {
+  content: "";
+  position: absolute;
+  inset: -35%;
+  background: linear-gradient(120deg, transparent 35%, rgba(255, 255, 255, .42), transparent 65%);
+  transform: translateX(-80%) rotate(14deg);
+  animation: avatarSweep 4.8s ease-in-out infinite;
 }
 .brand-mark img {
   width: 100%;
@@ -116,16 +151,30 @@ button { cursor: pointer; }
 .brand-mark.has-image img { display: block; }
 .brand-mark.has-image span { display: none; }
 .brand-copy {
+  position: relative;
   min-width: 0;
+  z-index: 1;
 }
-.brand h1 { margin: 0; font-size: 18px; line-height: 1.05; }
+.brand h1 {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.05;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  text-shadow: 0 0 18px rgba(34, 217, 255, .24);
+}
 .brand h1,
 .brand p {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.brand p { margin: 3px 0 0; color: var(--muted); font-size: 12px; font-weight: 700; }
+.brand p { margin: 5px 0 0; color: #9fb6d3; font-size: 11px; font-weight: 800; }
+@keyframes avatarSweep {
+  0%, 54% { transform: translateX(-80%) rotate(14deg); opacity: 0; }
+  62% { opacity: .85; }
+  78%, 100% { transform: translateX(80%) rotate(14deg); opacity: 0; }
+}
 .nav {
   display: flex;
   align-items: center;
@@ -1093,15 +1142,16 @@ button { cursor: pointer; }
   function applyProfile() {
     const user = getSession()?.user || {};
     const name = getDisplayName(user);
+    const displayName = name.toLocaleUpperCase("en-US");
     const email = (user.email || "DCA Portfolio Tracker").trim();
     const picture = user.picture || user.avatar || user.avatarUrl || user.photoURL || "";
-    if (profileName) profileName.textContent = name;
+    if (profileName) profileName.textContent = displayName;
     if (profileEmail) profileEmail.textContent = email;
     if (profileInitials) profileInitials.textContent = getInitials(name, email);
     if (profileAvatarImg && profileAvatar) {
       if (picture) {
         profileAvatarImg.src = picture;
-        profileAvatarImg.alt = name;
+        profileAvatarImg.alt = displayName;
         profileAvatar.classList.add("has-image");
       } else {
         profileAvatarImg.removeAttribute("src");
