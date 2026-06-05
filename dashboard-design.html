@@ -476,6 +476,47 @@ button { cursor: pointer; }
 }
 .agent-row b, .asset-row b, .event-row b { display: block; font-size: 12px; }
 .agent-row span, .asset-row span, .event-row span { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+.holding-row {
+  position: relative;
+  overflow: hidden;
+}
+.holding-row:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(34,217,255,.08), transparent 44%);
+  opacity: .7;
+}
+.holding-row > * {
+  position: relative;
+  z-index: 1;
+}
+.holding-meta {
+  display: flex !important;
+  gap: 7px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.holding-value {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  font-family: var(--mono);
+}
+.holding-value b {
+  font-size: 12px;
+}
+.holding-value i {
+  font-style: normal;
+  font-size: 10px;
+}
+.empty-holdings {
+  padding: 10px;
+  border: 1px dashed rgba(63,174,255,.24);
+  color: var(--muted);
+  font-size: 11px;
+}
 .chip {
   min-width: 48px;
   padding: 4px 6px;
@@ -830,12 +871,9 @@ button { cursor: pointer; }
         </div>
       </section>
       <section class="mini-panel panel">
-        <div class="section-head"><span>AI Agents</span><button class="chip" id="openAgentsSide" type="button">OPEN</button></div>
-        <div class="agent-list">
-          <button class="agent-row" type="button" data-open-agent="portfolio"><span><b>Housekeeper</b><span>portfolio summary</span></span><i class="chip">ON</i></button>
-          <button class="agent-row" type="button" data-open-agent="dca"><span><b>Policy Refresh</b><span>DCA schedule check</span></span><i class="chip">ON</i></button>
-          <button class="agent-row" type="button" data-open-agent="risk"><span><b>Risk Guard</b><span>drawdown review</span></span><i class="chip">ON</i></button>
-          <button class="agent-row" type="button" data-open-agent="line"><span><b>LINE Helper</b><span>OA setup guide</span></span><i class="chip">NEW</i></button>
+        <div class="section-head"><span>Holdings</span><span id="holdingsCount">0 Assets</span></div>
+        <div class="agent-list" id="holdingsList">
+          <div class="empty-holdings">ยังไม่มีข้อมูลสินทรัพย์</div>
         </div>
       </section>
     </aside>
@@ -952,6 +990,8 @@ button { cursor: pointer; }
   const walletDailyPnl = document.getElementById("walletDailyPnl");
   const walletDailyPct = document.getElementById("walletDailyPct");
   const walletStatus = document.getElementById("walletStatus");
+  const holdingsList = document.getElementById("holdingsList");
+  const holdingsCount = document.getElementById("holdingsCount");
   const hudLevelValue = document.getElementById("hudLevelValue");
   const hudTrackFill = document.getElementById("hudTrackFill");
   const hudXpValue = document.getElementById("hudXpValue");
@@ -1105,6 +1145,20 @@ button { cursor: pointer; }
     const sign = n >= 0 ? "+" : "";
     return `${sign}${n.toFixed(2)}%`;
   }
+  function firstFinite(...values) {
+    for (const value of values) {
+      const n = Number(value);
+      if (Number.isFinite(n) && n !== 0) return n;
+    }
+    return 0;
+  }
+  function fmtQty(value) {
+    const n = Number(value) || 0;
+    return n.toLocaleString("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: n >= 100 ? 2 : 6
+    });
+  }
   function getEarnPriceUSD(sym, holdings, fx) {
     const symbol = String(sym || "").toUpperCase();
     if (["USDT", "USDC", "BUSD", "DAI", "USD"].includes(symbol)) return 1;
@@ -1178,12 +1232,105 @@ button { cursor: pointer; }
     }
     if (walletStatus) walletStatus.textContent = source;
   }
+  function getHoldingPnlTHB(holding, valueTHB, fx) {
+    const qty = Number(holding?.qty) || 0;
+    const ccy = holding?.ccy === "THB" ? "THB" : "USD";
+    const directPnl = firstFinite(
+      holding?.pnlTHB,
+      holding?.unrealizedPnlTHB,
+      holding?.profitTHB,
+      holding?.gainTHB
+    );
+    if (directPnl) {
+      const base = Math.max(valueTHB - directPnl, 1);
+      return { value: directPnl, pct: (directPnl / base) * 100, label: "P/L" };
+    }
+    const directPnlNative = firstFinite(
+      holding?.pnl,
+      holding?.unrealizedPnl,
+      holding?.profit,
+      holding?.gain
+    );
+    if (directPnlNative) {
+      const pnlTHB = ccy === "THB" ? directPnlNative : directPnlNative * fx;
+      const base = Math.max(valueTHB - pnlTHB, 1);
+      return { value: pnlTHB, pct: (pnlTHB / base) * 100, label: "P/L" };
+    }
+    const avg = firstFinite(
+      holding?.avgCost,
+      holding?.avgPrice,
+      holding?.averageCost,
+      holding?.costPerUnit,
+      holding?.buyPrice,
+      holding?.entryPrice
+    );
+    if (qty > 0 && avg > 0) {
+      const costTHB = ccy === "THB" ? avg * qty : avg * qty * fx;
+      const pnlTHB = valueTHB - costTHB;
+      return { value: pnlTHB, pct: costTHB > 0 ? (pnlTHB / costTHB) * 100 : 0, label: "P/L" };
+    }
+    const dayPct = Number(holding?.chg1d) || 0;
+    return { value: valueTHB * (dayPct / 100), pct: dayPct, label: "Today" };
+  }
+  function renderHoldingsPanel(store, source = "Live") {
+    if (!holdingsList) return;
+    const holdings = Array.isArray(store?.holdings) ? store.holdings : [];
+    const fx = Number(store?.fx) || 35.8;
+    const rows = holdings
+      .map(holding => {
+        const qty = Number(holding?.qty) || 0;
+        const price = Number(holding?.price) || 0;
+        const ccy = holding?.ccy === "THB" ? "THB" : "USD";
+        const valueNative = qty * price;
+        const valueTHB = ccy === "THB" ? valueNative : valueNative * fx;
+        const pnl = getHoldingPnlTHB(holding, valueTHB, fx);
+        return { holding, qty, valueTHB, pnl };
+      })
+      .filter(row => row.qty > 0 && row.valueTHB > 0)
+      .sort((a, b) => b.valueTHB - a.valueTHB)
+      .slice(0, 5);
+    if (holdingsCount) holdingsCount.textContent = `${holdings.length} Assets`;
+    if (!rows.length) {
+      holdingsList.innerHTML = `<div class="empty-holdings">No holdings data</div>`;
+      return;
+    }
+    holdingsList.innerHTML = rows.map(row => {
+      const holding = row.holding;
+      const symbol = escapeHtml(String(holding?.ticker || holding?.sym || "ASSET").toUpperCase());
+      const name = escapeHtml(holding?.name || holding?.label || holding?.assetClass || source);
+      const pnlClass = row.pnl.value >= 0 ? "positive" : "negative";
+      return `
+        <div class="agent-row holding-row">
+          <span>
+            <b>${symbol}</b>
+            <span class="holding-meta">
+              <span>${fmtQty(row.qty)}</span>
+              <span>${name}</span>
+            </span>
+          </span>
+          <span class="holding-value">
+            <b>${fmtTHB(row.valueTHB)}</b>
+            <i class="${pnlClass}">${fmtSignedTHB(row.pnl.value)} · ${fmtPct(row.pnl.pct)}</i>
+          </span>
+        </div>
+      `;
+    }).join("");
+  }
   async function refreshWalletSummary() {
     const localStore = readLocalStore();
-    if (localStore) renderWalletSummary(summarizeWallet(localStore), "Local");
+    if (localStore) {
+      renderWalletSummary(summarizeWallet(localStore), "Local");
+      renderHoldingsPanel(localStore, "Local");
+    }
     const remoteStore = await fetchRemoteStore();
-    if (remoteStore) renderWalletSummary(summarizeWallet(remoteStore), "Live");
-    if (!localStore && !remoteStore && walletStatus) walletStatus.textContent = "No data";
+    if (remoteStore) {
+      renderWalletSummary(summarizeWallet(remoteStore), "Live");
+      renderHoldingsPanel(remoteStore, "Live");
+    }
+    if (!localStore && !remoteStore) {
+      if (walletStatus) walletStatus.textContent = "No data";
+      renderHoldingsPanel(null);
+    }
   }
   function getDisplayName(user) {
     const name = (user?.name || "").trim();
