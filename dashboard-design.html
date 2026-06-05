@@ -861,16 +861,7 @@ button { cursor: pointer; }
           <div><span>Daily P/L</span><b id="walletDailyPct" class="positive">+0.00%</b></div>
         </div>
       </section>
-      <section class="mini-panel panel">
-        <div class="section-head"><span>DCA Monitor</span><span>Running</span></div>
-        <div class="small-lines">
-          <div><span>Portfolio P/L</span><b class="positive">+8.61%</b></div>
-          <div><span>DCA plans</span><b>Active</b></div>
-          <div><span>LINE OA</span><b class="positive">Linked</b></div>
-          <div><span>AI context</span><b>Ready</b></div>
-        </div>
-      </section>
-      <section class="mini-panel panel">
+      <section class="mini-panel panel holdings-panel">
         <div class="section-head"><span>Holdings</span><span id="holdingsCount">0 Assets</span></div>
         <div class="agent-list" id="holdingsList">
           <div class="empty-holdings">ยังไม่มีข้อมูลสินทรัพย์</div>
@@ -1233,41 +1224,29 @@ button { cursor: pointer; }
     if (walletStatus) walletStatus.textContent = source;
   }
   function getHoldingPnlTHB(holding, valueTHB, fx) {
-    const qty = Number(holding?.qty) || 0;
     const ccy = holding?.ccy === "THB" ? "THB" : "USD";
-    const directPnl = firstFinite(
-      holding?.pnlTHB,
-      holding?.unrealizedPnlTHB,
-      holding?.profitTHB,
-      holding?.gainTHB
+    const directDailyTHB = firstFinite(
+      holding?.dailyPnlTHB,
+      holding?.dayPnlTHB,
+      holding?.pnl1dTHB,
+      holding?.change1dTHB,
+      holding?.dailyProfitTHB
     );
-    if (directPnl) {
-      const base = Math.max(valueTHB - directPnl, 1);
-      return { value: directPnl, pct: (directPnl / base) * 100, label: "P/L" };
+    if (directDailyTHB) {
+      const base = Math.max(valueTHB - directDailyTHB, 1);
+      return { value: directDailyTHB, pct: (directDailyTHB / base) * 100, label: "Today" };
     }
-    const directPnlNative = firstFinite(
-      holding?.pnl,
-      holding?.unrealizedPnl,
-      holding?.profit,
-      holding?.gain
+    const directDailyNative = firstFinite(
+      holding?.dailyPnl,
+      holding?.dayPnl,
+      holding?.pnl1d,
+      holding?.change1d,
+      holding?.dailyProfit
     );
-    if (directPnlNative) {
-      const pnlTHB = ccy === "THB" ? directPnlNative : directPnlNative * fx;
-      const base = Math.max(valueTHB - pnlTHB, 1);
-      return { value: pnlTHB, pct: (pnlTHB / base) * 100, label: "P/L" };
-    }
-    const avg = firstFinite(
-      holding?.avgCost,
-      holding?.avgPrice,
-      holding?.averageCost,
-      holding?.costPerUnit,
-      holding?.buyPrice,
-      holding?.entryPrice
-    );
-    if (qty > 0 && avg > 0) {
-      const costTHB = ccy === "THB" ? avg * qty : avg * qty * fx;
-      const pnlTHB = valueTHB - costTHB;
-      return { value: pnlTHB, pct: costTHB > 0 ? (pnlTHB / costTHB) * 100 : 0, label: "P/L" };
+    if (directDailyNative) {
+      const dailyTHB = ccy === "THB" ? directDailyNative : directDailyNative * fx;
+      const base = Math.max(valueTHB - dailyTHB, 1);
+      return { value: dailyTHB, pct: (dailyTHB / base) * 100, label: "Today" };
     }
     const dayPct = Number(holding?.chg1d) || 0;
     return { value: valueTHB * (dayPct / 100), pct: dayPct, label: "Today" };
@@ -1287,8 +1266,7 @@ button { cursor: pointer; }
         return { holding, qty, valueTHB, pnl };
       })
       .filter(row => row.qty > 0 && row.valueTHB > 0)
-      .sort((a, b) => b.valueTHB - a.valueTHB)
-      .slice(0, 5);
+      .sort((a, b) => (b.pnl.value - a.pnl.value) || (b.valueTHB - a.valueTHB));
     if (holdingsCount) holdingsCount.textContent = `${holdings.length} Assets`;
     if (!rows.length) {
       holdingsList.innerHTML = `<div class="empty-holdings">No holdings data</div>`;
