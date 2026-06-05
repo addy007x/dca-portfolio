@@ -387,7 +387,7 @@ async function signOutSupabase() {
     await authFetch("/api/auth/logout", { method: "POST" });
   } catch (_) {}
   saveAuthSession(null, { silent: true });
-  reloadAfterAuthDelay();
+  reloadAfterAuthDelay(getPostLoginUrl());
 }
 
 Object.assign(window, {
