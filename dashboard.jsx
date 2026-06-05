@@ -46,46 +46,42 @@ function BeachCloud({ style, animName, duration, delay }) {
 // ─────── Mascot walking sprite with full beach scene ───────
 function HeroMascot({ dayPct }) {
   const containerRef = React.useRef(null);
-  const [vis, setVis] = React.useState(true);
-  const stRef = React.useRef({ pos: -100, dir: 1, frame: 0, tick: 0 });
-  const [rs, setRs]   = React.useState({ pos: -100, dir: 1, frame: 0 });
+  const [vis] = React.useState(true);
+  const stRef = React.useRef({ pos: -120, dir: 1, last: 0, bob: 0 });
+  const [rs, setRs]   = React.useState({ pos: -120, dir: 1, bob: 0 });
 
   const isUp = dayPct >= 0;
 
-  // Frame mapping: TL=0 beach-ball  TR=1 swim-ring  BL=2 water-gun  BR=3 surfing
-  const FRAME_SEQ = isUp ? [0, 3, 1, 3] : [2, 2, 0, 2];
-  const FRAME_POS = [
-    { bx:"0%",   by:"0%" },
-    { bx:"100%", by:"0%" },
-    { bx:"0%",   by:"100%" },
-    { bx:"100%", by:"100%" },
-  ];
-
   React.useEffect(() => {
-    const SPEED = 2.4, FRAME_TKS = 8, SIZE = 96;
-    const id = setInterval(() => {
+    const SPEED = 92;
+    const SIZE = 112;
+    let raf = 0;
+    const step = (now) => {
       const st = stRef.current;
+      const last = st.last || now;
+      const delta = Math.min(0.04, (now - last) / 1000);
+      st.last = now;
       const w  = containerRef.current?.offsetWidth || 500;
-      st.pos += st.dir * SPEED;
-      if (st.pos > w + SIZE * 0.3)  st.dir = -1;
-      if (st.pos < -SIZE)            st.dir =  1;
-      st.tick++;
-      if (st.tick >= FRAME_TKS) { st.frame = (st.frame + 1) % 4; st.tick = 0; }
-      setRs({ pos: st.pos, dir: st.dir, frame: st.frame });
-    }, 50);
-    return () => clearInterval(id);
+      st.pos += st.dir * SPEED * delta;
+      if (st.pos > w + SIZE * 0.2) st.dir = -1;
+      if (st.pos < -SIZE) st.dir = 1;
+      st.bob = Math.sin(now / 125) * 3;
+      setRs({ pos: st.pos, dir: st.dir, bob: st.bob });
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   if (!vis) return null;
-  const fp = FRAME_POS[FRAME_SEQ[rs.frame]];
 
   // Sky colours change based on performance
   const skyTop    = isUp ? "#5BC8F5" : "#7896B4";
   const skyBot    = isUp ? "#A8DFFF" : "#B0C8D8";
   const seaTop    = isUp ? "#1E9ECC" : "#5077A0";
   const seaBot    = isUp ? "#1578A8" : "#3A5F80";
-  const sandTop   = isUp ? "#F9DC72" : "#D4BC5A";
-  const sandBot   = isUp ? "#EEC845" : "#C0A848";
+  const roadTop   = isUp ? "#D8B95D" : "#82775E";
+  const roadBot   = isUp ? "#B89C43" : "#5F5748";
 
   return (
     <div ref={containerRef} style={{
@@ -203,7 +199,7 @@ function HeroMascot({ dayPct }) {
       {/* ── Sand ── */}
       <div style={{
         position:"absolute", bottom:0, left:0, right:0, height:38,
-        background:`linear-gradient(180deg, ${sandTop} 0%, ${sandBot} 100%)`,
+        background:`linear-gradient(180deg, ${roadTop} 0%, ${roadBot} 100%)`,
         transition:"background 1.2s",
       }}>
         {/* Sand pebble texture */}
@@ -215,8 +211,11 @@ function HeroMascot({ dayPct }) {
         }}/>
         {/* Sand wet edge (darker near water) */}
         <div style={{
-          position:"absolute", top:0, left:0, right:0, height:8,
-          background:`linear-gradient(180deg, ${isUp?"rgba(200,160,40,0.45)":"rgba(150,120,40,0.45)"} 0%, transparent 100%)`,
+          position:"absolute", top:16, left:0,
+          width:"220%", height:3,
+          background:"repeating-linear-gradient(90deg, rgba(255,255,255,.42) 0 34px, transparent 34px 72px)",
+          animation:"mascot-wave 3.8s linear infinite",
+          opacity:isUp ? .75 : .35,
         }}/>
       </div>
 
@@ -224,32 +223,33 @@ function HeroMascot({ dayPct }) {
       <div style={{
         position:"absolute",
         bottom:30,
-        left: rs.pos + 8,
-        width:72, height:10,
+        left: 0,
+        width:78, height:10,
         borderRadius:"50%",
         background:"rgba(0,0,0,0.14)",
         filter:"blur(5px)",
-        transform:`scaleX(${rs.dir})`,
+        transform:`translate3d(${rs.pos + 8}px, ${rs.bob * -0.35}px, 0) scaleX(${rs.dir})`,
         transformOrigin:"36px 5px",
       }}/>
 
       {/* ── Mascot sprite ── */}
       <div style={{
         position:"absolute",
-        bottom:26,
-        left: rs.pos,
-        width:96, height:96,
-        backgroundImage:"url('mascot.png')",
-        backgroundSize:"200% 200%",
-        backgroundPosition:`${fp.bx} ${fp.by}`,
+        bottom:13,
+        left: 0,
+        width:96, height:136,
+        backgroundImage:"url('assets/maid-runner.png')",
+        backgroundSize:"contain",
+        backgroundPosition:"center bottom",
         backgroundRepeat:"no-repeat",
-        transform:`scaleX(${rs.dir})`,
-        transformOrigin:"48px 48px",
+        transform:`translate3d(${rs.pos}px, ${rs.bob}px, 0) scaleX(${rs.dir}) rotate(${rs.dir * -1.5}deg)`,
+        transformOrigin:"48px 118px",
         filter: isUp
           ? "drop-shadow(0 3px 8px rgba(0,0,0,0.28))"
           : "saturate(0.55) brightness(0.9) drop-shadow(0 3px 8px rgba(0,0,0,0.3))",
         transition:"filter 1s",
-      }} onError={() => setVis(false)}/>
+        willChange:"transform,left",
+      }}/>
 
     </div>
   );
