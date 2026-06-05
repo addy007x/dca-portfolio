@@ -945,6 +945,7 @@ button { cursor: pointer; }
   const agentTitle = document.getElementById("agentTitle");
   const agentDesc = document.getElementById("agentDesc");
   const SESSION_KEY = "siamfolio.googleSession";
+  const LAST_PROFILE_KEY = "siamfolio.lastProfile";
   const STORE_KEY = "siamfolio.v1";
   const HUD_TOTAL_MS_KEY = "siamfolio.dashboardDesign.hudTotalMs";
   const HUD_BASE_LEVEL = 1;
@@ -1007,6 +1008,14 @@ button { cursor: pointer; }
       if (data.expiresAt && Date.now() > Number(data.expiresAt)) return null;
       return data;
     } catch {
+      return null;
+    }
+  }
+  function getLastProfile() {
+    try {
+      const data = JSON.parse(localStorage.getItem(LAST_PROFILE_KEY) || "null");
+      return data && (data.name || data.email || data.picture) ? data : null;
+    } catch (_) {
       return null;
     }
   }
@@ -1146,7 +1155,7 @@ button { cursor: pointer; }
     return words.slice(0, 2).map(word => word[0] || "").join("").toUpperCase() || "SF";
   }
   function applyProfile() {
-    const user = getSession()?.user || {};
+    const user = getSession()?.user || getLastProfile() || {};
     const name = getDisplayName(user);
     const displayName = name.toLocaleUpperCase("en-US");
     const email = (user.email || "DCA Portfolio Tracker").trim();

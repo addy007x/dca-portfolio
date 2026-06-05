@@ -1,6 +1,7 @@
 // Google Auth + Cloudflare Worker-backed per-user portfolio sync.
 
 const AUTH_SESSION_KEY = "siamfolio.googleSession";
+const AUTH_LAST_PROFILE_KEY = "siamfolio.lastProfile";
 const CLOUD_SYNC_DELAY_MS = 1200;
 const AUTH_RELOAD_DELAY_MS = 5000;
 
@@ -62,10 +63,24 @@ function loadAuthSession() {
 
 function saveAuthSession(session, options = {}) {
   _authSession = session;
-  if (session) localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+  if (session) {
+    localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+    saveLastAuthProfile(session.user);
+  }
   else localStorage.removeItem(AUTH_SESSION_KEY);
   if (options.silent) return;
   window.dispatchEvent(new Event("siamfolio.auth.changed"));
+}
+
+function saveLastAuthProfile(user) {
+  if (!user) return;
+  try {
+    localStorage.setItem(AUTH_LAST_PROFILE_KEY, JSON.stringify({
+      name: user.name || "",
+      email: user.email || "",
+      picture: user.picture || user.avatar || user.avatarUrl || user.photoURL || "",
+    }));
+  } catch (_) {}
 }
 
 function reloadAfterAuthDelay(targetUrl = "") {
@@ -382,6 +397,7 @@ function AuthGate({ children }) {
 }
 
 async function signOutSupabase() {
+  saveLastAuthProfile(loadAuthSession()?.user);
   try {
     await pushCloudPortfolio();
     await authFetch("/api/auth/logout", { method: "POST" });
