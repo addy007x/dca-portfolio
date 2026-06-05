@@ -616,6 +616,10 @@ button { cursor: pointer; }
 .crypto-panel .section-head {
   align-items: center;
 }
+.crypto-combined {
+  display: grid;
+  gap: 8px;
+}
 .crypto-add {
   min-width: 54px;
   cursor: pointer;
@@ -979,13 +983,9 @@ button { cursor: pointer; }
         </div>
         <div class="bar"><span style="width:72%"></span></div>
       </section>
-      <section class="mini-panel panel crypto-panel">
-        <div class="section-head"><span>Crypto Prices</span><button class="chip crypto-add" type="button" data-add-crypto="primary">+ Add</button></div>
+      <section class="mini-panel panel crypto-panel crypto-combined">
+        <div class="section-head"><span>Crypto Market</span><button class="chip crypto-add" type="button" data-add-crypto="primary">+ Add</button></div>
         <div class="agent-list crypto-list" id="cryptoListPrimary"></div>
-      </section>
-      <section class="mini-panel panel crypto-panel">
-        <div class="section-head"><span>Crypto Watch</span><button class="chip crypto-add" type="button" data-add-crypto="secondary">+ Add</button></div>
-        <div class="agent-list crypto-list" id="cryptoListSecondary"></div>
       </section>
     </aside>
   </section>
@@ -1023,7 +1023,7 @@ button { cursor: pointer; }
   const holdingsList = document.getElementById("holdingsList");
   const holdingsCount = document.getElementById("holdingsCount");
   const cryptoListPrimary = document.getElementById("cryptoListPrimary");
-  const cryptoListSecondary = document.getElementById("cryptoListSecondary");
+  const cryptoListSecondary = null;
   const hudLevelValue = document.getElementById("hudLevelValue");
   const hudTrackFill = document.getElementById("hudTrackFill");
   const hudXpValue = document.getElementById("hudXpValue");
@@ -1228,10 +1228,17 @@ button { cursor: pointer; }
   function getCryptoListElement(group) {
     return group === "secondary" ? cryptoListSecondary : cryptoListPrimary;
   }
+  function getCryptoSymbolsForGroup(group) {
+    if (group !== "primary") return cryptoWatchlists[group] || [];
+    return cleanCryptoList([
+      ...(cryptoWatchlists.primary || []),
+      ...(cryptoWatchlists.secondary || [])
+    ]);
+  }
   function renderCryptoWatchlist(group, prices = cryptoPriceCache, status = "") {
     const el = getCryptoListElement(group);
     if (!el) return;
-    const symbols = cryptoWatchlists[group] || [];
+    const symbols = getCryptoSymbolsForGroup(group);
     if (!symbols.length) {
       el.innerHTML = `<div class="crypto-status">Add crypto symbols</div>`;
       return;
@@ -1255,14 +1262,13 @@ button { cursor: pointer; }
             <b>${fmtUSDPrice(price)}</b>
             <i class="${changeClass}">${changeText}</i>
           </span>
-          <button class="crypto-remove" type="button" data-remove-crypto="${escapeHtml(group)}" data-symbol="${escapeHtml(symbol)}" aria-label="Remove ${escapeHtml(symbol)}">X</button>
+          <button class="crypto-remove" type="button" data-remove-crypto="all" data-symbol="${escapeHtml(symbol)}" aria-label="Remove ${escapeHtml(symbol)}">X</button>
         </div>
       `;
     }).join("");
   }
   function renderAllCryptoWatchlists(status = "") {
     renderCryptoWatchlist("primary", cryptoPriceCache, status);
-    renderCryptoWatchlist("secondary", cryptoPriceCache, status);
   }
   async function fetchCryptoPrices(symbols) {
     if (!apiUrl || !symbols.length) return {};
@@ -1290,7 +1296,7 @@ button { cursor: pointer; }
   function addCryptoSymbol(group) {
     const symbol = normalizeCryptoSymbol(prompt("Crypto symbol เช่น BTC, ETH, SOL") || "");
     if (!symbol) return;
-    const list = cryptoWatchlists[group] || [];
+    const list = getCryptoSymbolsForGroup("primary");
     if (!list.includes(symbol)) {
       cryptoWatchlists[group] = [...list, symbol];
       saveCryptoWatchlists();
@@ -1299,7 +1305,12 @@ button { cursor: pointer; }
     refreshCryptoWatchlists();
   }
   function removeCryptoSymbol(group, symbol) {
-    cryptoWatchlists[group] = (cryptoWatchlists[group] || []).filter(item => item !== symbol);
+    if (group === "all") {
+      cryptoWatchlists.primary = (cryptoWatchlists.primary || []).filter(item => item !== symbol);
+      cryptoWatchlists.secondary = (cryptoWatchlists.secondary || []).filter(item => item !== symbol);
+    } else {
+      cryptoWatchlists[group] = (cryptoWatchlists[group] || []).filter(item => item !== symbol);
+    }
     saveCryptoWatchlists();
     renderAllCryptoWatchlists("loading");
     refreshCryptoWatchlists();
