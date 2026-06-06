@@ -1487,33 +1487,62 @@ button { cursor: pointer; }
     }
     if (walletStatus) walletStatus.textContent = source;
   }
+  function firstPositive(...values) {
+    for (const value of values) {
+      const n = Number(value);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+    return 0;
+  }
   function getHoldingPnlTHB(holding, valueTHB, fx) {
     const ccy = holding?.ccy === "THB" ? "THB" : "USD";
-    const directDailyTHB = firstFinite(
-      holding?.dailyPnlTHB,
-      holding?.dayPnlTHB,
-      holding?.pnl1dTHB,
-      holding?.change1dTHB,
-      holding?.dailyProfitTHB
+    const qty = Number(holding?.qty) || 0;
+    const price = Number(holding?.price) || 0;
+    const directTotalTHB = firstFinite(
+      holding?.pnlTHB,
+      holding?.totalPnlTHB,
+      holding?.unrealizedPnlTHB,
+      holding?.profitLossTHB,
+      holding?.gainLossTHB
     );
-    if (directDailyTHB) {
-      const base = Math.max(valueTHB - directDailyTHB, 1);
-      return { value: directDailyTHB, pct: (directDailyTHB / base) * 100, label: "Today" };
+    if (directTotalTHB) {
+      const costTHB = Math.max(valueTHB - directTotalTHB, 1);
+      return { value: directTotalTHB, pct: (directTotalTHB / costTHB) * 100, label: "Total" };
     }
-    const directDailyNative = firstFinite(
-      holding?.dailyPnl,
-      holding?.dayPnl,
-      holding?.pnl1d,
-      holding?.change1d,
-      holding?.dailyProfit
+    const directTotalNative = firstFinite(
+      holding?.pnl,
+      holding?.totalPnl,
+      holding?.unrealizedPnl,
+      holding?.profitLoss,
+      holding?.gainLoss
     );
-    if (directDailyNative) {
-      const dailyTHB = ccy === "THB" ? directDailyNative : directDailyNative * fx;
-      const base = Math.max(valueTHB - dailyTHB, 1);
-      return { value: dailyTHB, pct: (dailyTHB / base) * 100, label: "Today" };
+    if (directTotalNative) {
+      const pnlTHB = ccy === "THB" ? directTotalNative : directTotalNative * fx;
+      const costTHB = Math.max(valueTHB - pnlTHB, 1);
+      return { value: pnlTHB, pct: (pnlTHB / costTHB) * 100, label: "Total" };
     }
-    const dayPct = Number(holding?.chg1d) || 0;
-    return { value: valueTHB * (dayPct / 100), pct: dayPct, label: "Today" };
+    const costAvg = firstPositive(
+      holding?.costAvg,
+      holding?.avgCost,
+      holding?.averageCost,
+      holding?.costAverage,
+      holding?.avgPrice,
+      holding?.buyAvg,
+      holding?.entryPrice
+    );
+    const costNative = firstPositive(
+      holding?.cost,
+      holding?.totalCost,
+      holding?.costBasis,
+      holding?.invested,
+      holding?.principal
+    ) || (qty > 0 && costAvg > 0 ? qty * costAvg : 0);
+    const costTHB = ccy === "THB" ? costNative : costNative * fx;
+    if (qty > 0 && price > 0 && costTHB > 0) {
+      const pnlTHB = valueTHB - costTHB;
+      return { value: pnlTHB, pct: (pnlTHB / costTHB) * 100, label: "Total" };
+    }
+    return { value: 0, pct: 0, label: "Total" };
   }
   function renderHoldingsPanel(store, source = "Live") {
     if (!holdingsList) return;
