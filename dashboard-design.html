@@ -9,18 +9,18 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #040814;
-  --panel: rgba(6, 16, 31, .86);
-  --panel-soft: rgba(8, 22, 42, .72);
-  --line: rgba(25, 172, 255, .34);
-  --line-hot: rgba(34, 217, 255, .82);
-  --text: #eef8ff;
-  --muted: #8da8c6;
-  --cyan: #22d9ff;
-  --green: #20f08b;
-  --red: #ff596f;
-  --amber: #ffbe4d;
-  --blue: #3d76ff;
+  --bg: #050913;
+  --panel: rgba(7, 17, 30, .92);
+  --panel-soft: rgba(10, 23, 40, .78);
+  --line: rgba(82, 185, 219, .26);
+  --line-hot: rgba(124, 225, 238, .62);
+  --text: #f3f8f6;
+  --muted: #9aafc3;
+  --cyan: #7de1ee;
+  --green: #7be9ad;
+  --red: #ff7b83;
+  --amber: #eec970;
+  --blue: #7198ff;
   --mono: "JetBrains Mono", ui-monospace, monospace;
   --ui: "IBM Plex Sans Thai", system-ui, sans-serif;
 }
@@ -31,9 +31,9 @@ body {
   color: var(--text);
   font-family: var(--ui);
   background:
-    radial-gradient(circle at 14% 10%, rgba(34, 217, 255, .16), transparent 28%),
-    radial-gradient(circle at 78% 5%, rgba(61, 118, 255, .18), transparent 32%),
-    linear-gradient(135deg, #02050d, #08172a 48%, #02050d);
+    radial-gradient(circle at 14% 10%, rgba(125, 225, 238, .10), transparent 28%),
+    radial-gradient(circle at 78% 5%, rgba(238, 201, 112, .08), transparent 32%),
+    linear-gradient(135deg, #030712, #091827 48%, #030712);
   overflow-x: hidden;
 }
 body:before {
@@ -41,10 +41,10 @@ body:before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: .24;
+  opacity: .16;
   background:
-    linear-gradient(rgba(80, 198, 255, .08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(80, 198, 255, .06) 1px, transparent 1px);
+    linear-gradient(rgba(125, 225, 238, .06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(125, 225, 238, .045) 1px, transparent 1px);
   background-size: 26px 26px;
   mask-image: linear-gradient(to bottom, rgba(0,0,0,.8), transparent 88%);
 }
@@ -53,7 +53,7 @@ body:after {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: .16;
+  opacity: .10;
   background: linear-gradient(rgba(255,255,255,.04) 50%, rgba(0,0,0,.04) 50%);
   background-size: 100% 4px;
   mix-blend-mode: overlay;
@@ -68,17 +68,17 @@ button { cursor: pointer; }
   grid-template-columns: 305px minmax(580px, 1fr) 315px;
   grid-template-rows: 64px minmax(0, 1fr);
   gap: 10px;
-  border: 1px solid rgba(55, 178, 255, .24);
+  border: 1px solid rgba(82, 185, 219, .20);
   background:
-    linear-gradient(180deg, rgba(10, 20, 39, .62), rgba(2, 5, 12, .82)),
-    radial-gradient(circle at 50% 0%, rgba(29, 93, 171, .20), transparent 48%);
-  box-shadow: 0 28px 80px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);
+    linear-gradient(180deg, rgba(8, 18, 32, .72), rgba(2, 6, 13, .88)),
+    radial-gradient(circle at 50% 0%, rgba(125, 225, 238, .08), transparent 48%);
+  box-shadow: 0 28px 80px rgba(0,0,0,.42), inset 0 0 0 1px rgba(255,255,255,.035);
   overflow: hidden;
 }
 .panel {
   border: 1px solid var(--line);
-  background: linear-gradient(180deg, var(--panel), rgba(4, 9, 19, .82));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 10px 30px rgba(0,0,0,.22);
+  background: linear-gradient(180deg, var(--panel), rgba(4, 10, 18, .88));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 0 10px 30px rgba(0,0,0,.20);
 }
 .topbar {
   grid-column: 1 / -1;
@@ -189,16 +189,16 @@ button { cursor: pointer; }
   place-items: center;
   border: 1px solid transparent;
   background: transparent;
-  color: #cae7ff;
+  color: #d7e7ee;
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
 }
 .tab.active, .tab:hover {
-  border-color: rgba(34,217,255,.65);
-  background: linear-gradient(180deg, rgba(39, 110, 255, .52), rgba(10, 43, 88, .58));
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 0 22px rgba(34,217,255,.16);
+  border-color: rgba(125,225,238,.48);
+  background: linear-gradient(180deg, rgba(42, 97, 143, .46), rgba(9, 38, 70, .56));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.055), 0 0 18px rgba(125,225,238,.10);
 }
 .danger-tab {
   color: #ffd8d8;
@@ -219,12 +219,12 @@ button { cursor: pointer; }
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(11, 24, 45, .94), rgba(2, 12, 28, .96)),
-    radial-gradient(circle at 24% 0%, rgba(34,217,255,.22), transparent 32%),
-    radial-gradient(circle at 92% 100%, rgba(79,118,255,.18), transparent 30%);
+    radial-gradient(circle at 24% 0%, rgba(125,225,238,.14), transparent 32%),
+    radial-gradient(circle at 92% 100%, rgba(238,201,112,.10), transparent 30%);
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,.05),
-    inset 0 0 24px rgba(34,217,255,.06),
-    0 0 24px rgba(34,217,255,.08);
+    inset 0 0 24px rgba(125,225,238,.045),
+    0 0 22px rgba(125,225,238,.055);
 }
 .player-hud:before {
   content: "";
@@ -492,7 +492,7 @@ button { cursor: pointer; }
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 7px;
-  color: var(--cyan);
+  color: #8ee8f1;
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 800;
@@ -513,8 +513,8 @@ button { cursor: pointer; }
   gap: 6px;
   margin-top: 5px;
   padding: 4px 7px;
-  border: 1px solid rgba(60, 255, 166, .20);
-  background: rgba(17, 255, 135, .08);
+  border: 1px solid rgba(123, 233, 173, .22);
+  background: rgba(123, 233, 173, .075);
   color: var(--green);
   font-family: var(--mono);
   font-size: 11px;
@@ -541,8 +541,8 @@ button { cursor: pointer; }
   align-items: center;
   min-height: 42px;
   padding: 8px;
-  border: 1px solid rgba(63, 174, 255, .18);
-  background: rgba(3, 12, 25, .58);
+  border: 1px solid rgba(82, 185, 219, .18);
+  background: rgba(5, 13, 24, .66);
   color: var(--text);
   text-align: left;
 }
@@ -557,8 +557,8 @@ button { cursor: pointer; }
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(34,217,255,.08), transparent 44%);
-  opacity: .7;
+  background: linear-gradient(90deg, rgba(125,225,238,.055), transparent 44%);
+  opacity: .65;
 }
 .holding-row > * {
   position: relative;
@@ -592,8 +592,8 @@ button { cursor: pointer; }
 .chip {
   min-width: 48px;
   padding: 4px 6px;
-  border: 1px solid rgba(34,217,255,.28);
-  background: rgba(34,217,255,.09);
+  border: 1px solid rgba(125,225,238,.26);
+  background: rgba(125,225,238,.075);
   color: var(--cyan);
   font-family: var(--mono);
   font-size: 10px;
@@ -697,10 +697,10 @@ button { cursor: pointer; }
   overflow: hidden;
   min-height: 72px;
   padding: 12px;
-  border: 1px solid rgba(255, 226, 108, .22);
+  border: 1px solid rgba(238, 201, 112, .28);
   background:
-    radial-gradient(circle at 84% 18%, rgba(255, 226, 108, .18), transparent 36%),
-    linear-gradient(135deg, rgba(34,217,255,.12), rgba(3,12,25,.72) 44%, rgba(255,149,43,.12));
+    radial-gradient(circle at 84% 18%, rgba(238, 201, 112, .18), transparent 36%),
+    linear-gradient(135deg, rgba(125,225,238,.09), rgba(4,13,24,.78) 44%, rgba(238,201,112,.12));
 }
 .goal-hero:after {
   content: "";
@@ -721,10 +721,10 @@ button { cursor: pointer; }
   z-index: 1;
   display: block;
   margin-top: 4px;
-  color: #fff4b8;
+  color: #fff1bf;
   font-family: var(--mono);
   font-size: 23px;
-  text-shadow: 0 0 14px rgba(255,226,108,.36);
+  text-shadow: 0 0 12px rgba(238,201,112,.28);
 }
 .goal-grid {
   display: grid;
@@ -734,8 +734,8 @@ button { cursor: pointer; }
 .goal-metric {
   min-height: 54px;
   padding: 8px;
-  border: 1px solid rgba(63, 174, 255, .18);
-  background: rgba(3, 12, 25, .52);
+  border: 1px solid rgba(82, 185, 219, .18);
+  background: rgba(5, 13, 24, .64);
 }
 .goal-metric span {
   display: block;
@@ -762,12 +762,12 @@ button { cursor: pointer; }
 }
 .goal-progress .bar {
   height: 9px;
-  border-color: rgba(255, 226, 108, .24);
+  border-color: rgba(238, 201, 112, .24);
 }
 .goal-progress .bar span {
   width: 0;
-  background: linear-gradient(90deg, #22d9ff, #20f08b 55%, #ffe26c);
-  box-shadow: 0 0 14px rgba(34,217,255,.32);
+  background: linear-gradient(90deg, #7de1ee, #7be9ad 55%, #eec970);
+  box-shadow: 0 0 12px rgba(125,225,238,.22);
   transition: width .35s ease;
 }
 .asset-row { grid-template-columns: 1fr auto auto; }
@@ -801,8 +801,8 @@ button { cursor: pointer; }
 .crypto-remove {
   width: 24px;
   height: 24px;
-  border: 1px solid rgba(255, 84, 84, .34);
-  background: rgba(255, 84, 84, .08);
+  border: 1px solid rgba(255, 123, 131, .34);
+  background: rgba(255, 123, 131, .075);
   color: var(--red);
   font-family: var(--mono);
   font-size: 12px;
@@ -810,9 +810,9 @@ button { cursor: pointer; }
   cursor: pointer;
 }
 .crypto-remove:hover {
-  border-color: rgba(255, 84, 84, .7);
-  background: rgba(255, 84, 84, .18);
-  box-shadow: 0 0 16px rgba(255, 84, 84, .14);
+  border-color: rgba(255, 123, 131, .64);
+  background: rgba(255, 123, 131, .14);
+  box-shadow: 0 0 14px rgba(255, 123, 131, .11);
 }
 .crypto-status {
   padding: 10px;
@@ -1199,7 +1199,7 @@ button { cursor: pointer; }
           <div class="goal-metric"><span>Remaining</span><b id="annualGoalRemaining">฿0</b></div>
         </div>
         <div class="goal-progress">
-          <div class="goal-progress-row"><span id="annualGoalPct">0.00%</span><span id="annualGoalDaysLeft">0D left</span></div>
+          <div class="goal-progress-row"><span id="annualGoalPct">0.00%</span><span id="annualGoalDaysLeft">MAX</span></div>
           <div class="bar"><span id="annualGoalProgress"></span></div>
         </div>
       </section>
@@ -1535,7 +1535,7 @@ button { cursor: pointer; }
     if (annualGoalInvested) annualGoalInvested.textContent = fmtTHB(summary.invested);
     if (annualGoalRemaining) annualGoalRemaining.textContent = fmtTHB(summary.remaining);
     if (annualGoalPct) annualGoalPct.textContent = `${summary.pct.toFixed(2)}%`;
-    if (annualGoalDaysLeft) annualGoalDaysLeft.textContent = `${summary.daysLeft}D left`;
+    if (annualGoalDaysLeft) annualGoalDaysLeft.textContent = "MAX";
     if (annualGoalProgress) annualGoalProgress.style.width = `${summary.pct}%`;
   }
   function setAnnualGoalTarget() {
