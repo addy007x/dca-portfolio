@@ -659,7 +659,7 @@ button { cursor: pointer; }
 .status-card.one { left: 18px; top: 20px; width: 250px; }
 .status-card.two { left: 285px; top: 20px; width: 250px; }
 .terminal { left: 24px; bottom: 24px; width: 290px; }
-.project-link { left: 335px; bottom: 24px; width: 260px; }
+.project-link { left: 325px; bottom: 24px; width: 300px; }
 .music-player {
   overflow: hidden;
   border-color: rgba(238, 201, 112, .38);
@@ -751,6 +751,21 @@ button { cursor: pointer; }
   font-size: 10px;
   font-weight: 900;
 }
+.music-open {
+  min-width: 44px;
+  height: 22px;
+  border: 1px solid rgba(238, 201, 112, .34);
+  background: rgba(238, 201, 112, .10);
+  color: #ffe2a0;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.music-open:hover {
+  border-color: rgba(238, 201, 112, .72);
+  background: rgba(238, 201, 112, .18);
+}
 .music-subtitle {
   color: var(--muted);
   font-size: 10px;
@@ -758,7 +773,7 @@ button { cursor: pointer; }
 }
 .music-controls {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
+  grid-template-columns: 26px minmax(0, 1fr) 48px;
   gap: 8px;
   align-items: center;
 }
@@ -771,6 +786,7 @@ button { cursor: pointer; }
   border-radius: 50%;
   background: linear-gradient(180deg, rgba(125,225,238,.20), rgba(4,13,24,.86));
   box-shadow: 0 0 14px rgba(125,225,238,.14);
+  cursor: pointer;
 }
 .music-play:before {
   content: "";
@@ -779,21 +795,65 @@ button { cursor: pointer; }
   border-top: 5px solid transparent;
   border-bottom: 5px solid transparent;
 }
+.music-player.is-playing .music-play:before {
+  width: 10px;
+  height: 12px;
+  margin-left: 0;
+  border: 0;
+  background: linear-gradient(90deg, #fff1bf 0 3px, transparent 3px 7px, #fff1bf 7px 10px);
+}
 .music-progress {
+  position: relative;
   height: 8px;
   overflow: hidden;
   border: 1px solid rgba(82,185,219,.26);
   border-radius: 999px;
   background: rgba(2,8,18,.74);
+  cursor: pointer;
 }
 .music-progress span {
   display: block;
-  width: 68%;
+  width: 0;
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--cyan), var(--green) 48%, var(--amber));
   box-shadow: 0 0 10px rgba(125,225,238,.26);
   animation: music-pulse 2.8s ease-in-out infinite;
+}
+.music-time {
+  color: #d7e7ee;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 900;
+  text-align: right;
+}
+.music-url-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  gap: 6px;
+}
+.music-url-row input {
+  min-width: 0;
+  height: 25px;
+  border: 1px solid rgba(82,185,219,.22);
+  background: rgba(2,8,18,.74);
+  color: var(--text);
+  padding: 0 7px;
+  outline: 0;
+  font-family: var(--mono);
+  font-size: 9px;
+}
+.music-url-row input:focus {
+  border-color: rgba(125,225,238,.55);
+  box-shadow: 0 0 12px rgba(125,225,238,.12);
+}
+.music-url-row button {
+  border: 1px solid rgba(125,225,238,.34);
+  background: rgba(125,225,238,.10);
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 900;
 }
 .music-wave {
   display: flex;
@@ -816,6 +876,13 @@ button { cursor: pointer; }
 .music-wave i:nth-child(5) { height: 11px; animation-delay: .22s; }
 .music-wave i:nth-child(6) { height: 15px; animation-delay: .36s; }
 .music-wave i:nth-child(7) { height: 8px; animation-delay: .18s; }
+.music-player:not(.is-playing) .music-wave i,
+.music-player:not(.is-playing) .music-progress span {
+  animation-play-state: paused;
+}
+.music-player:not(.is-playing) .music-wave i {
+  opacity: .36;
+}
 .team-chat { right: 24px; bottom: 24px; width: 260px; }
 .line-link { right: 34px; bottom: 118px; width: 260px; border-color: rgba(32, 240, 139, .42); }
 .command-row, .agent-compose { display: grid; grid-template-columns: 1fr 44px; gap: 8px; }
@@ -1313,21 +1380,27 @@ button { cursor: pointer; }
           <p>STATUS : Ready</p><p>Webhook : Active</p><p>Command : พอร์ต / dca</p><p>Last Update : <span class="time-inline">--:--:--</span></p>
         </div>
       </div>
-      <a class="floating project-link music-player" href="./index.html#dashboard" data-loading-title="กำลังเปิด DCA-Portfolio">
-        <div class="window-bar"><span>Now Playing</span><span>DCA</span></div>
+      <div class="floating project-link music-player" data-drag-id="project-link" role="group" aria-label="Music player">
+        <div class="window-bar"><span>Now Playing</span><span id="musicStatus">Ready</span></div>
         <div class="music-body">
           <div class="music-cover" aria-hidden="true"></div>
           <div class="music-info">
-            <div class="music-title"><b>DCA-Portfolio</b><span>MAX</span></div>
-            <div class="music-subtitle">Portfolio / DCA / LINE Alerts</div>
+            <div class="music-title"><b id="musicTitle">DCA-Portfolio</b><button class="music-open" id="musicOpenDashboard" type="button">Open</button></div>
+            <div class="music-subtitle" id="musicSubtitle">Paste direct audio URL: mp3 / wav / ogg</div>
             <div class="music-controls">
-              <span class="music-play" aria-hidden="true"></span>
-              <span class="music-progress" aria-hidden="true"><span></span></span>
+              <button class="music-play" id="musicPlayBtn" type="button" aria-label="Play or pause"></button>
+              <span class="music-progress" id="musicProgress" aria-label="Music progress"><span id="musicProgressFill"></span></span>
+              <span class="music-time" id="musicTime">0:00</span>
+            </div>
+            <div class="music-url-row">
+              <input id="musicUrlInput" type="url" placeholder="วางลิงก์เพลง .mp3">
+              <button id="musicLoadBtn" type="button">LOAD</button>
             </div>
             <div class="music-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
           </div>
         </div>
-      </a>
+        <audio id="musicAudio" preload="metadata"></audio>
+      </div>
       <a class="floating line-link" href="./index.html#dashboard" data-loading-title="กำลังเปิด LINE OA Status">
         <div class="window-bar"><span>LINE OA</span><span>Notify</span></div>
         <div class="window-body"><p><b>Portfolio Alerts</b></p><p>แจ้งเตือนพอร์ต DCA และคำสั่งเช็กพอร์ตผ่าน LINE</p></div>
@@ -1441,11 +1514,24 @@ button { cursor: pointer; }
   const agentTitle = document.getElementById("agentTitle");
   const agentDesc = document.getElementById("agentDesc");
   const designLogoutBtn = document.getElementById("designLogoutBtn");
+  const musicPlayer = document.querySelector(".music-player");
+  const musicAudio = document.getElementById("musicAudio");
+  const musicPlayBtn = document.getElementById("musicPlayBtn");
+  const musicLoadBtn = document.getElementById("musicLoadBtn");
+  const musicOpenDashboard = document.getElementById("musicOpenDashboard");
+  const musicUrlInput = document.getElementById("musicUrlInput");
+  const musicProgress = document.getElementById("musicProgress");
+  const musicProgressFill = document.getElementById("musicProgressFill");
+  const musicTime = document.getElementById("musicTime");
+  const musicStatus = document.getElementById("musicStatus");
+  const musicTitle = document.getElementById("musicTitle");
+  const musicSubtitle = document.getElementById("musicSubtitle");
   const SESSION_KEY = "siamfolio.googleSession";
   const LAST_PROFILE_KEY = "siamfolio.lastProfile";
   const STORE_KEY = "siamfolio.v1";
   const HUD_TOTAL_MS_KEY = "siamfolio.dashboardDesign.hudTotalMs";
   const ANNUAL_GOAL_KEY = "siamfolio.dashboardDesign.annualGoalTHB";
+  const MUSIC_URL_KEY = "siamfolio.dashboardDesign.musicUrl";
   const CRYPTO_WATCHLIST_KEY = "siamfolio.dashboardDesign.cryptoWatchlists.v1";
   const DEFAULT_CRYPTO_WATCHLISTS = {
     primary: ["BTC", "XAUT", "TRX"],
@@ -2133,6 +2219,90 @@ button { cursor: pointer; }
   function closeAgents() {
     sceneBoard?.classList.remove("agents-open");
   }
+  function formatMusicTime(seconds) {
+    const safe = Math.max(0, Number(seconds) || 0);
+    const mins = Math.floor(safe / 60);
+    const secs = Math.floor(safe % 60);
+    return `${mins}:${String(secs).padStart(2, "0")}`;
+  }
+  function guessTrackName(url) {
+    try {
+      const path = new URL(url).pathname.split("/").filter(Boolean).pop() || "Audio Track";
+      return decodeURIComponent(path).replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ").trim() || "Audio Track";
+    } catch {
+      return "Audio Track";
+    }
+  }
+  function setMusicStatus(text) {
+    if (musicStatus) musicStatus.textContent = text;
+  }
+  function setMusicUrl(url, shouldPlay = false) {
+    const clean = String(url || "").trim();
+    if (!musicAudio || !clean) {
+      setMusicStatus("No URL");
+      return;
+    }
+    musicAudio.src = clean;
+    musicAudio.load();
+    localStorage.setItem(MUSIC_URL_KEY, clean);
+    if (musicUrlInput) musicUrlInput.value = clean;
+    if (musicTitle) musicTitle.textContent = guessTrackName(clean);
+    if (musicSubtitle) musicSubtitle.textContent = clean;
+    setMusicStatus("Loaded");
+    if (shouldPlay) playMusic();
+  }
+  async function playMusic() {
+    if (!musicAudio) return;
+    if (!musicAudio.src) {
+      const url = (musicUrlInput?.value || "").trim();
+      if (!url) {
+        setMusicStatus("Paste URL");
+        musicUrlInput?.focus();
+        return;
+      }
+      setMusicUrl(url, false);
+    }
+    try {
+      await musicAudio.play();
+      musicPlayer?.classList.add("is-playing");
+      setMusicStatus("Playing");
+    } catch {
+      musicPlayer?.classList.remove("is-playing");
+      setMusicStatus("Blocked");
+    }
+  }
+  function toggleMusic() {
+    if (!musicAudio) return;
+    if (!musicAudio.paused) {
+      musicAudio.pause();
+      return;
+    }
+    playMusic();
+  }
+  function updateMusicProgress() {
+    if (!musicAudio) return;
+    const duration = Number(musicAudio.duration) || 0;
+    const current = Number(musicAudio.currentTime) || 0;
+    const pct = duration > 0 ? Math.max(0, Math.min(100, (current / duration) * 100)) : 0;
+    if (musicProgressFill) musicProgressFill.style.width = `${pct}%`;
+    if (musicTime) musicTime.textContent = duration > 0
+      ? `${formatMusicTime(current)}`
+      : "0:00";
+  }
+  function seekMusic(event) {
+    if (!musicAudio || !musicProgress || !Number.isFinite(musicAudio.duration)) return;
+    const rect = musicProgress.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    musicAudio.currentTime = ratio * musicAudio.duration;
+    updateMusicProgress();
+  }
+  function initMusicPlayer() {
+    const savedUrl = localStorage.getItem(MUSIC_URL_KEY) || "";
+    if (savedUrl && musicUrlInput) {
+      musicUrlInput.value = savedUrl;
+      setMusicUrl(savedUrl, false);
+    }
+  }
   async function askAgent(question) {
     const session = getSession();
     if (!apiUrl || !session?.token) {
@@ -2282,6 +2452,41 @@ button { cursor: pointer; }
   });
   closeAgentsBtn?.addEventListener("click", closeAgents);
   annualGoalSetBtn?.addEventListener("click", setAnnualGoalTarget);
+  musicOpenDashboard?.addEventListener("click", () => openWithDelay("./index.html#dashboard", "กำลังเปิด DCA-Portfolio"));
+  musicPlayBtn?.addEventListener("click", toggleMusic);
+  musicLoadBtn?.addEventListener("click", () => setMusicUrl(musicUrlInput?.value || "", true));
+  musicUrlInput?.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      setMusicUrl(musicUrlInput.value, true);
+    }
+  });
+  musicUrlInput?.addEventListener("paste", () => {
+    window.setTimeout(() => {
+      const url = (musicUrlInput?.value || "").trim();
+      if (url) setMusicUrl(url, false);
+    }, 0);
+  });
+  musicProgress?.addEventListener("click", seekMusic);
+  musicAudio?.addEventListener("play", () => {
+    musicPlayer?.classList.add("is-playing");
+    setMusicStatus("Playing");
+  });
+  musicAudio?.addEventListener("pause", () => {
+    musicPlayer?.classList.remove("is-playing");
+    setMusicStatus("Paused");
+  });
+  musicAudio?.addEventListener("ended", () => {
+    musicPlayer?.classList.remove("is-playing");
+    setMusicStatus("Ended");
+  });
+  musicAudio?.addEventListener("timeupdate", updateMusicProgress);
+  musicAudio?.addEventListener("loadedmetadata", updateMusicProgress);
+  musicAudio?.addEventListener("error", () => {
+    musicPlayer?.classList.remove("is-playing");
+    setMusicStatus("Error");
+    if (musicSubtitle) musicSubtitle.textContent = "ใช้ลิงก์ไฟล์เสียงโดยตรง เช่น .mp3 / .wav / .ogg";
+  });
   agentForm?.addEventListener("submit", event => {
     event.preventDefault();
     const question = (agentInput?.value || "").trim();
@@ -2294,6 +2499,7 @@ button { cursor: pointer; }
   updateClock();
   updateHudLevel();
   renderAllCryptoWatchlists("loading");
+  initMusicPlayer();
   applyProfile();
   refreshWalletSummary();
   refreshCryptoWatchlists();
