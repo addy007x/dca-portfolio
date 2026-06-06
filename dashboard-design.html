@@ -855,6 +855,14 @@ button { cursor: pointer; }
   font-size: 9px;
   font-weight: 900;
 }
+#musicYoutubeHost {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
 .music-wave {
   display: flex;
   align-items: end;
@@ -1386,20 +1394,21 @@ button { cursor: pointer; }
           <div class="music-cover" aria-hidden="true"></div>
           <div class="music-info">
             <div class="music-title"><b id="musicTitle">DCA-Portfolio</b><button class="music-open" id="musicOpenDashboard" type="button">Open</button></div>
-            <div class="music-subtitle" id="musicSubtitle">Paste direct audio URL: mp3 / wav / ogg</div>
+            <div class="music-subtitle" id="musicSubtitle">Paste YouTube or direct audio URL</div>
             <div class="music-controls">
               <button class="music-play" id="musicPlayBtn" type="button" aria-label="Play or pause"></button>
               <span class="music-progress" id="musicProgress" aria-label="Music progress"><span id="musicProgressFill"></span></span>
               <span class="music-time" id="musicTime">0:00</span>
             </div>
             <div class="music-url-row">
-              <input id="musicUrlInput" type="url" placeholder="วางลิงก์เพลง .mp3">
+              <input id="musicUrlInput" type="url" placeholder="Paste YouTube / .mp3 URL">
               <button id="musicLoadBtn" type="button">LOAD</button>
             </div>
             <div class="music-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
           </div>
         </div>
         <audio id="musicAudio" preload="metadata"></audio>
+        <div id="musicYoutubeHost" aria-hidden="true"></div>
       </div>
       <a class="floating line-link" href="./index.html#dashboard" data-loading-title="กำลังเปิด LINE OA Status">
         <div class="window-bar"><span>LINE OA</span><span>Notify</span></div>
@@ -1526,6 +1535,7 @@ button { cursor: pointer; }
   const musicStatus = document.getElementById("musicStatus");
   const musicTitle = document.getElementById("musicTitle");
   const musicSubtitle = document.getElementById("musicSubtitle");
+  const musicYoutubeHost = document.getElementById("musicYoutubeHost");
   const SESSION_KEY = "siamfolio.googleSession";
   const LAST_PROFILE_KEY = "siamfolio.lastProfile";
   const STORE_KEY = "siamfolio.v1";
@@ -1538,6 +1548,11 @@ button { cursor: pointer; }
     secondary: ["ETH", "SOL", "BNB"]
   };
   const HUD_BASE_LEVEL = 1;
+  let musicMode = "audio";
+  let youtubePlayer = null;
+  let youtubeReady = false;
+  let youtubePendingPlay = false;
+  let youtubeProgressTimer = null;
   const HUD_LEVEL_MS = 60 * 60 * 1000;
   let hudTotalMs = Math.max(0, Number(localStorage.getItem(HUD_TOTAL_MS_KEY) || 0));
   let hudLastTick = Date.now();
@@ -2225,6 +2240,21 @@ button { cursor: pointer; }
     const secs = Math.floor(safe % 60);
     return `${mins}:${String(secs).padStart(2, "0")}`;
   }
+  function parseYoutubeId(url) {
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.replace(/^www\./, "");
+      if (host === "youtu.be") return parsed.pathname.split("/").filter(Boolean)[0] || "";
+      if (!host.endsWith("youtube.com")) return "";
+      const watchId = parsed.searchParams.get("v");
+      if (watchId) return watchId;
+      const parts = parsed.pathname.split("/").filter(Boolean);
+      if (["embed", "shorts", "live"].includes(parts[0])) return parts[1] || "";
+      return "";
+    } catch {
+      return "";
+    }
+  }
   function guessTrackName(url) {
     try {
       const path = new URL(url).pathname.split("/").filter(Boolean).pop() || "Audio Track";
@@ -2236,22 +2266,137 @@ button { cursor: pointer; }
   function setMusicStatus(text) {
     if (musicStatus) musicStatus.textContent = text;
   }
+  function setMusicMode(mode) {
+    musicMode = mode;
+    if (mode === "audio" && youtubePlayer?.pauseVideo) {
+      youtubePlayer.pauseVideo();
+    }
+    if (mode === "youtube" && musicAudio && !musicAudio.paused) {
+      musicAudio.pause();
+    }
+    updateMusicProgress();
+  }
+  function loadYoutubeApi() {
+    if (window.YT?.Player) return Promise.resolve(window.YT);
+    if (window.__siamfolioYoutubeApiPromise) return window.__siamfolioYoutubeApiPromise;
+    window.__siamfolioYoutubeApiPromise = new Promise(resolve => {
+      const previousReady = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        if (typeof previousReady === "function") previousReady();
+        resolve(window.YT);
+      };
+      if (!document.getElementById("youtube-iframe-api")) {
+        const script = document.createElement("script");
+        script.id = "youtube-iframe-api";
+        script.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(script);
+      }
+    });
+    return window.__siamfolioYoutubeApiPromise;
+  }
+  async function loadYoutubeTrack(videoId, shouldPlay = false) {
+    if (!videoId || !musicYoutubeHost) {
+      setMusicStatus("Bad URL");
+      return;
+    }
+    setMusicMode("youtube");
+    youtubePendingPlay = shouldPlay;
+    setMusicStatus("YouTube");
+    const YT = await loadYoutubeApi();
+    if (!youtubePlayer) {
+      youtubePlayer = new YT.Player(musicYoutubeHost, {
+        width: "1",
+        height: "1",
+        videoId,
+        playerVars: { playsinline: 1, modestbranding: 1, rel: 0 },
+        events: {
+          onReady: event => {
+            youtubeReady = true;
+            if (youtubePendingPlay) {
+              youtubePendingPlay = false;
+              event.target.playVideo();
+            } else {
+              event.target.cueVideoById(videoId);
+            }
+            updateMusicProgress();
+          },
+          onStateChange: event => {
+            const state = event.data;
+            if (state === YT.PlayerState.PLAYING) {
+              musicPlayer?.classList.add("is-playing");
+              setMusicStatus("Playing");
+              startYoutubeProgress();
+            } else if (state === YT.PlayerState.PAUSED) {
+              musicPlayer?.classList.remove("is-playing");
+              setMusicStatus("Paused");
+              stopYoutubeProgress();
+            } else if (state === YT.PlayerState.ENDED) {
+              musicPlayer?.classList.remove("is-playing");
+              setMusicStatus("Ended");
+              stopYoutubeProgress();
+              updateMusicProgress();
+            } else if (state === YT.PlayerState.BUFFERING) {
+              setMusicStatus("Buffer");
+            }
+          },
+          onError: () => {
+            musicPlayer?.classList.remove("is-playing");
+            setMusicStatus("Error");
+            if (musicSubtitle) musicSubtitle.textContent = "YouTube link นี้เล่นไม่ได้ ลองลิงก์อื่นหรือไฟล์ .mp3";
+          }
+        }
+      });
+      return;
+    }
+    youtubeReady = true;
+    if (shouldPlay) youtubePlayer.loadVideoById(videoId);
+    else youtubePlayer.cueVideoById(videoId);
+    updateMusicProgress();
+  }
+  function startYoutubeProgress() {
+    stopYoutubeProgress();
+    youtubeProgressTimer = window.setInterval(updateMusicProgress, 500);
+  }
+  function stopYoutubeProgress() {
+    if (youtubeProgressTimer) {
+      window.clearInterval(youtubeProgressTimer);
+      youtubeProgressTimer = null;
+    }
+  }
   function setMusicUrl(url, shouldPlay = false) {
     const clean = String(url || "").trim();
-    if (!musicAudio || !clean) {
+    if (!clean) {
       setMusicStatus("No URL");
       return;
     }
-    musicAudio.src = clean;
-    musicAudio.load();
     localStorage.setItem(MUSIC_URL_KEY, clean);
     if (musicUrlInput) musicUrlInput.value = clean;
+    const youtubeId = parseYoutubeId(clean);
+    if (youtubeId) {
+      if (musicTitle) musicTitle.textContent = "YouTube Track";
+      if (musicSubtitle) musicSubtitle.textContent = clean;
+      loadYoutubeTrack(youtubeId, shouldPlay);
+      return;
+    }
+    if (!musicAudio) return;
+    setMusicMode("audio");
+    musicAudio.src = clean;
+    musicAudio.load();
     if (musicTitle) musicTitle.textContent = guessTrackName(clean);
     if (musicSubtitle) musicSubtitle.textContent = clean;
     setMusicStatus("Loaded");
     if (shouldPlay) playMusic();
   }
   async function playMusic() {
+    if (musicMode === "youtube") {
+      if (!youtubePlayer || !youtubeReady) {
+        const youtubeId = parseYoutubeId(musicUrlInput?.value || "");
+        if (youtubeId) loadYoutubeTrack(youtubeId, true);
+        return;
+      }
+      youtubePlayer.playVideo();
+      return;
+    }
     if (!musicAudio) return;
     if (!musicAudio.src) {
       const url = (musicUrlInput?.value || "").trim();
@@ -2272,6 +2417,15 @@ button { cursor: pointer; }
     }
   }
   function toggleMusic() {
+    if (musicMode === "youtube") {
+      if (!youtubePlayer || !youtubeReady) {
+        playMusic();
+        return;
+      }
+      if (youtubePlayer.getPlayerState?.() === 1) youtubePlayer.pauseVideo();
+      else playMusic();
+      return;
+    }
     if (!musicAudio) return;
     if (!musicAudio.paused) {
       musicAudio.pause();
@@ -2280,9 +2434,9 @@ button { cursor: pointer; }
     playMusic();
   }
   function updateMusicProgress() {
-    if (!musicAudio) return;
-    const duration = Number(musicAudio.duration) || 0;
-    const current = Number(musicAudio.currentTime) || 0;
+    const isYoutube = musicMode === "youtube" && youtubePlayer?.getDuration;
+    const duration = isYoutube ? Number(youtubePlayer.getDuration()) || 0 : Number(musicAudio?.duration) || 0;
+    const current = isYoutube ? Number(youtubePlayer.getCurrentTime()) || 0 : Number(musicAudio?.currentTime) || 0;
     const pct = duration > 0 ? Math.max(0, Math.min(100, (current / duration) * 100)) : 0;
     if (musicProgressFill) musicProgressFill.style.width = `${pct}%`;
     if (musicTime) musicTime.textContent = duration > 0
@@ -2290,10 +2444,18 @@ button { cursor: pointer; }
       : "0:00";
   }
   function seekMusic(event) {
-    if (!musicAudio || !musicProgress || !Number.isFinite(musicAudio.duration)) return;
+    if (!musicProgress) return;
+    const duration = musicMode === "youtube" && youtubePlayer?.getDuration
+      ? Number(youtubePlayer.getDuration()) || 0
+      : Number(musicAudio?.duration) || 0;
+    if (!Number.isFinite(duration) || duration <= 0) return;
     const rect = musicProgress.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-    musicAudio.currentTime = ratio * musicAudio.duration;
+    if (musicMode === "youtube" && youtubePlayer?.seekTo) {
+      youtubePlayer.seekTo(ratio * duration, true);
+    } else if (musicAudio) {
+      musicAudio.currentTime = ratio * duration;
+    }
     updateMusicProgress();
   }
   function initMusicPlayer() {
