@@ -1195,10 +1195,8 @@ button { cursor: pointer; }
           <b id="annualGoalTarget">฿0</b>
         </div>
         <div class="goal-grid">
-          <div class="goal-metric"><span>Invested This Year</span><b id="annualGoalInvested">฿0</b></div>
+          <div class="goal-metric"><span>Invested Total</span><b id="annualGoalInvested">฿0</b></div>
           <div class="goal-metric"><span>Remaining</span><b id="annualGoalRemaining">฿0</b></div>
-          <div class="goal-metric"><span>Need / Month</span><b id="annualGoalMonthly">฿0</b></div>
-          <div class="goal-metric"><span>Need / Day</span><b id="annualGoalDaily">฿0</b></div>
         </div>
         <div class="goal-progress">
           <div class="goal-progress-row"><span id="annualGoalPct">0.00%</span><span id="annualGoalDaysLeft">0D left</span></div>
@@ -1247,8 +1245,6 @@ button { cursor: pointer; }
   const annualGoalTarget = document.getElementById("annualGoalTarget");
   const annualGoalInvested = document.getElementById("annualGoalInvested");
   const annualGoalRemaining = document.getElementById("annualGoalRemaining");
-  const annualGoalMonthly = document.getElementById("annualGoalMonthly");
-  const annualGoalDaily = document.getElementById("annualGoalDaily");
   const annualGoalPct = document.getElementById("annualGoalPct");
   const annualGoalDaysLeft = document.getElementById("annualGoalDaysLeft");
   const annualGoalProgress = document.getElementById("annualGoalProgress");
@@ -1477,6 +1473,26 @@ button { cursor: pointer; }
     );
     return ccy === "THB" ? costNative : costNative * fx;
   }
+  function getPortfolioInvestedTHB(store, fx) {
+    const direct = firstPositive(
+      store?.totals?.costTHB,
+      store?.summary?.costTHB,
+      store?.portfolio?.costTHB,
+      store?.costTHB,
+      store?.totalCostTHB
+    );
+    if (direct > 0) return direct;
+    const usd = firstPositive(
+      store?.totals?.costUSD,
+      store?.summary?.costUSD,
+      store?.portfolio?.costUSD,
+      store?.costUSD,
+      store?.totalCostUSD
+    );
+    if (usd > 0) return usd * fx;
+    const holdings = Array.isArray(store?.holdings) ? store.holdings : [];
+    return holdings.reduce((sum, holding) => sum + getHoldingCostTHB(holding, fx), 0);
+  }
   function summarizeAnnualGoal(store) {
     const target = getAnnualGoalTarget();
     const fx = Number(store?.fx) || 35.8;
@@ -1484,24 +1500,13 @@ button { cursor: pointer; }
     const year = now.getFullYear();
     const end = new Date(year, 11, 31, 23, 59, 59);
     const daysLeft = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86400000));
-    const monthsLeft = Math.max(1, 12 - now.getMonth());
-    const txs = getStoreTransactions(store);
-    let invested = txs.reduce((sum, tx) => {
-      const date = parseLooseDate(tx?.date || tx?.createdAt || tx?.executedAt);
-      if (!date || date.getFullYear() !== year) return sum;
-      return sum + getTxInvestedTHB(tx, fx);
-    }, 0);
-    if (!txs.length && Array.isArray(store?.holdings)) {
-      invested = store.holdings.reduce((sum, holding) => sum + getHoldingCostTHB(holding, fx), 0);
-    }
+    const invested = getPortfolioInvestedTHB(store, fx);
     const remaining = Math.max(0, target - invested);
     const pct = target > 0 ? Math.min(100, (invested / target) * 100) : 0;
     return {
       target,
       invested,
       remaining,
-      monthly: remaining / monthsLeft,
-      daily: daysLeft > 0 ? remaining / daysLeft : remaining,
       pct,
       daysLeft
     };
@@ -1512,8 +1517,6 @@ button { cursor: pointer; }
     if (annualGoalTarget) annualGoalTarget.textContent = fmtTHB(summary.target);
     if (annualGoalInvested) annualGoalInvested.textContent = fmtTHB(summary.invested);
     if (annualGoalRemaining) annualGoalRemaining.textContent = fmtTHB(summary.remaining);
-    if (annualGoalMonthly) annualGoalMonthly.textContent = fmtTHB(summary.monthly);
-    if (annualGoalDaily) annualGoalDaily.textContent = fmtTHB(summary.daily);
     if (annualGoalPct) annualGoalPct.textContent = `${summary.pct.toFixed(2)}%`;
     if (annualGoalDaysLeft) annualGoalDaysLeft.textContent = `${summary.daysLeft}D left`;
     if (annualGoalProgress) annualGoalProgress.style.width = `${summary.pct}%`;
