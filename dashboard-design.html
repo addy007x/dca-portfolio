@@ -1195,7 +1195,7 @@ button { cursor: pointer; }
           <b id="annualGoalTarget">฿0</b>
         </div>
         <div class="goal-grid">
-          <div class="goal-metric"><span>Invested Total</span><b id="annualGoalInvested">฿0</b></div>
+          <div class="goal-metric"><span>Portfolio Value</span><b id="annualGoalInvested">฿0</b></div>
           <div class="goal-metric"><span>Remaining</span><b id="annualGoalRemaining">฿0</b></div>
         </div>
         <div class="goal-progress">
@@ -1473,25 +1473,42 @@ button { cursor: pointer; }
     );
     return ccy === "THB" ? costNative : costNative * fx;
   }
-  function getPortfolioInvestedTHB(store, fx) {
+  function getPortfolioValueTHB(store, fx) {
     const direct = firstPositive(
-      store?.totals?.costTHB,
-      store?.summary?.costTHB,
-      store?.portfolio?.costTHB,
-      store?.costTHB,
-      store?.totalCostTHB
+      store?.totals?.mvTHB,
+      store?.totals?.valueTHB,
+      store?.summary?.portfolioTHB,
+      store?.summary?.valueTHB,
+      store?.portfolio?.valueTHB,
+      store?.portfolioTHB,
+      store?.valueTHB,
+      store?.totalValueTHB,
+      store?.totalValue
     );
     if (direct > 0) return direct;
     const usd = firstPositive(
-      store?.totals?.costUSD,
-      store?.summary?.costUSD,
-      store?.portfolio?.costUSD,
-      store?.costUSD,
-      store?.totalCostUSD
+      store?.totals?.mvUSD,
+      store?.totals?.valueUSD,
+      store?.summary?.portfolioUSD,
+      store?.summary?.valueUSD,
+      store?.portfolio?.valueUSD,
+      store?.portfolioUSD,
+      store?.valueUSD,
+      store?.totalValueUSD
     );
     if (usd > 0) return usd * fx;
     const holdings = Array.isArray(store?.holdings) ? store.holdings : [];
-    return holdings.reduce((sum, holding) => sum + getHoldingCostTHB(holding, fx), 0);
+    return holdings.reduce((sum, holding) => {
+      const qty = Number(holding?.qty) || 0;
+      const price = Number(holding?.price) || 0;
+      const valueNative = firstPositive(
+        holding?.value,
+        holding?.marketValue,
+        holding?.marketValueNative,
+        qty * price
+      );
+      return sum + (holding?.ccy === "THB" ? valueNative : valueNative * fx);
+    }, 0);
   }
   function summarizeAnnualGoal(store) {
     const target = getAnnualGoalTarget();
@@ -1500,7 +1517,7 @@ button { cursor: pointer; }
     const year = now.getFullYear();
     const end = new Date(year, 11, 31, 23, 59, 59);
     const daysLeft = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86400000));
-    const invested = getPortfolioInvestedTHB(store, fx);
+    const invested = getPortfolioValueTHB(store, fx);
     const remaining = Math.max(0, target - invested);
     const pct = target > 0 ? Math.min(100, (invested / target) * 100) : 0;
     return {
