@@ -1444,21 +1444,23 @@ button { cursor: pointer; }
     if (kind.includes("sell") || kind.includes("withdraw") || qty < 0) return 0;
     if (kind && !["buy", "dca", "deposit", "add"].some(word => kind.includes(word))) return 0;
     const ccy = String(tx?.ccy || tx?.currency || tx?.quote || "").toUpperCase() === "THB" ? "THB" : "USD";
+    const thb = firstPositive(tx?.valTHB, tx?.valueTHB, tx?.amountTHB, tx?.totalTHB);
+    const usd = firstPositive(tx?.valUSD, tx?.valueUSD, tx?.amountUSD, tx?.totalUSD);
+    if (thb > 0) return thb;
+    if (usd > 0) return usd * fx;
     const native = firstPositive(
-      tx?.amount,
       tx?.total,
       tx?.value,
       tx?.valueNative,
       tx?.notional,
       tx?.cost,
       tx?.spent,
+      tx?.amount,
       qty > 0 && firstPositive(tx?.pricePerUnit, tx?.price, tx?.unitPrice) > 0
         ? qty * firstPositive(tx?.pricePerUnit, tx?.price, tx?.unitPrice)
         : 0
     );
-    const usd = firstPositive(tx?.valUSD, tx?.valueUSD, tx?.amountUSD);
     if (native > 0) return ccy === "THB" ? native : native * fx;
-    if (usd > 0) return usd * fx;
     return 0;
   }
   function getHoldingCostTHB(holding, fx) {
