@@ -660,6 +660,162 @@ button { cursor: pointer; }
 .status-card.two { left: 285px; top: 20px; width: 250px; }
 .terminal { left: 24px; bottom: 24px; width: 290px; }
 .project-link { left: 335px; bottom: 24px; width: 260px; }
+.music-player {
+  overflow: hidden;
+  border-color: rgba(238, 201, 112, .38);
+  background:
+    radial-gradient(circle at 16% 20%, rgba(238, 201, 112, .16), transparent 34%),
+    linear-gradient(180deg, rgba(9, 22, 36, .92), rgba(4, 10, 18, .82));
+}
+.music-player:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent),
+    repeating-linear-gradient(90deg, rgba(125,225,238,.07) 0 1px, transparent 1px 12px);
+  opacity: .62;
+  transform: translateX(-100%);
+  animation: hud-scan 5.4s ease-in-out infinite;
+}
+.music-player .window-bar {
+  position: relative;
+  z-index: 1;
+  border-bottom-color: rgba(238, 201, 112, .24);
+  color: #ffe2a0;
+}
+.music-body {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
+}
+.music-cover {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(238, 201, 112, .52);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 35% 26%, rgba(255,241,191,.42), transparent 28%),
+    linear-gradient(135deg, rgba(125,225,238,.24), rgba(238,201,112,.26)),
+    rgba(5,13,24,.88);
+  box-shadow: inset 0 0 16px rgba(255,255,255,.05), 0 0 18px rgba(238,201,112,.16);
+}
+.music-cover:before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255,241,191,.84);
+  border-radius: 50%;
+  box-shadow: 0 0 0 8px rgba(125,225,238,.10), inset 0 0 10px rgba(0,0,0,.38);
+}
+.music-cover:after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff1bf;
+  box-shadow: 0 0 12px rgba(238,201,112,.62);
+}
+.music-info {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  align-content: center;
+}
+.music-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: #f4fbff;
+  font-family: var(--mono);
+}
+.music-title b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.music-title span {
+  color: var(--amber);
+  font-size: 10px;
+  font-weight: 900;
+}
+.music-subtitle {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+.music-controls {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+.music-play {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(125,225,238,.38);
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(125,225,238,.20), rgba(4,13,24,.86));
+  box-shadow: 0 0 14px rgba(125,225,238,.14);
+}
+.music-play:before {
+  content: "";
+  margin-left: 2px;
+  border-left: 8px solid #fff1bf;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+.music-progress {
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(82,185,219,.26);
+  border-radius: 999px;
+  background: rgba(2,8,18,.74);
+}
+.music-progress span {
+  display: block;
+  width: 68%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--cyan), var(--green) 48%, var(--amber));
+  box-shadow: 0 0 10px rgba(125,225,238,.26);
+  animation: music-pulse 2.8s ease-in-out infinite;
+}
+.music-wave {
+  display: flex;
+  align-items: end;
+  gap: 3px;
+  height: 18px;
+}
+.music-wave i {
+  width: 3px;
+  height: 7px;
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--amber), var(--cyan));
+  opacity: .78;
+  animation: wave-bounce 1.15s ease-in-out infinite;
+}
+.music-wave i:nth-child(2) { height: 14px; animation-delay: .14s; }
+.music-wave i:nth-child(3) { height: 9px; animation-delay: .28s; }
+.music-wave i:nth-child(4) { height: 16px; animation-delay: .08s; }
+.music-wave i:nth-child(5) { height: 11px; animation-delay: .22s; }
+.music-wave i:nth-child(6) { height: 15px; animation-delay: .36s; }
+.music-wave i:nth-child(7) { height: 8px; animation-delay: .18s; }
 .team-chat { right: 24px; bottom: 24px; width: 260px; }
 .line-link { right: 34px; bottom: 118px; width: 260px; border-color: rgba(32, 240, 139, .42); }
 .command-row, .agent-compose { display: grid; grid-template-columns: 1fr 44px; gap: 8px; }
@@ -927,6 +1083,14 @@ button { cursor: pointer; }
   54% { opacity: .85; }
   76%, 100% { transform: translateX(105%); opacity: 0; }
 }
+@keyframes music-pulse {
+  0%, 100% { filter: saturate(1); transform: scaleX(.98); }
+  50% { filter: saturate(1.24); transform: scaleX(1); }
+}
+@keyframes wave-bounce {
+  0%, 100% { transform: scaleY(.72); opacity: .58; }
+  50% { transform: scaleY(1.08); opacity: 1; }
+}
 @keyframes hud-fill-shine {
   0% { transform: translateX(-100%); opacity: 0; }
   45% { opacity: .9; }
@@ -1149,9 +1313,20 @@ button { cursor: pointer; }
           <p>STATUS : Ready</p><p>Webhook : Active</p><p>Command : พอร์ต / dca</p><p>Last Update : <span class="time-inline">--:--:--</span></p>
         </div>
       </div>
-      <a class="floating project-link" href="./index.html#dashboard" data-loading-title="กำลังเปิด DCA-Portfolio">
-        <div class="window-bar"><span>Open Dashboard</span><span>DCA</span></div>
-        <div class="window-body"><p><b>DCA-Portfolio</b></p><p>พอร์ตหลัก ตาราง DCA และแจ้งเตือน LINE</p></div>
+      <a class="floating project-link music-player" href="./index.html#dashboard" data-loading-title="กำลังเปิด DCA-Portfolio">
+        <div class="window-bar"><span>Now Playing</span><span>DCA</span></div>
+        <div class="music-body">
+          <div class="music-cover" aria-hidden="true"></div>
+          <div class="music-info">
+            <div class="music-title"><b>DCA-Portfolio</b><span>MAX</span></div>
+            <div class="music-subtitle">Portfolio / DCA / LINE Alerts</div>
+            <div class="music-controls">
+              <span class="music-play" aria-hidden="true"></span>
+              <span class="music-progress" aria-hidden="true"><span></span></span>
+            </div>
+            <div class="music-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+        </div>
       </a>
       <a class="floating line-link" href="./index.html#dashboard" data-loading-title="กำลังเปิด LINE OA Status">
         <div class="window-bar"><span>LINE OA</span><span>Notify</span></div>
