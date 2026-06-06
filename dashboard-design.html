@@ -684,6 +684,92 @@ button { cursor: pointer; }
 .metric b { display: block; margin-top: 3px; font-family: var(--mono); font-size: 18px; }
 .bar { height: 8px; overflow: hidden; border: 1px solid rgba(63, 174, 255, .18); background: rgba(2, 8, 18, .72); }
 .bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--green)); }
+.goal-panel {
+  display: grid;
+  gap: 10px;
+}
+.goal-set {
+  min-width: 50px;
+  cursor: pointer;
+}
+.goal-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 72px;
+  padding: 12px;
+  border: 1px solid rgba(255, 226, 108, .22);
+  background:
+    radial-gradient(circle at 84% 18%, rgba(255, 226, 108, .18), transparent 36%),
+    linear-gradient(135deg, rgba(34,217,255,.12), rgba(3,12,25,.72) 44%, rgba(255,149,43,.12));
+}
+.goal-hero:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.10), transparent);
+  transform: translateX(-100%);
+  animation: goal-scan 4.2s ease-in-out infinite;
+}
+.goal-hero span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+.goal-hero b {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin-top: 4px;
+  color: #fff4b8;
+  font-family: var(--mono);
+  font-size: 23px;
+  text-shadow: 0 0 14px rgba(255,226,108,.36);
+}
+.goal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+.goal-metric {
+  min-height: 54px;
+  padding: 8px;
+  border: 1px solid rgba(63, 174, 255, .18);
+  background: rgba(3, 12, 25, .52);
+}
+.goal-metric span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+}
+.goal-metric b {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 15px;
+}
+.goal-progress {
+  display: grid;
+  gap: 5px;
+}
+.goal-progress-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+.goal-progress .bar {
+  height: 9px;
+  border-color: rgba(255, 226, 108, .24);
+}
+.goal-progress .bar span {
+  width: 0;
+  background: linear-gradient(90deg, #22d9ff, #20f08b 55%, #ffe26c);
+  box-shadow: 0 0 14px rgba(34,217,255,.32);
+  transition: width .35s ease;
+}
 .asset-row { grid-template-columns: 1fr auto auto; }
 .crypto-panel .section-head {
   align-items: center;
@@ -835,6 +921,11 @@ button { cursor: pointer; }
   0%, 38% { transform: translateX(-100%); opacity: 0; }
   50% { opacity: 1; }
   74%, 100% { transform: translateX(100%); opacity: 0; }
+}
+@keyframes goal-scan {
+  0%, 42% { transform: translateX(-105%); opacity: 0; }
+  54% { opacity: .85; }
+  76%, 100% { transform: translateX(105%); opacity: 0; }
 }
 @keyframes hud-fill-shine {
   0% { transform: translateX(-100%); opacity: 0; }
@@ -1097,15 +1188,22 @@ button { cursor: pointer; }
     </section>
 
     <aside class="right panel reveal" style="animation-delay:.15s">
-      <section class="mini-panel panel">
-        <div class="section-head"><span>Account Status</span><span>Realtime</span></div>
-        <div class="metric-grid">
-          <div class="metric"><span>Equity</span><b>$20,882</b></div>
-          <div class="metric"><span>DCA Systems</span><b>1</b></div>
-          <div class="metric"><span>LINE OA</span><b>Linked</b></div>
-          <div class="metric"><span>Risk Guard</span><b>Ready</b></div>
+      <section class="mini-panel panel goal-panel">
+        <div class="section-head"><span>Annual Goal</span><button class="chip goal-set" id="annualGoalSetBtn" type="button">SET</button></div>
+        <div class="goal-hero">
+          <span>Target / Year</span>
+          <b id="annualGoalTarget">฿0</b>
         </div>
-        <div class="bar"><span style="width:72%"></span></div>
+        <div class="goal-grid">
+          <div class="goal-metric"><span>Invested This Year</span><b id="annualGoalInvested">฿0</b></div>
+          <div class="goal-metric"><span>Remaining</span><b id="annualGoalRemaining">฿0</b></div>
+          <div class="goal-metric"><span>Need / Month</span><b id="annualGoalMonthly">฿0</b></div>
+          <div class="goal-metric"><span>Need / Day</span><b id="annualGoalDaily">฿0</b></div>
+        </div>
+        <div class="goal-progress">
+          <div class="goal-progress-row"><span id="annualGoalPct">0.00%</span><span id="annualGoalDaysLeft">0D left</span></div>
+          <div class="bar"><span id="annualGoalProgress"></span></div>
+        </div>
       </section>
       <section class="mini-panel panel crypto-panel crypto-combined">
         <div class="section-head"><span>Crypto Market</span><button class="chip crypto-add" type="button" data-add-crypto="primary">+ Add</button></div>
@@ -1146,6 +1244,15 @@ button { cursor: pointer; }
   const walletStatus = document.getElementById("walletStatus");
   const holdingsList = document.getElementById("holdingsList");
   const holdingsCount = document.getElementById("holdingsCount");
+  const annualGoalTarget = document.getElementById("annualGoalTarget");
+  const annualGoalInvested = document.getElementById("annualGoalInvested");
+  const annualGoalRemaining = document.getElementById("annualGoalRemaining");
+  const annualGoalMonthly = document.getElementById("annualGoalMonthly");
+  const annualGoalDaily = document.getElementById("annualGoalDaily");
+  const annualGoalPct = document.getElementById("annualGoalPct");
+  const annualGoalDaysLeft = document.getElementById("annualGoalDaysLeft");
+  const annualGoalProgress = document.getElementById("annualGoalProgress");
+  const annualGoalSetBtn = document.getElementById("annualGoalSetBtn");
   const cryptoListPrimary = document.getElementById("cryptoListPrimary");
   const cryptoListSecondary = null;
   const hudLevelValue = document.getElementById("hudLevelValue");
@@ -1167,6 +1274,7 @@ button { cursor: pointer; }
   const LAST_PROFILE_KEY = "siamfolio.lastProfile";
   const STORE_KEY = "siamfolio.v1";
   const HUD_TOTAL_MS_KEY = "siamfolio.dashboardDesign.hudTotalMs";
+  const ANNUAL_GOAL_KEY = "siamfolio.dashboardDesign.annualGoalTHB";
   const CRYPTO_WATCHLIST_KEY = "siamfolio.dashboardDesign.cryptoWatchlists.v1";
   const DEFAULT_CRYPTO_WATCHLISTS = {
     primary: ["BTC", "XAUT", "TRX"],
@@ -1177,6 +1285,7 @@ button { cursor: pointer; }
   let hudTotalMs = Math.max(0, Number(localStorage.getItem(HUD_TOTAL_MS_KEY) || 0));
   let hudLastTick = Date.now();
   const apiUrl = (window.AUTH_CONFIG?.apiUrl || "").replace(/\/$/, "");
+  let latestPortfolioStore = null;
   let cryptoWatchlists = loadCryptoWatchlists();
   let cryptoPriceCache = {};
   let cryptoRefreshing = false;
@@ -1303,6 +1412,118 @@ button { cursor: pointer; }
     const n = Number.isFinite(value) ? value : 0;
     const sign = n >= 0 ? "+" : "-";
     return `${sign}${fmtTHB(Math.abs(n), Math.abs(n) >= 100 ? 0 : 2)}`;
+  }
+  function parseLooseDate(value) {
+    if (!value) return null;
+    const raw = String(value).trim();
+    const iso = raw.match(/\d{4}-\d{2}-\d{2}/)?.[0];
+    if (iso) return new Date(`${iso}T00:00:00+07:00`);
+    const direct = new Date(raw);
+    return Number.isNaN(direct.getTime()) ? null : direct;
+  }
+  function getAnnualGoalTarget() {
+    const saved = Number(localStorage.getItem(ANNUAL_GOAL_KEY));
+    return Number.isFinite(saved) && saved > 0 ? saved : 120000;
+  }
+  function firstArray(...values) {
+    return values.find(value => Array.isArray(value)) || [];
+  }
+  function getStoreTransactions(store) {
+    const txs = firstArray(
+      store?.transactions,
+      store?.txs,
+      store?.history,
+      store?.trades,
+      store?.activity
+    );
+    return txs.filter(tx => tx && typeof tx === "object");
+  }
+  function getTxInvestedTHB(tx, fx) {
+    const kind = String(tx?.kind || tx?.type || tx?.side || tx?.action || "").toLowerCase();
+    const qty = firstFinite(tx?.qty, tx?.quantity, tx?.amountAsset, tx?.units);
+    if (kind.includes("sell") || kind.includes("withdraw") || qty < 0) return 0;
+    if (kind && !["buy", "dca", "deposit", "add"].some(word => kind.includes(word))) return 0;
+    const ccy = String(tx?.ccy || tx?.currency || tx?.quote || "").toUpperCase() === "THB" ? "THB" : "USD";
+    const native = firstPositive(
+      tx?.amount,
+      tx?.total,
+      tx?.value,
+      tx?.valueNative,
+      tx?.notional,
+      tx?.cost,
+      tx?.spent,
+      qty > 0 && firstPositive(tx?.pricePerUnit, tx?.price, tx?.unitPrice) > 0
+        ? qty * firstPositive(tx?.pricePerUnit, tx?.price, tx?.unitPrice)
+        : 0
+    );
+    const usd = firstPositive(tx?.valUSD, tx?.valueUSD, tx?.amountUSD);
+    if (native > 0) return ccy === "THB" ? native : native * fx;
+    if (usd > 0) return usd * fx;
+    return 0;
+  }
+  function getHoldingCostTHB(holding, fx) {
+    const ccy = holding?.ccy === "THB" ? "THB" : "USD";
+    const qty = Number(holding?.qty) || 0;
+    const unitCost = firstPositive(holding?.costAvg, holding?.avgCost, holding?.averageCost, holding?.costBasisPerUnit);
+    const costNative = firstPositive(
+      holding?.cost,
+      holding?.totalCost,
+      holding?.costBasis,
+      holding?.invested,
+      holding?.principal,
+      qty > 0 && unitCost > 0 ? qty * unitCost : 0
+    );
+    return ccy === "THB" ? costNative : costNative * fx;
+  }
+  function summarizeAnnualGoal(store) {
+    const target = getAnnualGoalTarget();
+    const fx = Number(store?.fx) || 35.8;
+    const now = new Date();
+    const year = now.getFullYear();
+    const end = new Date(year, 11, 31, 23, 59, 59);
+    const daysLeft = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86400000));
+    const monthsLeft = Math.max(1, 12 - now.getMonth());
+    const txs = getStoreTransactions(store);
+    let invested = txs.reduce((sum, tx) => {
+      const date = parseLooseDate(tx?.date || tx?.createdAt || tx?.executedAt);
+      if (!date || date.getFullYear() !== year) return sum;
+      return sum + getTxInvestedTHB(tx, fx);
+    }, 0);
+    if (!txs.length && Array.isArray(store?.holdings)) {
+      invested = store.holdings.reduce((sum, holding) => sum + getHoldingCostTHB(holding, fx), 0);
+    }
+    const remaining = Math.max(0, target - invested);
+    const pct = target > 0 ? Math.min(100, (invested / target) * 100) : 0;
+    return {
+      target,
+      invested,
+      remaining,
+      monthly: remaining / monthsLeft,
+      daily: daysLeft > 0 ? remaining / daysLeft : remaining,
+      pct,
+      daysLeft
+    };
+  }
+  function renderAnnualGoalPanel(store) {
+    latestPortfolioStore = store || latestPortfolioStore;
+    const summary = summarizeAnnualGoal(store || {});
+    if (annualGoalTarget) annualGoalTarget.textContent = fmtTHB(summary.target);
+    if (annualGoalInvested) annualGoalInvested.textContent = fmtTHB(summary.invested);
+    if (annualGoalRemaining) annualGoalRemaining.textContent = fmtTHB(summary.remaining);
+    if (annualGoalMonthly) annualGoalMonthly.textContent = fmtTHB(summary.monthly);
+    if (annualGoalDaily) annualGoalDaily.textContent = fmtTHB(summary.daily);
+    if (annualGoalPct) annualGoalPct.textContent = `${summary.pct.toFixed(2)}%`;
+    if (annualGoalDaysLeft) annualGoalDaysLeft.textContent = `${summary.daysLeft}D left`;
+    if (annualGoalProgress) annualGoalProgress.style.width = `${summary.pct}%`;
+  }
+  function setAnnualGoalTarget() {
+    const current = getAnnualGoalTarget();
+    const raw = prompt("ตั้งเป้าลงทุนต่อปี (บาท)", String(Math.round(current)));
+    if (raw === null) return;
+    const next = Number(String(raw).replace(/,/g, "").trim());
+    if (!Number.isFinite(next) || next <= 0) return;
+    localStorage.setItem(ANNUAL_GOAL_KEY, String(Math.round(next)));
+    renderAnnualGoalPanel(latestPortfolioStore || readLocalStore() || {});
   }
   function fmtPct(value) {
     const n = Number.isFinite(value) ? value : 0;
@@ -1631,15 +1852,18 @@ button { cursor: pointer; }
     if (localStore) {
       renderWalletSummary(summarizeWallet(localStore), "Local");
       renderHoldingsPanel(localStore, "Local");
+      renderAnnualGoalPanel(localStore);
     }
     const remoteStore = await fetchRemoteStore();
     if (remoteStore) {
       renderWalletSummary(summarizeWallet(remoteStore), "Live");
       renderHoldingsPanel(remoteStore, "Live");
+      renderAnnualGoalPanel(remoteStore);
     }
     if (!localStore && !remoteStore) {
       if (walletStatus) walletStatus.textContent = "No data";
       renderHoldingsPanel(null);
+      renderAnnualGoalPanel(null);
     }
   }
   function getDisplayName(user) {
@@ -1860,6 +2084,7 @@ button { cursor: pointer; }
     button.addEventListener("click", () => openAgents(button.dataset.openAgent));
   });
   closeAgentsBtn?.addEventListener("click", closeAgents);
+  annualGoalSetBtn?.addEventListener("click", setAnnualGoalTarget);
   agentForm?.addEventListener("submit", event => {
     event.preventDefault();
     const question = (agentInput?.value || "").trim();
