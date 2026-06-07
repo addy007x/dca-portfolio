@@ -121,3 +121,19 @@ CREATE TABLE IF NOT EXISTS line_link_codes (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_line_link_codes_exp ON line_link_codes(expires_at);
+
+-- Per-user appointment reminders. Cron checks active rows and pushes LINE OA when due.
+CREATE TABLE IF NOT EXISTS appointment_reminders (
+  id           TEXT PRIMARY KEY,
+  user_id      TEXT NOT NULL,
+  title        TEXT NOT NULL,
+  note         TEXT,
+  remind_date  TEXT NOT NULL,
+  remind_time  TEXT NOT NULL,
+  status       TEXT NOT NULL DEFAULT 'active',
+  line_sent_at INTEGER,
+  created_at   INTEGER NOT NULL,
+  updated_at   INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_appointment_reminders_user ON appointment_reminders(user_id, status, remind_date, remind_time);
+CREATE INDEX IF NOT EXISTS idx_appointment_reminders_due ON appointment_reminders(status, remind_date, remind_time);

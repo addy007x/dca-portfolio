@@ -735,8 +735,146 @@ button { cursor: pointer; }
 .floating.is-dragging .window-bar { cursor: grabbing; }
 .window-body { padding: 9px; color: #dbeeff; font-family: var(--mono); font-size: 11px; }
 .window-body p { margin: 0 0 6px; }
-.status-card.one { left: 18px; top: 20px; width: 250px; }
-.status-card.two { left: 285px; top: 20px; width: 250px; }
+.status-card.one { left: 18px; top: 20px; width: 314px; }
+.status-card.two { left: 352px; top: 20px; width: 250px; }
+.appointment-card {
+  min-height: 292px;
+  border-color: rgba(34, 217, 255, .48);
+  background:
+    radial-gradient(circle at 88% 8%, rgba(32, 240, 139, .12), transparent 30%),
+    linear-gradient(180deg, rgba(7, 15, 29, .94), rgba(4, 8, 18, .86));
+}
+.appointment-body {
+  display: grid;
+  gap: 8px;
+}
+.appointment-status {
+  display: grid;
+  gap: 1px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(63, 174, 255, .16);
+}
+.appointment-status p { margin: 0; }
+.appointment-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 86px 66px 44px;
+  gap: 5px;
+}
+.appointment-form input,
+.appointment-note {
+  min-width: 0;
+  border: 1px solid rgba(82,185,219,.28);
+  background: rgba(2,8,18,.78);
+  color: #f4fbff;
+  outline: 0;
+  font-family: var(--mono);
+  font-size: 9px;
+}
+.appointment-form input {
+  height: 27px;
+  padding: 0 7px;
+}
+.appointment-note {
+  grid-column: 1 / -1;
+  min-height: 42px;
+  padding: 7px;
+  resize: none;
+}
+.appointment-form input:focus,
+.appointment-note:focus {
+  border-color: rgba(125,225,238,.62);
+  box-shadow: 0 0 12px rgba(34,217,255,.12);
+}
+.appointment-form button,
+.appointment-delete {
+  border: 1px solid rgba(34,217,255,.42);
+  background: rgba(34,217,255,.12);
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.appointment-form button:hover,
+.appointment-delete:hover {
+  border-color: rgba(32,240,139,.62);
+  color: var(--green);
+}
+.appointment-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.appointment-message {
+  min-height: 12px;
+  color: var(--green);
+  font-size: 9px;
+}
+.appointment-message.is-error { color: #ff6681; }
+.appointment-list {
+  display: grid;
+  gap: 6px;
+  max-height: 130px;
+  overflow: auto;
+  padding-right: 2px;
+}
+.appointment-item {
+  display: grid;
+  gap: 5px;
+  padding: 7px;
+  border: 1px solid rgba(63,174,255,.20);
+  background: rgba(3,12,25,.56);
+}
+.appointment-item.is-sent {
+  opacity: .64;
+}
+.appointment-row {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.appointment-title {
+  min-width: 0;
+  color: #f4fbff;
+  font-size: 11px;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.appointment-time {
+  color: #ffe28a;
+  font-size: 9px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+.appointment-note-text {
+  color: #aebed0;
+  font-size: 9px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.appointment-badge {
+  color: var(--green);
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.appointment-delete {
+  width: 42px;
+  height: 21px;
+}
+.appointment-empty {
+  padding: 9px;
+  border: 1px dashed rgba(82,185,219,.24);
+  color: var(--muted);
+  font-size: 9px;
+  text-align: center;
+}
 .terminal { left: 24px; bottom: 24px; width: 290px; }
 .project-link { left: 325px; bottom: 24px; width: 300px; }
 .music-player {
@@ -1434,10 +1572,30 @@ button { cursor: pointer; }
     <section class="scene-board reveal" style="animation-delay:.1s" aria-label="Pixel trading office scene">
       <div class="scene-bg"></div>
       <div class="panel-dock" id="panelDock" aria-label="Open or hide dashboard panels"></div>
-      <div class="floating status-card one">
-        <div class="window-bar"><span>DCA Portfolio</span><span>Live</span></div>
-        <div class="window-body">
-          <p>STATUS : Running</p><p>DCA Sync : Online</p><p>LINE OA : Linked</p><p>Last Update : <span class="time-inline">--:--:--</span></p>
+      <div class="floating status-card appointment-card one" data-drag-id="status-card-one">
+        <div class="window-bar"><span>DCA Portfolio</span><span>Schedule</span></div>
+        <div class="window-body appointment-body">
+          <div class="appointment-status">
+            <p>STATUS : Running</p>
+            <p>DCA Sync : Online</p>
+            <p>LINE OA : Linked</p>
+            <p>Last Update : <span class="time-inline">--:--:--</span></p>
+          </div>
+          <form class="appointment-form" id="appointmentForm">
+            <input id="appointmentTitle" type="text" maxlength="120" placeholder="หัวข้อนัดหมาย" required>
+            <input id="appointmentDate" type="date" required>
+            <input id="appointmentTime" type="time" required>
+            <button type="submit">ADD</button>
+            <textarea id="appointmentNote" class="appointment-note" maxlength="600" placeholder="ข้อความที่จะแจ้งเตือนใน LINE OA"></textarea>
+          </form>
+          <div class="appointment-meta">
+            <span>LINE OA reminder</span>
+            <span>UTC+7</span>
+          </div>
+          <div class="appointment-message" id="appointmentMessage"></div>
+          <div class="appointment-list" id="appointmentList">
+            <div class="appointment-empty">ยังไม่มีนัดหมาย</div>
+          </div>
         </div>
       </div>
       <div class="floating status-card two">
@@ -1595,6 +1753,13 @@ button { cursor: pointer; }
   const musicTitle = document.getElementById("musicTitle");
   const musicSubtitle = document.getElementById("musicSubtitle");
   const musicYoutubeHost = document.getElementById("musicYoutubeHost");
+  const appointmentForm = document.getElementById("appointmentForm");
+  const appointmentTitle = document.getElementById("appointmentTitle");
+  const appointmentDate = document.getElementById("appointmentDate");
+  const appointmentTime = document.getElementById("appointmentTime");
+  const appointmentNote = document.getElementById("appointmentNote");
+  const appointmentMessage = document.getElementById("appointmentMessage");
+  const appointmentList = document.getElementById("appointmentList");
   const SESSION_KEY = "siamfolio.googleSession";
   const LAST_PROFILE_KEY = "siamfolio.lastProfile";
   const STORE_KEY = "siamfolio.v1";
@@ -2258,6 +2423,114 @@ button { cursor: pointer; }
   function escapeHtml(value) {
     return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   }
+  function setAppointmentMessage(text, isError = false) {
+    if (!appointmentMessage) return;
+    appointmentMessage.textContent = text || "";
+    appointmentMessage.classList.toggle("is-error", Boolean(isError));
+  }
+  function appointmentDefaults() {
+    const d = new Date(Date.now() + (7 * 60 + 15) * 60 * 1000);
+    return {
+      date: d.toISOString().slice(0, 10),
+      time: d.toISOString().slice(11, 16)
+    };
+  }
+  async function remindersFetch(path = "/api/reminders", options = {}) {
+    const session = getSession();
+    if (!apiUrl) throw new Error("ยังไม่ได้ตั้งค่า backend");
+    if (!session?.token) throw new Error("กรุณาล็อกอินก่อนใช้นัดหมาย");
+    const headers = {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {}),
+      Authorization: `Bearer ${session.token}`
+    };
+    const response = await fetch(`${apiUrl}${path}`, { ...options, headers });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data?.error || "บันทึกนัดหมายไม่สำเร็จ");
+    return data;
+  }
+  function renderAppointments(reminders = []) {
+    if (!appointmentList) return;
+    if (!reminders.length) {
+      appointmentList.innerHTML = `<div class="appointment-empty">ยังไม่มีนัดหมาย</div>`;
+      return;
+    }
+    appointmentList.innerHTML = reminders.map(item => {
+      const sent = item.status === "sent";
+      const badge = sent ? "SENT" : "ACTIVE";
+      return `
+        <div class="appointment-item ${sent ? "is-sent" : ""}">
+          <div class="appointment-row">
+            <span class="appointment-title">${escapeHtml(item.title || "Appointment")}</span>
+            <span class="appointment-time">${escapeHtml(item.date || "--")} ${escapeHtml(item.time || "--")}</span>
+          </div>
+          ${item.note ? `<div class="appointment-note-text">${escapeHtml(item.note)}</div>` : ""}
+          <div class="appointment-row">
+            <span class="appointment-badge">${badge}</span>
+            <button class="appointment-delete" type="button" data-delete-reminder="${escapeHtml(item.id)}">DEL</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+  async function refreshAppointments(silent = false) {
+    if (!appointmentList) return;
+    try {
+      if (!silent) setAppointmentMessage("กำลังโหลดนัดหมาย...");
+      const data = await remindersFetch();
+      renderAppointments(data.reminders || []);
+      setAppointmentMessage("พร้อมแจ้งเตือนผ่าน LINE OA");
+    } catch (error) {
+      renderAppointments([]);
+      setAppointmentMessage(error.message, true);
+    }
+  }
+  async function addAppointment(event) {
+    event.preventDefault();
+    const payload = {
+      title: appointmentTitle?.value || "",
+      date: appointmentDate?.value || "",
+      time: appointmentTime?.value || "",
+      note: appointmentNote?.value || ""
+    };
+    try {
+      setAppointmentMessage("กำลังบันทึก...");
+      await remindersFetch("/api/reminders", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      if (appointmentTitle) appointmentTitle.value = "";
+      if (appointmentNote) appointmentNote.value = "";
+      setAppointmentMessage("เพิ่มนัดหมายแล้ว");
+      await refreshAppointments(true);
+    } catch (error) {
+      setAppointmentMessage(error.message, true);
+    }
+  }
+  async function deleteAppointment(id) {
+    if (!id) return;
+    try {
+      setAppointmentMessage("กำลังลบ...");
+      await remindersFetch(`/api/reminders/${encodeURIComponent(id)}`, { method: "DELETE" });
+      await refreshAppointments(true);
+      setAppointmentMessage("ลบนัดหมายแล้ว");
+    } catch (error) {
+      setAppointmentMessage(error.message, true);
+    }
+  }
+  function initAppointments() {
+    if (!appointmentForm) return;
+    const defaults = appointmentDefaults();
+    if (appointmentDate && !appointmentDate.value) appointmentDate.value = defaults.date;
+    if (appointmentTime && !appointmentTime.value) appointmentTime.value = defaults.time;
+    appointmentForm.addEventListener("submit", addAppointment);
+    appointmentList?.addEventListener("click", event => {
+      const button = event.target.closest("[data-delete-reminder]");
+      if (button) deleteAppointment(button.dataset.deleteReminder);
+    });
+    refreshAppointments();
+    window.setInterval(() => refreshAppointments(true), 60 * 1000);
+  }
   function addAgentMessage(role, text) {
     if (!agentChat) return;
     const node = document.createElement("div");
@@ -2581,6 +2854,7 @@ button { cursor: pointer; }
     const minPanelSize = panel => {
       if (panel.classList.contains("music-player")) return { w: 270, h: 190 };
       if (panel.classList.contains("terminal")) return { w: 260, h: 112 };
+      if (panel.classList.contains("appointment-card")) return { w: 300, h: 292 };
       if (panel.classList.contains("status-card")) return { w: 220, h: 112 };
       if (panel.classList.contains("line-link")) return { w: 220, h: 86 };
       if (panel.classList.contains("team-chat")) return { w: 220, h: 86 };
@@ -2844,6 +3118,7 @@ button { cursor: pointer; }
   renderAllCryptoWatchlists("loading");
   initMusicPlayer();
   applyProfile();
+  initAppointments();
   refreshWalletSummary();
   refreshCryptoWatchlists();
   setAgent("portfolio");

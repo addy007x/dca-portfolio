@@ -612,6 +612,140 @@ async function sendLinePush(env, text, toOverride) {
   return results;
 }
 
+function makeReminderId() {
+  if (crypto.randomUUID) return `rem-${crypto.randomUUID()}`;
+  return `rem-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeReminder(row) {
+  return {
+    id: row.id,
+    title: row.title || "",
+    note: row.note || "",
+    date: row.remind_date,
+    time: row.remind_time,
+    status: row.status || "active",
+    lineSentAt: Number(row.line_sent_at || 0),
+    createdAt: Number(row.created_at || 0),
+    updatedAt: Number(row.updated_at || 0),
+  };
+}
+
+function validateReminderBody(body, fallback = {}) {
+  const title = String(body?.title ?? fallback.title ?? "").trim().slice(0, 120);
+  const note = String(body?.note ?? fallback.note ?? "").trim().slice(0, 600);
+  const date = String(body?.date ?? fallback.remind_date ?? fallback.date ?? "").trim();
+  const time = String(body?.time ?? fallback.remind_time ?? fallback.time ?? "").trim().slice(0, 5);
+  if (!title) return { error: "Reminder title is required" };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Reminder date must be YYYY-MM-DD" };
+  if (!/^\d{2}:\d{2}$/.test(time)) return { error: "Reminder time must be HH:MM" };
+  const hh = Number(time.slice(0, 2));
+  const mm = Number(time.slice(3, 5));
+  if (hh > 23 || mm > 59) return { error: "Reminder time is invalid" };
+  return { title, note, date, time };
+}
+
+function formatAppointmentReminderLine(row) {
+  const lines = [
+    "SiamFolio นัดหมาย",
+    "ถึงเวลาที่ตั้งไว้แล้ว",
+    `หัวข้อ: ${row.title || "-"}`,
+    `เวลา: ${row.remind_date} ${row.remind_time} UTC+7`,
+  ];
+  if (row.note) lines.push("", String(row.note).slice(0, 800));
+  return lines.join("\n").slice(0, 4500);
+}
+
+async function listReminders(env, user) {
+  const rows = await env.DB.prepare(
+    `SELECT *
+     FROM appointment_reminders
+     WHERE user_id = ?
+     ORDER BY
+       CASE status WHEN 'active' THEN 0 WHEN 'sent' THEN 1 ELSE 2 END,
+       remind_date ASC,
+       remind_time ASC,
+       created_at DESC
+     LIMIT 100`
+  ).bind(user.id).all();
+  return json({ reminders: (rows.results || []).map(normalizeReminder) });
+}
+
+async function createReminder(req, env, user) {
+  const body = await req.json().catch(() => ({}));
+  const reminder = validateReminderBody(body);
+  if (reminder.error) return error(reminder.error, 400);
+  const now = Date.now();
+  const id = makeReminderId();
+  await env.DB.prepare(
+    `INSERT INTO appointment_reminders
+       (id, user_id, title, note, remind_date, remind_time, status, line_sent_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, 'active', NULL, ?, ?)`
+  ).bind(id, user.id, reminder.title, reminder.note, reminder.date, reminder.time, now, now).run();
+  const row = await env.DB.prepare(
+    "SELECT * FROM appointment_reminders WHERE user_id = ? AND id = ?"
+  ).bind(user.id, id).first();
+  return json({ reminder: normalizeReminder(row) }, 201);
+}
+
+async function updateReminder(req, env, user, id) {
+  const existing = await env.DB.prepare(
+    "SELECT * FROM appointment_reminders WHERE user_id = ? AND id = ?"
+  ).bind(user.id, id).first();
+  if (!existing) return error("Reminder not found", 404);
+  const body = await req.json().catch(() => ({}));
+  const reminder = validateReminderBody(body, existing);
+  if (reminder.error) return error(reminder.error, 400);
+  const status = ["active", "sent", "cancelled"].includes(body?.status) ? body.status : existing.status;
+  const now = Date.now();
+  await env.DB.prepare(
+    `UPDATE appointment_reminders
+     SET title = ?, note = ?, remind_date = ?, remind_time = ?, status = ?, updated_at = ?
+     WHERE user_id = ? AND id = ?`
+  ).bind(reminder.title, reminder.note, reminder.date, reminder.time, status, now, user.id, id).run();
+  const row = await env.DB.prepare(
+    "SELECT * FROM appointment_reminders WHERE user_id = ? AND id = ?"
+  ).bind(user.id, id).first();
+  return json({ reminder: normalizeReminder(row) });
+}
+
+async function deleteReminder(env, user, id) {
+  await env.DB.prepare(
+    "DELETE FROM appointment_reminders WHERE user_id = ? AND id = ?"
+  ).bind(user.id, id).run();
+  return json({ ok: true });
+}
+
+async function handleAppointmentReminderCron(env, clock) {
+  const due = await env.DB.prepare(
+    `SELECT *
+     FROM appointment_reminders
+     WHERE status = 'active'
+       AND (remind_date < ? OR (remind_date = ? AND remind_time <= ?))
+     ORDER BY remind_date ASC, remind_time ASC
+     LIMIT 50`
+  ).bind(clock.date, clock.date, clock.time).all().catch(() => ({ results: [] }));
+
+  let processed = 0;
+  let sent = 0;
+  for (const row of (due.results || [])) {
+    try {
+      const targets = await getLinkedLineTargets(env, row.user_id);
+      if (targets.length) {
+        const results = await sendLinePush(env, formatAppointmentReminderLine(row), targets);
+        sent += results.length;
+      }
+      await env.DB.prepare(
+        "UPDATE appointment_reminders SET status = 'sent', line_sent_at = ?, updated_at = ? WHERE id = ?"
+      ).bind(Date.now(), Date.now(), row.id).run();
+      processed += 1;
+    } catch (e) {
+      console.error(`Appointment reminder failed (${row.id}):`, e.stack || e);
+    }
+  }
+  return { processed, sent };
+}
+
 function getLineSource(event) {
   const source = event?.source || {};
   if (source.userId) return { id: source.userId, kind: "user" };
@@ -1481,6 +1615,15 @@ async function handleRequest(req, env, ctx) {
   if (user && path === "/api/portfolio/refresh" && req.method === "GET") return getUserPortfolioFresh(env, user);
   if (user && path === "/api/portfolio" && req.method === "GET") return getUserPortfolio(env, user);
   if (user && path === "/api/portfolio" && req.method === "PUT") return putUserPortfolio(req, env, user);
+  if (user && path === "/api/reminders" && req.method === "GET") return listReminders(env, user);
+  if (user && path === "/api/reminders" && req.method === "POST") return createReminder(req, env, user);
+  const reminderMatch = path.match(/^\/api\/reminders\/([^/]+)$/);
+  if (user && reminderMatch && req.method === "PUT") {
+    return updateReminder(req, env, user, decodeURIComponent(reminderMatch[1]));
+  }
+  if (user && reminderMatch && req.method === "DELETE") {
+    return deleteReminder(env, user, decodeURIComponent(reminderMatch[1]));
+  }
 
   const authErr = requireApiKey(req, env);
   if (authErr) return authErr;
@@ -1497,6 +1640,7 @@ async function handleCron(env) {
   if (!env.DB) return;
   const now = bangkokNow();
   const today = now.date;
+  const appointmentLine = await handleAppointmentReminderCron(env, now);
   const userLineSent = await handleUserPortfolioCron(env, now);
   const due = await env.DB.prepare(
     "SELECT * FROM dca_schedules WHERE paused = 0 AND nextDate <= ?"
@@ -1528,7 +1672,7 @@ async function handleCron(env) {
     ).bind(logId, d.id, today, d.ticker, d.amount, lineSent ? "notified" : "due", Date.now()));
   }
   if (stmts.length > 0) await env.DB.batch(stmts);
-  console.log(`[cron ${today}] Logged ${stmts.length} legacy due DCA(s); lineSent=${lineSent}; userLineSent=${userLineSent}`);
+  console.log(`[cron ${today}] Logged ${stmts.length} legacy due DCA(s); lineSent=${lineSent}; userLineSent=${userLineSent}; appointments=${appointmentLine.processed}; appointmentTargets=${appointmentLine.sent}`);
 }
 
 export default {
