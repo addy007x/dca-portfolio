@@ -644,6 +644,59 @@ button { cursor: pointer; }
   border-color: rgba(255, 215, 94, .86);
   box-shadow: 0 18px 40px rgba(0,0,0,.44), 0 0 18px rgba(34,217,255,.20), inset 0 1px 0 rgba(255,255,255,.10);
 }
+.floating.is-hidden-panel {
+  display: none;
+}
+.panel-dock {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  z-index: 7;
+  display: none;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-width: calc(100% - 32px);
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+.panel-dock.has-hidden-panels {
+  display: flex;
+}
+.panel-dock button {
+  min-height: 26px;
+  border: 1px solid rgba(125,225,238,.34);
+  background: rgba(5, 16, 31, .72);
+  color: #dbeeff;
+  padding: 0 9px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.panel-dock button.is-hidden {
+  border-color: rgba(255, 215, 94, .62);
+  color: #ffe2a0;
+  background: rgba(238, 201, 112, .12);
+}
+.panel-hide-btn {
+  flex: 0 0 auto;
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  border: 1px solid rgba(125,225,238,.28);
+  background: rgba(5, 16, 31, .66);
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+.panel-hide-btn:hover {
+  border-color: rgba(255, 215, 94, .72);
+  color: #ffe2a0;
+}
 .panel-resize-handle {
   position: absolute;
   right: 0;
@@ -1371,6 +1424,7 @@ button { cursor: pointer; }
 
     <section class="scene-board reveal" style="animation-delay:.1s" aria-label="Pixel trading office scene">
       <div class="scene-bg"></div>
+      <div class="panel-dock" id="panelDock" aria-label="Open or hide dashboard panels"></div>
       <div class="floating status-card one">
         <div class="window-bar"><span>DCA Portfolio</span><span>Live</span></div>
         <div class="window-body">
@@ -1508,6 +1562,7 @@ button { cursor: pointer; }
   const hudXpValue = document.getElementById("hudXpValue");
   const hudBook = document.querySelector(".hud-book");
   const sceneBoard = document.querySelector(".scene-board");
+  const panelDock = document.getElementById("panelDock");
   const openAgentsTab = document.getElementById("openAgentsTab");
   const openAgentsSide = document.getElementById("openAgentsSide");
   const closeAgentsBtn = document.getElementById("closeAgentsBtn");
@@ -2507,6 +2562,12 @@ button { cursor: pointer; }
       panel.dataset.dragId = id || `panel-${Math.random().toString(36).slice(2)}`;
       return panel.dataset.dragId;
     };
+    const panelLabel = panel => {
+      if (panel.dataset.panelLabel) return panel.dataset.panelLabel;
+      const label = panel.querySelector(".window-bar span")?.textContent?.trim() || panelId(panel);
+      panel.dataset.panelLabel = label;
+      return label;
+    };
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
     const minPanelSize = panel => {
       if (panel.classList.contains("music-player")) return { w: 270, h: 190 };
@@ -2516,13 +2577,39 @@ button { cursor: pointer; }
       if (panel.classList.contains("team-chat")) return { w: 220, h: 86 };
       return { w: 190, h: 80 };
     };
+    const renderPanelDock = () => {
+      if (!panelDock) return;
+      panelDock.innerHTML = "";
+      panelDock.classList.remove("has-hidden-panels");
+      panels.forEach(panel => {
+        const button = document.createElement("button");
+        const hidden = panel.classList.contains("is-hidden-panel");
+        if (!hidden) return;
+        button.type = "button";
+        button.textContent = panelLabel(panel);
+        button.className = "is-hidden";
+        button.title = hidden ? "เปิดกรอบนี้" : "ซ่อนกรอบนี้";
+        button.addEventListener("click", () => setPanelHidden(panel, false));
+        panelDock.classList.add("has-hidden-panels");
+        panelDock.appendChild(button);
+      });
+    };
+    const setPanelHidden = (panel, hidden) => {
+      panel.classList.toggle("is-hidden-panel", hidden);
+      const saved = getSaved();
+      const id = panelId(panel);
+      saved[id] = { ...(saved[id] || {}), hidden };
+      localStorage.setItem(storageKey, JSON.stringify(saved));
+      renderPanelDock();
+    };
     const applySavedPositions = () => {
-      if (window.matchMedia("(max-width: 900px)").matches) return;
       const saved = getSaved();
       const board = sceneBoard.getBoundingClientRect();
+      const compact = window.matchMedia("(max-width: 900px)").matches;
       panels.forEach(panel => {
         const data = saved[panelId(panel)];
-        if (!data) return;
+        panel.classList.toggle("is-hidden-panel", Boolean(data?.hidden));
+        if (!data || compact) return;
         const min = minPanelSize(panel);
         if (Number.isFinite(data.w)) {
           panel.style.width = `${clamp(data.w * board.width, min.w, Math.max(min.w, board.width - 16))}px`;
@@ -2548,12 +2635,29 @@ button { cursor: pointer; }
         panel.appendChild(resizeHandle);
       }
       const handle = panel.querySelector(".window-bar") || panel;
+      if (handle.classList?.contains("window-bar") && !handle.querySelector(".panel-hide-btn")) {
+        const hideButton = document.createElement("button");
+        hideButton.className = "panel-hide-btn";
+        hideButton.type = "button";
+        hideButton.textContent = "-";
+        hideButton.title = "ซ่อนกรอบนี้";
+        hideButton.addEventListener("pointerdown", event => event.stopPropagation());
+        hideButton.addEventListener("click", event => {
+          event.preventDefault();
+          event.stopPropagation();
+          setPanelHidden(panel, true);
+        });
+        handle.appendChild(hideButton);
+      }
       handle.title = "ลากเพื่อจัดตำแหน่งกรอบ";
       const savePanelState = () => {
         const board = sceneBoard.getBoundingClientRect();
         const leftMax = Math.max(0, board.width - panel.offsetWidth - 8);
         const topMax = Math.max(0, board.height - panel.offsetHeight - 8);
-        savePanel(panelId(panel), {
+        const saved = getSaved();
+        const id = panelId(panel);
+        savePanel(id, {
+          ...(saved[id] || {}),
           x: leftMax ? parseFloat(panel.style.left || "0") / leftMax : 0,
           y: topMax ? parseFloat(panel.style.top || "0") / topMax : 0,
           w: board.width ? panel.offsetWidth / board.width : 0,
@@ -2645,6 +2749,7 @@ button { cursor: pointer; }
       });
     });
     applySavedPositions();
+    renderPanelDock();
     window.addEventListener("resize", applySavedPositions);
   }
   links.forEach(link => link.addEventListener("click", event => {
