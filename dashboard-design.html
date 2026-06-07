@@ -742,7 +742,9 @@ button { cursor: pointer; }
 .music-player {
   overflow: hidden;
   border-color: rgba(238, 201, 112, .38);
-  background: rgba(4, 10, 18, .88);
+  background:
+    linear-gradient(135deg, rgba(255, 226, 160, .08), transparent 32%),
+    linear-gradient(180deg, rgba(7, 16, 30, .94), rgba(3, 7, 15, .90));
 }
 .music-player .window-bar {
   position: relative;
@@ -754,29 +756,29 @@ button { cursor: pointer; }
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  gap: 10px;
-  padding: 10px;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
 }
 .music-cover {
   position: relative;
-  width: 52px;
-  height: 52px;
+  width: 58px;
+  height: 58px;
   display: grid;
   place-items: center;
   overflow: hidden;
   border: 1px solid rgba(238, 201, 112, .52);
-  border-radius: 12px;
+  border-radius: 14px;
   background:
-    radial-gradient(circle at 35% 26%, rgba(255,241,191,.42), transparent 28%),
-    linear-gradient(135deg, rgba(125,225,238,.24), rgba(238,201,112,.26)),
+    radial-gradient(circle at 38% 28%, rgba(255,241,191,.54), transparent 28%),
+    linear-gradient(135deg, rgba(125,225,238,.20), rgba(238,201,112,.30)),
     rgba(5,13,24,.88);
-  box-shadow: inset 0 0 14px rgba(255,255,255,.04);
+  box-shadow: inset 0 0 18px rgba(255,255,255,.06), 0 10px 20px rgba(0,0,0,.22);
 }
 .music-cover:before {
   content: "";
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border: 2px solid rgba(255,241,191,.84);
   border-radius: 50%;
   box-shadow: 0 0 0 8px rgba(125,225,238,.10), inset 0 0 10px rgba(0,0,0,.38);
@@ -792,12 +794,12 @@ button { cursor: pointer; }
 .music-info {
   min-width: 0;
   display: grid;
-  gap: 7px;
+  gap: 8px;
   align-content: center;
 }
 .music-title {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   color: #f4fbff;
@@ -808,7 +810,9 @@ button { cursor: pointer; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 14px;
+  letter-spacing: .02em;
+  text-transform: uppercase;
 }
 .music-title span {
   color: var(--amber);
@@ -818,8 +822,8 @@ button { cursor: pointer; }
 .music-open {
   min-width: 44px;
   height: 22px;
-  border: 1px solid rgba(238, 201, 112, .34);
-  background: rgba(238, 201, 112, .10);
+  border: 1px solid rgba(238, 201, 112, .46);
+  background: rgba(238, 201, 112, .13);
   color: #ffe2a0;
   font-family: var(--mono);
   font-size: 9px;
@@ -831,24 +835,29 @@ button { cursor: pointer; }
   background: rgba(238, 201, 112, .18);
 }
 .music-subtitle {
-  color: var(--muted);
-  font-size: 10px;
+  max-width: 100%;
+  overflow: hidden;
+  color: #aebed0;
+  font-family: var(--mono);
+  font-size: 9px;
   font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .music-controls {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) 48px;
+  grid-template-columns: 28px minmax(0, 1fr) 48px;
   gap: 8px;
   align-items: center;
 }
 .music-play {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   border: 1px solid rgba(125,225,238,.38);
   border-radius: 50%;
-  background: linear-gradient(180deg, rgba(125,225,238,.20), rgba(4,13,24,.86));
+  background: linear-gradient(180deg, rgba(125,225,238,.25), rgba(4,13,24,.88));
   cursor: pointer;
 }
 .music-play:before {
@@ -867,11 +876,11 @@ button { cursor: pointer; }
 }
 .music-progress {
   position: relative;
-  height: 8px;
+  height: 9px;
   overflow: hidden;
-  border: 1px solid rgba(82,185,219,.26);
+  border: 1px solid rgba(82,185,219,.34);
   border-radius: 999px;
-  background: rgba(2,8,18,.74);
+  background: rgba(2,8,18,.82);
   cursor: pointer;
 }
 .music-progress span {
@@ -884,22 +893,22 @@ button { cursor: pointer; }
 .music-time {
   color: #d7e7ee;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 900;
   text-align: right;
 }
 .music-url-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 42px;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) 46px;
+  gap: 7px;
 }
 .music-url-row input {
   min-width: 0;
-  height: 25px;
-  border: 1px solid rgba(82,185,219,.22);
-  background: rgba(2,8,18,.74);
+  height: 28px;
+  border: 1px solid rgba(82,185,219,.30);
+  background: rgba(2,8,18,.82);
   color: var(--text);
-  padding: 0 7px;
+  padding: 0 9px;
   outline: 0;
   font-family: var(--mono);
   font-size: 9px;
@@ -909,8 +918,8 @@ button { cursor: pointer; }
   box-shadow: 0 0 12px rgba(125,225,238,.12);
 }
 .music-url-row button {
-  border: 1px solid rgba(125,225,238,.34);
-  background: rgba(125,225,238,.10);
+  border: 1px solid rgba(125,225,238,.42);
+  background: rgba(125,225,238,.13);
   color: var(--cyan);
   font-family: var(--mono);
   font-size: 9px;
@@ -927,11 +936,11 @@ button { cursor: pointer; }
 .music-wave {
   display: flex;
   align-items: end;
-  gap: 3px;
-  height: 18px;
+  gap: 4px;
+  height: 16px;
 }
 .music-wave i {
-  width: 3px;
+  width: 4px;
   height: 7px;
   display: block;
   border-radius: 999px;
@@ -2423,7 +2432,7 @@ button { cursor: pointer; }
     if (musicUrlInput) musicUrlInput.value = clean;
     const youtubeId = parseYoutubeId(clean);
     if (youtubeId) {
-      if (musicTitle) musicTitle.textContent = "YouTube Track";
+      if (musicTitle) musicTitle.textContent = "MUSIC";
       if (musicSubtitle) musicSubtitle.textContent = clean;
       loadYoutubeTrack(youtubeId, shouldPlay);
       return;
