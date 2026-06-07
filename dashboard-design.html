@@ -1593,7 +1593,7 @@ button { cursor: pointer; }
     localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem(LAST_PROFILE_KEY);
     window.dispatchEvent(new Event("siamfolio.auth.changed"));
-    location.assign(new URL("dashboard-design.html", location.href).href);
+    location.assign(new URL("index.html", location.href).href);
   }
   function getSession() {
     try {
