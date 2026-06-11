@@ -1,0 +1,55 @@
+.text-repair-bar {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.text-repair-bar button {
+  width: 100%;
+  min-height: 31px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid rgba(102, 214, 192, 0.42);
+  color: var(--teal);
+  background: rgba(102, 214, 192, 0.06);
+  font-size: 9px;
+  font-weight: 700;
+  justify-content: center;
+}
+
+.text-repair-bar button:hover {
+  border-color: var(--teal);
+  background: rgba(102, 214, 192, 0.12);
+}
+
+.text-repair-bar button svg {
+  width: 14px;
+}
+
+.text-repair-bar span {
+  width: 100%;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 8px;
+  text-align: left;
+}
+
+@media (max-width: 760px) {
+  .text-repair-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .text-repair-bar button {
+    justify-content: center;
+  }
+
+  .text-repair-bar span {
+    text-align: left;
+  }
+}

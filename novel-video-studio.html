@@ -7,7 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="novel-video-studio.css?v=1">
+  <link rel="stylesheet" href="novel-video-studio.css?v=2">
+  <link rel="stylesheet" href="novel-text-repair.css?v=1">
   <style>
     [hidden]{display:none!important}
     @media(max-width:760px){
@@ -46,6 +47,10 @@
         <input id="manuscriptFile" type="file" accept=".txt,.docx,.pdf" hidden>
         <i data-lucide="file-up"></i><strong>เลือก .txt, .docx หรือ .pdf</strong><span>หรือลากไฟล์มาวางตรงนี้ สูงสุด 15 MB</span>
       </label>
+      <div class="text-repair-bar">
+        <button type="button" id="repairTextBtn"><i data-lucide="wand-sparkles"></i> ซ่อมข้อความเพี้ยน</button>
+        <span id="repairStatus">รองรับ UTF-8, Windows-874 และ PDF ใส่รหัสผ่าน</span>
+      </div>
       <div class="source-stats"><span id="charCount">0 ตัวอักษร</span><span id="minuteEstimate">ประมาณ 0 นาที</span></div>
       <div class="section-head"><span>ตอนและบท</span><small id="chapterCount">0/0 เลือกอยู่</small></div>
       <div class="chapter-list" id="chapterList"><div class="empty-state">เมื่อมีต้นฉบับ รายการตอนจะอยู่ตรงนี้</div></div>
@@ -106,6 +111,6 @@
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.9.0/mammoth.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="novel-video-studio.js?v=1"></script>
+  <script src="novel-video-studio.js?v=2"></script>
 </body>
 </html>
