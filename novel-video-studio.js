@@ -41,11 +41,121 @@
   function openPdf(data){return new Promise((resolve,reject)=>{const task=pdfjsLib.getDocument({data});task.onPassword=updatePassword=>{const entered=prompt("PDF นี้มีรหัสผ่าน กรุณาใส่รหัสผ่านเพื่อเปิดไฟล์","");if(entered===null){task.destroy();reject(new Error("ยกเลิกการเปิด PDF"));return;}updatePassword(entered);};task.promise.then(resolve,reject);});}
   function needsOcr(text){const value=String(text||"");const compact=value.replace(/\s/g,"");if(compact.length<10)return true;const boxes=(value.match(/[□■▯�]/g)||[]).length;const controls=(value.match(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g)||[]).length;const brokenThai=(value.match(/\u0E40[\u0E18\u0E23]/g)||[]).length;return(boxes+controls+brokenThai*2)/compact.length>.018;}
   function cleanOcrText(text){const lines=cleanText(text).split("\n");const output=[];for(const rawLine of lines){let line=rawLine.trim().replace(/[|¦]+/g," ").replace(/\s{2,}/g," ");if(!line){if(output.at(-1)!=="")output.push("");continue;}const compact=line.replace(/\s/g,"");const thai=(line.match(/[ก-๙]/g)||[]).length;const latin=(line.match(/[A-Za-z]/g)||[]).length;const digits=(line.match(/[0-9๐-๙]/g)||[]).length;const recognized=thai+latin+digits;const chapter=/^(chapter|prologue|epilogue|บทที่|ตอนที่)\b/i.test(line);const shortLatinGarbage=thai===0&&latin>0&&compact.length<=18&&!chapter&&/^[A-Za-z0-9&+_.\- ]+$/.test(line)&&line.split(/\s+/).every(part=>part.length<=4);const mixedGarbage=thai>0&&thai<4&&latin>=thai*2&&compact.length<28&&!chapter;const symbolGarbage=recognized<5&&(line.match(/[^A-Za-z0-9ก-๙\s]/g)||[]).length>recognized;if(shortLatinGarbage||mixedGarbage||symbolGarbage)continue;line=line.replace(/([ก-ฮะ-์])\s+(?=[่้๊๋์ัิีึืุู็ํ])/g,"$1");const tokens=line.split(" ");if(tokens.length>=5&&tokens.filter(token=>/^[ก-๙]$/.test(token)).length>=Math.ceil(tokens.length*.6))line=line.replace(/([ก-๙])\s+(?=[ก-๙])/g,"$1");output.push(line);}return cleanText(output.join("\n")).trim();}
-  function enhanceOcrCanvas(canvas){const context=canvas.getContext("2d",{willReadFrequently:true});const image=context.getImageData(0,0,canvas.width,canvas.height);const data=image.data;let total=0;for(let i=0;i<data.length;i+=4)total+=.299*data[i]+.587*data[i+1]+.114*data[i+2];const average=total/(data.length/4);const threshold=Math.max(145,Math.min(215,average*.88));for(let i=0;i<data.length;i+=4){const gray=.299*data[i]+.587*data[i+1]+.114*data[i+2];const adjusted=gray<threshold?Math.max(0,(gray-threshold)*1.45+112):Math.min(255,(gray-threshold)*1.18+228);data[i]=data[i+1]=data[i+2]=adjusted;data[i+3]=255;}context.putImageData(image,0,0);return canvas;}
-  async function ensureOcrWorker(){if(ocrWorker)return ocrWorker;if(!window.Tesseract)throw new Error("โหลดระบบ OCR ไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ต");$("repairStatus").textContent="กำลังดาวน์โหลดตัวอ่านภาษาไทยครั้งแรก...";ocrWorker=await Tesseract.createWorker("tha+eng",1,{logger:message=>{if(message.status==="recognizing text")$("repairStatus").textContent=`OCR ภาษาไทย ${Math.round((message.progress||0)*100)}%`;}});await ocrWorker.setParameters({tessedit_pageseg_mode:"6",preserve_interword_spaces:"1",user_defined_dpi:"300"});return ocrWorker;}
-  async function ocrPage(page,index,total){const viewport=page.getViewport({scale:2.8});const pageCanvas=document.createElement("canvas");pageCanvas.width=Math.ceil(viewport.width);pageCanvas.height=Math.ceil(viewport.height);const pageContext=pageCanvas.getContext("2d",{willReadFrequently:true});pageContext.fillStyle="#fff";pageContext.fillRect(0,0,pageCanvas.width,pageCanvas.height);await page.render({canvasContext:pageContext,viewport}).promise;enhanceOcrCanvas(pageCanvas);$("repairStatus").textContent=`กำลัง OCR หน้า ${index}/${total}...`;const worker=await ensureOcrWorker();const result=await worker.recognize(pageCanvas);return cleanOcrText(result.data.text);}
-  async function extractPdfText(pdf,forceOcr=false){const pages=[];let usedOcr=false;for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i);let text="";if(!forceOcr){const content=await page.getTextContent({disableCombineTextItems:false});text=pdfPageText(content.items);}if(forceOcr||needsOcr(text)){usedOcr=true;text=await ocrPage(page,i,pdf.numPages);}pages.push(text);}return{text:pages.join("\n\n"),usedOcr};}
-  async function forcePdfOcr(){if(!lastPdfDocument)return toast("กรุณาอัปโหลด PDF ก่อนใช้ OCR");const button=$("ocrPdfBtn");button.disabled=true;button.innerHTML='<i data-lucide="loader-circle" class="spin"></i> กำลัง OCR...';icons();try{const result=await extractPdfText(lastPdfDocument,true);const text=repairMojibake(result.text);$("manuscript").value=text;parseManuscript(text);$("repairStatus").textContent="OCR ภาษาไทยเสร็จแล้ว กรุณาตรวจคำอีกครั้ง";toast("อ่าน PDF ด้วย OCR สำเร็จ");}catch(error){toast(`OCR ไม่สำเร็จ: ${error.message}`);}finally{button.disabled=false;button.innerHTML='<i data-lucide="scan-text"></i> อ่าน PDF ด้วย OCR';icons();}}
+  function enhanceOcrCanvas(canvas){
+    const context=canvas.getContext("2d",{willReadFrequently:true});
+    const image=context.getImageData(0,0,canvas.width,canvas.height);
+    const data=image.data;
+    let total=0;
+    for(let i=0;i<data.length;i+=4)total+=.299*data[i]+.587*data[i+1]+.114*data[i+2];
+    const average=total/(data.length/4);
+    const whitePoint=Math.max(170,Math.min(235,average*.94));
+    for(let i=0;i<data.length;i+=4){
+      const gray=.299*data[i]+.587*data[i+1]+.114*data[i+2];
+      const contrast=Math.max(0,Math.min(255,(gray-whitePoint)*1.55+232));
+      data[i]=data[i+1]=data[i+2]=contrast;
+      data[i+3]=255;
+    }
+    context.putImageData(image,0,0);
+    return canvas;
+  }
+
+  function ocrLines(data){
+    if(Array.isArray(data?.lines)&&data.lines.length)return data.lines;
+    const lines=[];
+    for(const block of data?.blocks||[])for(const paragraph of block.paragraphs||[])for(const line of paragraph.lines||[])lines.push(line);
+    return lines;
+  }
+
+  function normalizeOcrLine(value){
+    let line=cleanOcrText(value).replace(/\n+/g," ").trim();
+    line=line.replace(/\s+([,.;:!?…ฯๆ)\]”’])/g,"$1").replace(/([([“‘])\s+/g,"$1");
+    line=line.replace(/([ก-ฮะ-์])\s+(?=[่้๊๋์ัิีึืุู็ํ])/g,"$1");
+    const tokens=line.split(/\s+/);
+    const tinyThai=tokens.filter(token=>/^[ก-๙]{1,2}$/.test(token)).length;
+    if(tokens.length>=6&&tinyThai/tokens.length>.65)line=line.replace(/([ก-๙])\s+(?=[ก-๙])/g,"$1");
+    return line;
+  }
+
+  function joinOcrLines(left,right){
+    if(!left)return right;
+    if(!right)return left;
+    const a=left.at(-1)||"",b=right[0]||"";
+    if(/[ก-๙]/.test(a)&&/[ก-๙]/.test(b))return left+right;
+    if(/^([,.;:!?…ฯๆ)\]”’])/.test(right))return left+right;
+    return `${left} ${right}`;
+  }
+
+  function arrangeOcrPage(data,pageWidth){
+    const detected=ocrLines(data).map(line=>({
+      text:normalizeOcrLine(line.text||""),
+      confidence:Number(line.confidence??line.conf??100),
+      box:line.bbox||{},
+    })).filter(line=>line.text&&line.confidence>=22);
+    if(!detected.length)return cleanOcrText(data?.text||"");
+    const heights=detected.map(line=>(line.box.y1||0)-(line.box.y0||0)).filter(value=>value>0).sort((a,b)=>a-b);
+    const lineHeight=heights[Math.floor(heights.length/2)]||28;
+    const lefts=detected.map(line=>line.box.x0||0).sort((a,b)=>a-b);
+    const normalLeft=lefts[Math.floor(lefts.length/2)]||0;
+    const paragraphs=[];
+    let paragraph="",previous=null;
+    for(const line of detected){
+      if(/^\s*[-–—_]*\s*\d{1,4}\s*[-–—_]*\s*$/.test(line.text))continue;
+      const chapter=/^(ตอน|บท|ภาค|chapter|prologue|epilogue)\s*[ที่\d๐-๙]/i.test(line.text);
+      const dialogue=/^[“"‘']/u.test(line.text);
+      const verticalGap=previous?(line.box.y0||0)-(previous.box.y1||0):0;
+      const indented=Math.abs((line.box.x0||0)-normalLeft)>Math.max(lineHeight*1.15,pageWidth*.035);
+      const previousEnded=previous&&/[.!?…ฯ”’"']$/u.test(previous.text);
+      const newParagraph=!!previous&&(verticalGap>lineHeight*.8||chapter||dialogue||(indented&&previousEnded));
+      if(newParagraph&&paragraph){paragraphs.push(paragraph.trim());paragraph="";}
+      paragraph=joinOcrLines(paragraph,line.text);
+      previous=line;
+      if(chapter){paragraphs.push(paragraph.trim());paragraph="";previous=null;}
+    }
+    if(paragraph.trim())paragraphs.push(paragraph.trim());
+    return paragraphs.join("\n\n");
+  }
+
+  function removeRepeatedPageNoise(pages){
+    if(pages.length<2)return pages;
+    const key=value=>value.toLowerCase().replace(/[0-9๐-๙]+/g,"#").replace(/\s+/g," ").trim();
+    const counts=new Map();
+    for(const page of pages){
+      const lines=page.split(/\n+/).map(line=>line.trim()).filter(Boolean);
+      const edges=[...lines.slice(0,2),...lines.slice(-2)];
+      for(const line of new Set(edges.map(key).filter(item=>item.length>=4)))counts.set(line,(counts.get(line)||0)+1);
+    }
+    const threshold=Math.max(2,Math.ceil(pages.length*.45));
+    const repeated=new Set([...counts].filter(([,count])=>count>=threshold).map(([line])=>line));
+    return pages.map(page=>page.split("\n").filter(line=>!repeated.has(key(line))).join("\n").trim());
+  }
+
+  async function ensureOcrWorker(){if(ocrWorker)return ocrWorker;if(!window.Tesseract)throw new Error("โหลดระบบ OCR ไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ต");$("repairStatus").textContent="กำลังดาวน์โหลดตัวอ่านภาษาไทยครั้งแรก...";ocrWorker=await Tesseract.createWorker("tha+eng",1,{logger:message=>{if(message.status==="recognizing text")$("repairStatus").textContent=`กำลังอ่านภาพ PDF ${Math.round((message.progress||0)*100)}%`;}});await ocrWorker.setParameters({tessedit_pageseg_mode:"3",preserve_interword_spaces:"1",user_defined_dpi:"360"});return ocrWorker;}
+
+  async function ocrPage(page,index,total){
+    const base=page.getViewport({scale:1});
+    const scale=Math.min(5,Math.max(3.5,360/72),4200/Math.max(base.width,base.height));
+    const viewport=page.getViewport({scale});
+    const pageCanvas=document.createElement("canvas");
+    pageCanvas.width=Math.ceil(viewport.width);
+    pageCanvas.height=Math.ceil(viewport.height);
+    const pageContext=pageCanvas.getContext("2d",{willReadFrequently:true,alpha:false});
+    pageContext.fillStyle="#fff";
+    pageContext.fillRect(0,0,pageCanvas.width,pageCanvas.height);
+    await page.render({canvasContext:pageContext,viewport}).promise;
+    enhanceOcrCanvas(pageCanvas);
+    $("repairStatus").textContent=`แปลงหน้า ${index}/${total} เป็นภาพและกำลังอ่านตัวอักษร...`;
+    const worker=await ensureOcrWorker();
+    const result=await worker.recognize(pageCanvas,{}, {text:true,blocks:true});
+    return arrangeOcrPage(result.data,pageCanvas.width);
+  }
+
+  async function extractPdfText(pdf){
+    let pages=[];
+    for(let i=1;i<=pdf.numPages;i++)pages.push(await ocrPage(await pdf.getPage(i),i,pdf.numPages));
+    pages=removeRepeatedPageNoise(pages);
+    return{text:cleanText(pages.filter(Boolean).join("\n\n")).trim(),usedOcr:true};
+  }
+  async function forcePdfOcr(){if(!lastPdfDocument)return toast("กรุณาอัปโหลด PDF ก่อน");const button=$("ocrPdfBtn");button.disabled=true;button.innerHTML='<i data-lucide="loader-circle" class="spin"></i> กำลังแปลง PDF เป็นภาพ...';icons();try{const result=await extractPdfText(lastPdfDocument);const text=repairMojibake(result.text);$("manuscript").value=text;parseManuscript(text);$("repairStatus").textContent="แปลง PDF เป็นภาพ อ่านภาษาไทย และจัดย่อหน้าแล้ว";toast("อ่าน PDF จากภาพและจัดข้อความสำเร็จ");}catch(error){toast(`อ่าน PDF ไม่สำเร็จ: ${error.message}`);}finally{button.disabled=false;button.innerHTML='<i data-lucide="scan-text"></i> PDF เป็นภาพ + จัดข้อความ';icons();}}
   function applyRepair(){const input=$("manuscript");const before=input.value;const after=repairMojibake(before);input.value=after;parseManuscript(after);const changed=after!==before;$("repairStatus").textContent=changed?"ซ่อม encoding และอักขระผิดปกติแล้ว":"ข้อความปกติ ไม่พบ encoding ที่ต้องซ่อม";toast(changed?"ซ่อมข้อความเพี้ยนเรียบร้อย":"ตรวจแล้ว ข้อความไม่พบความผิดปกติ");}
   function chunkOcrText(text,max=4200){const paragraphs=String(text||"").split(/\n{2,}/);const chunks=[];let current="";for(const paragraph of paragraphs){if(paragraph.length>max){if(current.trim())chunks.push(current.trim());current="";for(const part of paragraph.match(new RegExp(`[\\s\\S]{1,${max}}(?:\\s|$)`,"g"))||[paragraph])chunks.push(part.trim());continue;}const next=current?`${current}\n\n${paragraph}`:paragraph;if(next.length>max&&current){chunks.push(current.trim());current=paragraph;}else current=next;}if(current.trim())chunks.push(current.trim());return chunks;}
   async function aiRepairOcr(){const input=$("manuscript");const text=input.value.trim();if(!text)return toast("ยังไม่มีข้อความให้ AI ตรวจแก้");const auth=session();if(!auth?.token)return toast("กรุณาล็อกอินก่อนใช้ AI ตรวจแก้ OCR");if(!confirm("ส่งข้อความ OCR ให้ AI ตรวจแก้คำเพี้ยน โดยรักษาเนื้อหาเดิมไว้หรือไม่?"))return;const button=$("aiRepairBtn");button.disabled=true;button.innerHTML='<i data-lucide="loader-circle" class="spin"></i> AI กำลังตรวจแก้...';icons();try{const chunks=chunkOcrText(text);const corrected=[];for(let i=0;i<chunks.length;i++){button.textContent=`AI ตรวจแก้ ${i+1}/${chunks.length}`;const response=await fetch(`${apiUrl}/api/video/ocr-clean`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${auth.token}`},body:JSON.stringify({text:chunks[i]})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||`AI ${response.status}`);corrected.push(String(data.text||"").trim());}const result=cleanText(corrected.join("\n\n"));input.value=result;parseManuscript(result);$("repairStatus").textContent="AI ตรวจแก้ OCR แล้ว กรุณาอ่านทวนชื่อเฉพาะอีกครั้ง";toast("AI ตรวจแก้ต้นฉบับเสร็จแล้ว");}catch(error){toast(`AI ตรวจแก้ไม่สำเร็จ: ${error.message}`);}finally{button.disabled=false;button.innerHTML='<i data-lucide="sparkles"></i> AI ตรวจแก้ต้นฉบับ OCR';icons();}}
