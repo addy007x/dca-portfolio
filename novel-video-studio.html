@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Novel Video Studio | SiamFolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="novel-video-studio.css?v=1">
+  <style>
+    [hidden]{display:none!important}
+    @media(max-width:760px){
+      .header-actions .icon-button{display:none}
+      .source-stats span:last-child{display:none}
+      .source-tabs button{min-width:0}
+      .preview-head>div:first-child{min-width:0;overflow:hidden}
+      .preview-head strong,.preview-head span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    }
+  </style>
+</head>
+<body>
+  <header class="studio-header">
+    <a class="brand" href="dashboard-design.html">
+      <span class="brand-icon"><i data-lucide="book-open-text"></i></span>
+      <span><strong>NOVEL VIDEO STUDIO</strong><small>AI narration and vertical video editor</small></span>
+    </a>
+    <div class="save-state"><i data-lucide="cloud-check"></i><span id="saveState">บันทึกร่างแล้ว</span></div>
+    <div class="header-actions">
+      <button class="icon-button" id="newProjectBtn" title="เริ่มโปรเจกต์ใหม่"><i data-lucide="refresh-cw"></i></button>
+      <a class="quiet-button" href="dashboard-design.html"><i data-lucide="layout-dashboard"></i><span>แดชบอร์ด</span></a>
+    </div>
+  </header>
+
+  <main class="studio-grid">
+    <aside class="source-pane pane">
+      <div class="pane-title"><span class="step">1</span><div><h1>ต้นฉบับ</h1><p>อัปโหลดไฟล์หรือวางข้อความนิยาย</p></div></div>
+      <label class="field-label" for="projectName">ชื่อโปรเจกต์</label>
+      <input class="field" id="projectName" value="นิยายเสียงของฉัน">
+      <div class="source-tabs" role="tablist">
+        <button class="active" data-source-mode="paste"><i data-lucide="file-text"></i> วางข้อความ</button>
+        <button data-source-mode="file"><i data-lucide="upload"></i> อัปโหลดไฟล์</button>
+      </div>
+      <textarea id="manuscript" class="manuscript" placeholder="วางเนื้อหานิยายตรงนี้...&#10;&#10;ระบบจะหา บทที่ / ตอนที่ / Chapter และแบ่งตอนให้อัตโนมัติ"></textarea>
+      <label class="drop-zone" id="fileDrop" hidden>
+        <input id="manuscriptFile" type="file" accept=".txt,.docx,.pdf" hidden>
+        <i data-lucide="file-up"></i><strong>เลือก .txt, .docx หรือ .pdf</strong><span>หรือลากไฟล์มาวางตรงนี้ สูงสุด 15 MB</span>
+      </label>
+      <div class="source-stats"><span id="charCount">0 ตัวอักษร</span><span id="minuteEstimate">ประมาณ 0 นาที</span></div>
+      <div class="section-head"><span>ตอนและบท</span><small id="chapterCount">0/0 เลือกอยู่</small></div>
+      <div class="chapter-list" id="chapterList"><div class="empty-state">เมื่อมีต้นฉบับ รายการตอนจะอยู่ตรงนี้</div></div>
+    </aside>
+
+    <section class="preview-pane">
+      <div class="preview-head">
+        <div><strong>STORY PREVIEW</strong><span id="previewMeta">9:16 · รอเนื้อหา</span></div>
+        <div class="format-switch"><button class="active" data-ratio="9:16">9:16</button><button data-ratio="16:9">16:9</button></div>
+      </div>
+      <div class="stage-wrap"><div class="canvas-shell portrait" id="canvasShell"><canvas id="videoCanvas" width="720" height="1280"></canvas><div class="safe-guide"></div></div></div>
+      <div class="transport">
+        <button class="round-button" id="playBtn"><i data-lucide="play"></i></button>
+        <div class="transport-copy"><strong id="audioStatus">ยังไม่มีเสียงพากย์</strong><span id="activeCaption">ซับจะปรากฏตามจังหวะเสียงพากย์</span></div>
+        <span id="timeDisplay">00:00 / 00:00</span>
+      </div>
+      <input class="timeline" id="timeline" type="range" min="0" max="1" value="0" step="0.01">
+      <div class="storyboard" id="storyboard"><div class="story-card active"><span><i data-lucide="image"></i></span><small>ฉาก 1</small></div></div>
+      <div class="success-panel" id="successPanel" hidden><i data-lucide="circle-check-big"></i><div><strong>วิดีโอพร้อมแล้ว</strong><span>ดาวน์โหลดเรียบร้อย พร้อมลง TikTok / Shorts</span></div></div>
+    </section>
+
+    <aside class="production-pane pane">
+      <div class="pane-title"><span class="step">2</span><div><h2>เสียงและวิดีโอ</h2><p>ตั้งค่าการเล่า ภาพ และซับ</p></div></div>
+      <section class="production-section">
+        <div class="section-head"><span><i data-lucide="mic-2"></i> เสียงพากย์ AI</span><small id="selectedChars">0 ตัวอักษร</small></div>
+        <label class="field-label" for="voiceSelect">ผู้บรรยาย</label>
+        <select class="field" id="voiceSelect"><option value="coral">Coral — ผู้หญิง · อบอุ่น</option><option value="nova">Nova — ผู้หญิง · นุ่มนวล</option><option value="shimmer">Shimmer — ผู้หญิง · สดใส</option><option value="onyx">Onyx — ผู้ชาย · หนักแน่น</option><option value="echo">Echo — ผู้ชาย · สุขุม</option><option value="alloy">Alloy — เป็นกลาง · ธรรมชาติ</option></select>
+        <label class="field-label" for="voiceTone">ทิศทางการเล่า</label>
+        <textarea class="field compact-area" id="voiceTone">เล่าเรื่องอบอุ่น มีอารมณ์ตามฉาก ออกเสียงภาษาไทยชัด และเว้นจังหวะธรรมชาติ</textarea>
+        <label class="range-field"><span>ความเร็ว <b id="speedValue">1.00x</b></span><input id="voiceSpeed" type="range" min="0.75" max="1.25" value="1" step="0.05"></label>
+        <button class="primary-button" id="generateVoiceBtn"><i data-lucide="wand-sparkles"></i> สร้างเสียงพากย์ AI</button>
+        <div class="inline-actions"><button id="browserVoiceBtn"><i data-lucide="play"></i> ทดลองเสียงเครื่อง</button><label><i data-lucide="file-audio"></i> ใช้ไฟล์เสียง<input id="audioFile" type="file" accept="audio/*" hidden></label></div>
+      </section>
+      <section class="production-section">
+        <div class="section-head"><span><i data-lucide="images"></i> ภาพและพื้นหลัง</span><small id="backgroundCount">0/12 ภาพ</small></div>
+        <label class="upload-button"><i data-lucide="plus"></i> เพิ่มภาพจากเครื่อง<input id="backgroundFiles" type="file" accept="image/*" multiple hidden></label>
+        <div class="background-grid" id="backgroundGrid"></div>
+        <label class="field-label" for="imagePrompt">สร้างภาพ AI จากฉาก</label>
+        <div class="prompt-row"><input class="field" id="imagePrompt" placeholder="เช่น ห้องสมุดเก่ายามฝนตก โทนลึกลับ"><button id="generateImageBtn" title="สร้างภาพ AI"><i data-lucide="sparkles"></i></button></div>
+      </section>
+      <section class="production-section">
+        <div class="section-head"><span><i data-lucide="scissors"></i> ซับอัตโนมัติ</span><small id="captionCount">0 ช่วง</small></div>
+        <div class="caption-options"><button class="active" data-caption-style="story">เล่านิยาย</button><button data-caption-style="minimal">เรียบง่าย</button><button data-caption-style="impact">เน้นคำ</button></div>
+        <label class="color-field"><span>สีข้อความ</span><input id="captionColor" type="color" value="#ffffff"></label>
+      </section>
+      <section class="export-card">
+        <div class="export-title"><span class="step">3</span><div><strong>เรนเดอร์ MP4</strong><small>FFmpeg · H.264 · พร้อมลงโซเชียล</small></div></div>
+        <ul><li id="checkText"><i data-lucide="circle"></i> มีต้นฉบับที่เลือก</li><li id="checkAudio"><i data-lucide="circle"></i> มีเสียงพากย์</li><li id="checkCaption"><i data-lucide="circle"></i> สร้างซับแล้ว</li></ul>
+        <button class="render-button" id="renderBtn"><i data-lucide="clapperboard"></i> สร้างวิดีโอ MP4</button>
+        <div class="render-progress" id="renderProgress" hidden><span id="renderProgressBar"></span></div>
+        <p id="renderNote">การเรนเดอร์ใช้เวลาตามความยาว กรุณาเปิดหน้านี้ไว้</p>
+      </section>
+    </aside>
+  </main>
+  <div class="toast" id="toast" role="status"></div>
+  <audio id="narrationAudio" preload="metadata"></audio>
+  <script src="auth-config.js?v=34"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.9.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="novel-video-studio.js?v=1"></script>
+</body>
+</html>

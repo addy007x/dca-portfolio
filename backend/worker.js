@@ -1193,6 +1193,47 @@ async function handleProductVideoTts(req, env) {
   });
 }
 
+async function handleNovelVideoImage(req, env) {
+  if (!env.OPENAI_API_KEY) return error("AI image is not configured", 503);
+  const body = await req.json().catch(() => ({}));
+  const prompt = String(body.prompt || "").trim().slice(0, 1200);
+  if (!prompt) return error("Missing image prompt", 400);
+  const ratio = body.ratio === "16:9" ? "landscape" : "portrait";
+  const response = await fetch("https://api.openai.com/v1/images/generations", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: env.OPENAI_IMAGE_MODEL || "gpt-image-1",
+      prompt: [
+        "Create a polished cinematic background illustration for a narrated novel video.",
+        "No text, no captions, no logos, no borders.",
+        ratio === "landscape" ? "Wide landscape composition, 16:9." : "Vertical composition, 9:16, leave breathing room for subtitles near the lower third.",
+        prompt,
+      ].join("\n"),
+      size: ratio === "landscape" ? "1536x1024" : "1024x1536",
+      quality: "medium",
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) return error(data.error?.message || `OpenAI image ${response.status}`, response.status);
+  const encoded = data.data?.[0]?.b64_json;
+  if (!encoded) return error("AI image returned no data", 502);
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new Response(bytes, {
+    status: 200,
+    headers: {
+      "Content-Type": "image/png",
+      "Cache-Control": "no-store",
+      ...CORS_HEADERS,
+    },
+  });
+}
+
 function formatPortfolioSummary(snapshot, mode = "summary") {
   const { rows, totalValue, totalCost, totalPL, totalPct, gains, losses } = portfolioStats(snapshot);
   if (!rows.length) {
@@ -1737,6 +1778,12 @@ async function handleRequest(req, env, ctx) {
     const user = await getSessionUser(req, env);
     if (!user) return error("Unauthorized", 401);
     return handleProductVideoTts(req, env);
+  }
+  if (path === "/api/video/image" && req.method === "POST") {
+    if (!env.DB) return error("D1 database not bound", 500);
+    const user = await getSessionUser(req, env);
+    if (!user) return error("Unauthorized", 401);
+    return handleNovelVideoImage(req, env);
   }
   if (path === "/api/line/test" && req.method === "POST") {
     const actor = await requireLineActionAuth(req, env);
