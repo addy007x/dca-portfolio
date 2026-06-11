@@ -38,6 +38,18 @@
   cursor: not-allowed;
 }
 
+.repair-actions .ai-repair {
+  grid-column: 1 / -1;
+  border-color: rgba(157, 118, 244, 0.62);
+  color: #d8c9ff;
+  background: rgba(157, 118, 244, 0.1);
+}
+
+.repair-actions .ai-repair:hover {
+  border-color: var(--plum);
+  background: rgba(157, 118, 244, 0.18);
+}
+
 .text-repair-bar button:hover {
   border-color: var(--teal);
   background: rgba(102, 214, 192, 0.12);
