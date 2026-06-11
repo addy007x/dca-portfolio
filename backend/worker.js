@@ -1194,37 +1194,56 @@ async function handleProductVideoTts(req, env) {
 }
 
 async function handleNovelOcrCleanup(req, env) {
-  if (!env.OPENAI_API_KEY) return error("AI text cleanup is not configured", 503);
   const body = await req.json().catch(() => ({}));
   const text = String(body.text || "").trim().slice(0, 7000);
   if (!text) return error("Missing OCR text", 400);
+  const instructions = [
+    "คุณเป็นบรรณาธิการพิสูจน์อักษร OCR ภาษาไทยสำหรับต้นฉบับนิยาย",
+    "แก้เฉพาะตัวอักษร คำ เว้นวรรค และบรรทัดที่ OCR อ่านผิด โดยอาศัยบริบทใกล้เคียง",
+    "รักษาชื่อตัวละคร ตัวเลข เครื่องหมายคำพูด ลำดับย่อหน้า และความหมายเดิมให้มากที่สุด",
+    "ลบเศษ OCR ที่ชัดเจน เช่น ตัวอักษรสุ่ม สัญลักษณ์เดี่ยว หัวกระดาษ และเลขหน้าที่ไม่ใช่เนื้อเรื่อง",
+    "ห้ามแต่งเหตุการณ์ ประโยค หรือรายละเอียดใหม่ ถ้าอ่านไม่ได้จริงให้ใช้ [อ่านไม่ชัด]",
+    "ตอบเฉพาะต้นฉบับที่แก้แล้ว ไม่ต้องอธิบาย ไม่ใช้ Markdown และไม่ครอบด้วยเครื่องหมายคำพูด",
+  ].join("\n");
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: env.OPENAI_MODEL || "gpt-4.1-mini",
-      instructions: [
-        "คุณเป็นบรรณาธิการพิสูจน์อักษร OCR ภาษาไทยสำหรับต้นฉบับนิยาย",
-        "แก้เฉพาะตัวอักษร คำ เว้นวรรค และบรรทัดที่ OCR อ่านผิด โดยอาศัยบริบทใกล้เคียง",
-        "รักษาชื่อตัวละคร ตัวเลข เครื่องหมายคำพูด ลำดับย่อหน้า และความหมายเดิมให้มากที่สุด",
-        "ลบเศษ OCR ที่ชัดเจน เช่น ตัวอักษรสุ่ม สัญลักษณ์เดี่ยว หัวกระดาษ และเลขหน้าที่ไม่ใช่เนื้อเรื่อง",
-        "ห้ามแต่งเหตุการณ์ ประโยค หรือรายละเอียดใหม่ ถ้าอ่านไม่ได้จริงให้ใช้ [อ่านไม่ชัด]",
-        "ตอบเฉพาะต้นฉบับที่แก้แล้ว ไม่ต้องอธิบาย ไม่ใช้ Markdown และไม่ครอบด้วยเครื่องหมายคำพูด",
-      ].join("\n"),
-      input: text,
-      max_output_tokens: 5000,
-    }),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) return error(data.error?.message || `OpenAI ${response.status}`, response.status);
-  const cleaned = data.output_text
-    || (data.output || []).flatMap(item => item.content || []).map(part => part.text || "").join("").trim();
-  if (!cleaned) return error("AI returned no corrected text", 502);
-  return json({ ok: true, text: cleaned });
+  if (env.OPENAI_API_KEY) {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: env.OPENAI_MODEL || "gpt-4.1-mini",
+        instructions,
+        input: text,
+        max_output_tokens: 5000,
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return error(data.error?.message || `OpenAI ${response.status}`, response.status);
+    const cleaned = data.output_text
+      || (data.output || []).flatMap(item => item.content || []).map(part => part.text || "").join("").trim();
+    if (!cleaned) return error("AI returned no corrected text", 502);
+    return json({ ok: true, mode: "openai", text: cleaned });
+  }
+
+  if (!env.AI) return error("Cloudflare AI binding is not configured", 503);
+  try {
+    const result = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fast", {
+      messages: [
+        { role: "system", content: instructions },
+        { role: "user", content: text },
+      ],
+      temperature: 0.15,
+      max_tokens: 5000,
+    });
+    const cleaned = String(result?.response || "").trim();
+    if (!cleaned) return error("Cloudflare AI returned no corrected text", 502);
+    return json({ ok: true, mode: "cloudflare-ai", text: cleaned });
+  } catch (e) {
+    return error(e.message || "Cloudflare AI cleanup failed", 502);
+  }
 }
 
 async function handleNovelVideoImage(req, env) {
