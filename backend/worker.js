@@ -1067,6 +1067,132 @@ async function handleAiChat(req, env, user) {
   }
 }
 
+function localProductVideoScript(input) {
+  const productName = String(input.productName || "สินค้าของคุณ").trim();
+  const offer = String(input.offer || input.price || "โปรพิเศษวันนี้").trim();
+  const benefits = String(input.benefits || "ใช้ง่าย คุ้มค่า และช่วยให้ชีวิตสะดวกขึ้น")
+    .split(/[,\n]/)
+    .map(item => item.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  const audience = String(input.audience || "คนที่กำลังมองหาตัวช่วยดีๆ").trim();
+  const cta = String(input.cta || "กดสั่งซื้อที่ตะกร้าได้เลย").trim();
+  const requestedDuration = Math.max(10, Math.min(60, Number(input.duration) || 20));
+  const scenes = [
+    {
+      headline: `หยุดเลื่อนก่อน! ${productName}`,
+      caption: `${audience} ต้องดูสิ่งนี้`,
+      narration: `หยุดเลื่อนก่อน ถ้าคุณคือ${audience} ลองดู ${productName} ตัวนี้`,
+    },
+    ...benefits.map((benefit, index) => ({
+      headline: benefit,
+      caption: `จุดเด่นที่ ${index + 1}`,
+      narration: `${benefit} ใช้งานจริงได้ง่าย และเหมาะกับชีวิตประจำวัน`,
+    })),
+    {
+      headline: offer,
+      caption: cta,
+      narration: `${offer} ${cta}`,
+    },
+  ];
+  const duration = Math.max(2.5, requestedDuration / scenes.length);
+  return {
+    ok: true,
+    mode: "local",
+    title: productName,
+    hook: scenes[0].headline,
+    scenes: scenes.map(scene => ({ ...scene, duration: Number(duration.toFixed(1)) })),
+    cta,
+    fullScript: scenes.map(scene => scene.narration).join(" "),
+  };
+}
+
+async function handleProductVideoScript(req, env) {
+  const body = await req.json().catch(() => ({}));
+  const fallback = localProductVideoScript(body);
+  if (!env.OPENAI_API_KEY) return json(fallback);
+
+  const input = {
+    productName: String(body.productName || "").slice(0, 180),
+    price: String(body.price || "").slice(0, 80),
+    offer: String(body.offer || "").slice(0, 220),
+    benefits: String(body.benefits || "").slice(0, 1200),
+    audience: String(body.audience || "").slice(0, 300),
+    tone: String(body.tone || "friendly").slice(0, 80),
+    duration: Math.max(10, Math.min(60, Number(body.duration) || 20)),
+    cta: String(body.cta || "").slice(0, 220),
+  };
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: env.OPENAI_MODEL || "gpt-4.1-mini",
+        instructions: [
+          "คุณเป็นนักเขียนสคริปต์วิดีโอขายสินค้า Shopee ภาษาไทย",
+          "สร้างสคริปต์กระชับ น่าเชื่อถือ ไม่กล่าวอ้างเกินจริง และมี hook ใน 2 วินาทีแรก",
+          "แบ่งเป็น 4-6 ฉากตามเวลารวม แต่ละฉากต้องมี headline, caption, narration และ duration",
+          "headline ไม่เกิน 38 ตัวอักษร caption ไม่เกิน 55 ตัวอักษร",
+          "ตอบเป็น JSON เท่านั้น รูปแบบ {title,hook,scenes:[{headline,caption,narration,duration}],cta,fullScript}",
+        ].join("\n"),
+        input: JSON.stringify(input),
+        max_output_tokens: 1200,
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error?.message || `OpenAI ${response.status}`);
+    const raw = data.output_text
+      || (data.output || []).flatMap(item => item.content || []).map(part => part.text || "").join("");
+    const match = String(raw).match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("AI did not return JSON");
+    const result = JSON.parse(match[0]);
+    if (!Array.isArray(result.scenes) || !result.scenes.length) throw new Error("AI returned no scenes");
+    return json({ ok: true, mode: "openai", ...result });
+  } catch (e) {
+    return json({ ...fallback, mode: "local-fallback", warning: e.message });
+  }
+}
+
+async function handleProductVideoTts(req, env) {
+  if (!env.OPENAI_API_KEY) return error("AI voice is not configured", 503);
+  const body = await req.json().catch(() => ({}));
+  const text = String(body.text || "").trim().slice(0, 4000);
+  if (!text) return error("Missing voiceover text", 400);
+  const allowedVoices = new Set(["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse"]);
+  const voice = allowedVoices.has(body.voice) ? body.voice : "coral";
+  const style = String(body.style || "พูดภาษาไทยแบบเป็นธรรมชาติ สดใส และชัดเจน เหมาะกับวิดีโอแนะนำสินค้า").slice(0, 500);
+  const response = await fetch("https://api.openai.com/v1/audio/speech", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts",
+      voice,
+      input: text,
+      instructions: style,
+      response_format: "mp3",
+    }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    return error(data.error?.message || `OpenAI TTS ${response.status}`, response.status);
+  }
+  return new Response(response.body, {
+    status: 200,
+    headers: {
+      "Content-Type": "audio/mpeg",
+      "Cache-Control": "no-store",
+      ...CORS_HEADERS,
+    },
+  });
+}
+
 function formatPortfolioSummary(snapshot, mode = "summary") {
   const { rows, totalValue, totalCost, totalPL, totalPct, gains, losses } = portfolioStats(snapshot);
   if (!rows.length) {
@@ -1599,6 +1725,18 @@ async function handleRequest(req, env, ctx) {
     const user = await getSessionUser(req, env);
     if (!user) return error("Unauthorized", 401);
     return handleAiChat(req, env, user);
+  }
+  if (path === "/api/video/script" && req.method === "POST") {
+    if (!env.DB) return error("D1 database not bound", 500);
+    const user = await getSessionUser(req, env);
+    if (!user) return error("Unauthorized", 401);
+    return handleProductVideoScript(req, env);
+  }
+  if (path === "/api/video/tts" && req.method === "POST") {
+    if (!env.DB) return error("D1 database not bound", 500);
+    const user = await getSessionUser(req, env);
+    if (!user) return error("Unauthorized", 401);
+    return handleProductVideoTts(req, env);
   }
   if (path === "/api/line/test" && req.method === "POST") {
     const actor = await requireLineActionAuth(req, env);

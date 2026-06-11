@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SiamFolio AI Video Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shopee-video-studio.css?v=1">
+</head>
+<body>
+  <header class="studio-header">
+    <a class="brand" href="dashboard-design.html" aria-label="กลับแดชบอร์ด">
+      <span class="brand-mark">SF</span>
+      <span><strong>AI VIDEO STUDIO</strong><small>Shopee-ready product clips</small></span>
+    </a>
+    <div class="project-meta">
+      <span class="save-state" id="saveState"><i data-lucide="cloud-check"></i> บันทึกแล้ว</span>
+      <button class="icon-button" id="newProjectBtn" title="เริ่มโปรเจกต์ใหม่"><i data-lucide="file-plus-2"></i></button>
+      <button class="quiet-button" id="backBtn"><i data-lucide="layout-dashboard"></i> แดชบอร์ด</button>
+    </div>
+  </header>
+
+  <main class="studio-shell">
+    <aside class="workspace-panel product-panel">
+      <div class="panel-heading">
+        <div><span class="step-number">1</span><h2>สินค้าและภาพ</h2></div>
+        <span class="tag">INPUT</span>
+      </div>
+
+      <label class="field-label" for="productName">ชื่อสินค้า</label>
+      <input id="productName" class="field" placeholder="เช่น เซรั่มวิตามินซี Glow Daily">
+
+      <div class="field-row">
+        <div>
+          <label class="field-label" for="price">ราคา</label>
+          <input id="price" class="field" placeholder="฿299">
+        </div>
+        <div>
+          <label class="field-label" for="duration">ความยาว</label>
+          <select id="duration" class="field">
+            <option value="15">15 วินาที</option>
+            <option value="20" selected>20 วินาที</option>
+            <option value="30">30 วินาที</option>
+            <option value="45">45 วินาที</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="field-label" for="benefits">จุดเด่นสินค้า</label>
+      <textarea id="benefits" class="field" rows="3" placeholder="พิมพ์แยกบรรทัด เช่น&#10;เนื้อบางเบา&#10;ใช้ได้ทุกวัน&#10;แพ็กเกจพกพาง่าย"></textarea>
+
+      <label class="field-label" for="audience">ลูกค้าเป้าหมาย</label>
+      <input id="audience" class="field" placeholder="เช่น คนทำงานที่ไม่มีเวลาดูแลผิว">
+
+      <div class="field-row">
+        <div>
+          <label class="field-label" for="offer">โปรโมชัน</label>
+          <input id="offer" class="field" placeholder="ซื้อ 2 ลด 20%">
+        </div>
+        <div>
+          <label class="field-label" for="tone">โทนคลิป</label>
+          <select id="tone" class="field">
+            <option value="friendly">เป็นกันเอง</option>
+            <option value="energetic">เร่งจังหวะขาย</option>
+            <option value="premium">พรีเมียม</option>
+            <option value="review">รีวิวผู้ใช้จริง</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="upload-zone" id="uploadZone" for="imageInput">
+        <input id="imageInput" type="file" accept="image/*" multiple hidden>
+        <span class="upload-icon"><i data-lucide="images"></i></span>
+        <strong>อัปโหลดรูปสินค้า</strong>
+        <small>เลือกได้หลายภาพ ลากเพื่อเรียงฉาก</small>
+      </label>
+      <div class="asset-strip" id="assetStrip"></div>
+
+      <div class="tip-card">
+        <i data-lucide="sparkles"></i>
+        <p><strong>สูตรคลิปขายที่แนะนำ</strong><span>Hook 2 วิ → ปัญหา → จุดเด่น → โปร → CTA</span></p>
+      </div>
+    </aside>
+
+    <section class="preview-workspace">
+      <div class="preview-toolbar">
+        <div>
+          <strong>พรีวิว 9:16</strong>
+          <span id="previewStatus">พร้อมสร้างคลิป</span>
+        </div>
+        <div class="toolbar-actions">
+          <button class="icon-button" id="safeZoneBtn" title="แสดงพื้นที่ปลอดภัย"><i data-lucide="scan"></i></button>
+          <button class="icon-button" id="muteBtn" title="เปิด/ปิดเสียง"><i data-lucide="volume-2"></i></button>
+        </div>
+      </div>
+
+      <div class="phone-stage">
+        <div class="phone-frame">
+          <canvas id="videoCanvas" width="720" height="1280"></canvas>
+          <div class="empty-preview" id="emptyPreview">
+            <i data-lucide="clapperboard"></i>
+            <strong>เริ่มด้วยรูปสินค้าของคุณ</strong>
+            <span>AI จะจัดภาพ ข้อความ และจังหวะให้เป็นคลิปแนวตั้ง</span>
+          </div>
+          <div class="safe-zone" id="safeZone" hidden></div>
+        </div>
+      </div>
+
+      <div class="transport">
+        <button class="play-button" id="playBtn" title="เล่นพรีวิว"><i data-lucide="play"></i></button>
+        <span id="currentTime">00:00</span>
+        <input id="timeline" type="range" min="0" max="20" value="0" step="0.01">
+        <span id="totalTime">00:20</span>
+      </div>
+      <div class="scene-timeline" id="sceneTimeline"></div>
+    </section>
+
+    <aside class="workspace-panel production-panel">
+      <div class="panel-heading">
+        <div><span class="step-number">2</span><h2>AI Production</h2></div>
+        <span class="tag accent">AI</span>
+      </div>
+
+      <button class="primary-button" id="generateScriptBtn"><i data-lucide="wand-sparkles"></i> เขียนสคริปต์ด้วย AI</button>
+      <p class="helper-text" id="aiModeText">ล็อกอินแล้วจะใช้ AI จริง หากยังไม่พร้อมจะใช้โหมดร่างอัตโนมัติ</p>
+
+      <div class="section-title"><span>สคริปต์และข้อความบนคลิป</span><button id="addSceneBtn" class="text-button">+ เพิ่มฉาก</button></div>
+      <div class="scene-editor" id="sceneEditor"></div>
+
+      <div class="section-title"><span>เสียงพากย์</span><span class="mini-status" id="voiceStatus">ยังไม่มีเสียง</span></div>
+      <div class="voice-grid">
+        <select id="voiceSelect" class="field">
+          <option value="coral">Coral — สดใส</option>
+          <option value="nova">Nova — นุ่มนวล</option>
+          <option value="alloy">Alloy — เป็นกลาง</option>
+          <option value="onyx">Onyx — หนักแน่น</option>
+          <option value="shimmer">Shimmer — เป็นมิตร</option>
+        </select>
+        <button class="secondary-button" id="generateVoiceBtn"><i data-lucide="audio-lines"></i> สร้างเสียง AI</button>
+      </div>
+      <div class="audio-actions">
+        <button class="text-button" id="previewVoiceBtn"><i data-lucide="play"></i> ทดลองฟัง</button>
+        <label class="text-button file-button"><i data-lucide="upload"></i> ใช้ไฟล์เสียง<input id="voiceFileInput" type="file" accept="audio/*" hidden></label>
+      </div>
+
+      <div class="section-title"><span>เพลงประกอบ</span><span class="mini-status">ไม่บังคับ</span></div>
+      <label class="compact-upload"><i data-lucide="music-2"></i><span id="musicFileName">เลือก MP3/WAV</span><input id="musicInput" type="file" accept="audio/*" hidden></label>
+      <label class="range-field"><span>ระดับเพลง</span><input id="musicVolume" type="range" min="0" max="0.45" step="0.01" value="0.12"><output id="musicVolumeValue">12%</output></label>
+
+      <div class="section-title"><span>สไตล์ข้อความ</span></div>
+      <div class="style-controls">
+        <label><span>สีแบรนด์</span><input id="brandColor" type="color" value="#ee4d2d"></label>
+        <label><span>รูปแบบ</span><select id="captionStyle" class="field"><option value="bold">Bold Sale</option><option value="clean">Clean Review</option><option value="premium">Premium</option></select></label>
+      </div>
+
+      <div class="export-card">
+        <div class="export-heading"><span class="step-number">3</span><div><strong>ส่งออกวิดีโอ</strong><small>720 × 1280 · 9:16</small></div></div>
+        <ul class="checklist" id="checklist">
+          <li data-check="images"><i data-lucide="circle"></i> มีรูปสินค้า</li>
+          <li data-check="script"><i data-lucide="circle"></i> มีสคริปต์ครบทุกฉาก</li>
+          <li data-check="voice"><i data-lucide="circle"></i> มีเสียงพากย์</li>
+        </ul>
+        <button class="export-button" id="exportBtn"><i data-lucide="download"></i><span>ส่งออก MP4</span></button>
+        <div class="export-progress" id="exportProgress" hidden><div id="exportProgressBar"></div></div>
+        <p class="helper-text" id="exportNote">การส่งออกใช้เวลาตามความยาวคลิป กรุณาเปิดหน้านี้ไว้</p>
+      </div>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+  <audio id="voiceAudio" preload="auto"></audio>
+  <audio id="musicAudio" preload="auto" loop></audio>
+
+  <script src="auth-config.js?v=34"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="shopee-video-studio.js?v=1"></script>
+</body>
+</html>
