@@ -8,7 +8,7 @@
 }
 
 .text-repair-bar button {
-  width: 100%;
+  width: auto;
   min-height: 31px;
   display: inline-flex;
   align-items: center;
@@ -20,6 +20,22 @@
   font-size: 9px;
   font-weight: 700;
   justify-content: center;
+}
+
+.repair-actions {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.repair-actions button {
+  width: 100%;
+}
+
+.repair-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .text-repair-bar button:hover {
@@ -51,5 +67,9 @@
 
   .text-repair-bar span {
     text-align: left;
+  }
+
+  .repair-actions {
+    grid-template-columns: 1fr;
   }
 }
