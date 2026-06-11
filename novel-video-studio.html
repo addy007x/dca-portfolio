@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="novel-video-studio.css?v=2">
-  <link rel="stylesheet" href="novel-text-repair.css?v=1">
+  <link rel="stylesheet" href="novel-text-repair.css?v=2">
   <style>
     [hidden]{display:none!important}
     @media(max-width:760px){
@@ -51,6 +51,7 @@
         <div class="repair-actions">
           <button type="button" id="repairTextBtn"><i data-lucide="wand-sparkles"></i> ซ่อมข้อความเพี้ยน</button>
           <button type="button" id="ocrPdfBtn" disabled><i data-lucide="scan-text"></i> PDF เป็นภาพ + จัดข้อความ</button>
+          <button type="button" id="reviewOcrBtn" disabled><i data-lucide="columns-2"></i> ตรวจเทียบภาพกับข้อความ</button>
           <button type="button" id="aiRepairBtn" class="ai-repair"><i data-lucide="sparkles"></i> AI ตรวจแก้ต้นฉบับ OCR</button>
         </div>
         <span id="repairStatus">PDF จะถูกแปลงเป็นภาพ 360 DPI แล้วอ่านและจัดย่อหน้าภาษาไทยใหม่</span>
@@ -109,6 +110,41 @@
       </section>
     </aside>
   </main>
+  <section class="ocr-review" id="ocrReview" hidden aria-modal="true" role="dialog" aria-labelledby="ocrReviewTitle">
+    <div class="ocr-review-shell">
+      <header class="ocr-review-head">
+        <div>
+          <strong id="ocrReviewTitle"><i data-lucide="scan-search"></i> ตรวจเทียบต้นฉบับ PDF</strong>
+          <span id="ocrReviewMeta">หน้า 1/1</span>
+        </div>
+        <button type="button" id="closeOcrReview" title="ปิด"><i data-lucide="x"></i></button>
+      </header>
+      <div class="ocr-review-workspace">
+        <figure class="ocr-page-preview">
+          <img id="ocrReviewImage" alt="หน้าต้นฉบับ PDF สำหรับตรวจเทียบ">
+          <figcaption>ภาพต้นฉบับที่ระบบใช้ OCR</figcaption>
+        </figure>
+        <section class="ocr-page-editor">
+          <div class="ocr-quality-row">
+            <span class="ocr-confidence" id="ocrConfidence">ความแม่น 0%</span>
+            <span id="ocrWarningCount">0 จุดควรตรวจ</span>
+          </div>
+          <label for="ocrReviewText">ข้อความหน้านี้</label>
+          <textarea id="ocrReviewText" spellcheck="false"></textarea>
+          <div class="ocr-suspect-wrap">
+            <div><strong>คำที่ OCR ไม่มั่นใจ</strong><small>กดคำเพื่อค้นหาในข้อความ</small></div>
+            <div class="ocr-suspect-list" id="ocrSuspectList"></div>
+          </div>
+        </section>
+      </div>
+      <footer class="ocr-review-foot">
+        <button type="button" id="previousOcrPage"><i data-lucide="chevron-left"></i> ก่อนหน้า</button>
+        <div class="ocr-page-dots" id="ocrPageDots"></div>
+        <button type="button" id="nextOcrPage">ถัดไป <i data-lucide="chevron-right"></i></button>
+        <button type="button" class="ocr-apply" id="applyOcrReview"><i data-lucide="check-check"></i> ยืนยันข้อความทั้งหมด</button>
+      </footer>
+    </div>
+  </section>
   <div class="toast" id="toast" role="status"></div>
   <audio id="narrationAudio" preload="metadata"></audio>
   <script src="auth-config.js?v=34"></script>
@@ -116,6 +152,6 @@
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.9.0/mammoth.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <script src="novel-video-studio.js?v=6"></script>
+  <script src="novel-video-studio.js?v=7"></script>
 </body>
 </html>

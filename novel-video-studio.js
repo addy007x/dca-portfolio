@@ -20,6 +20,8 @@
   let ffmpegInstance = null;
   let lastPdfDocument = null;
   let ocrWorker = null;
+  let ocrReviewPages = [];
+  let activeOcrReviewPage = 0;
   let saveTimer = 0;
   let toastTimer = 0;
 
@@ -129,6 +131,88 @@
     return pages.map(page=>page.split("\n").filter(line=>!repeated.has(key(line))).join("\n").trim());
   }
 
+  function ocrWords(data){
+    const words=[];
+    for(const line of ocrLines(data)){
+      if(Array.isArray(line.words))words.push(...line.words);
+      else for(const word of line?.words||[])words.push(word);
+    }
+    if(!words.length)for(const block of data?.blocks||[])for(const paragraph of block.paragraphs||[])for(const line of paragraph.lines||[])for(const word of line.words||[])words.push(word);
+    return words.map(word=>({text:String(word.text||"").trim(),confidence:Number(word.confidence??word.conf??0)})).filter(word=>word.text);
+  }
+
+  function canvasReviewImage(canvas){
+    const maxWidth=1100;
+    const scale=Math.min(1,maxWidth/canvas.width);
+    const preview=document.createElement("canvas");
+    preview.width=Math.round(canvas.width*scale);
+    preview.height=Math.round(canvas.height*scale);
+    preview.getContext("2d",{alpha:false}).drawImage(canvas,0,0,preview.width,preview.height);
+    return preview.toDataURL("image/jpeg",.82);
+  }
+
+  function saveActiveOcrPage(){
+    const page=ocrReviewPages[activeOcrReviewPage];
+    if(page&&$("ocrReviewText"))page.text=$("ocrReviewText").value.trim();
+  }
+
+  function selectSuspectWord(word){
+    const editor=$("ocrReviewText");
+    const start=editor.value.indexOf(word);
+    editor.focus();
+    if(start>=0)editor.setSelectionRange(start,start+word.length);
+  }
+
+  function renderOcrReview(){
+    const page=ocrReviewPages[activeOcrReviewPage];
+    if(!page)return;
+    $("ocrReviewImage").src=page.image;
+    $("ocrReviewText").value=page.text;
+    $("ocrReviewMeta").textContent=`หน้า ${activeOcrReviewPage+1}/${ocrReviewPages.length} · ตรวจทีละหน้าแล้วกดยืนยัน`;
+    const confidence=$("ocrConfidence");
+    confidence.textContent=`ความแม่น ${Math.round(page.confidence)}%`;
+    confidence.className=`ocr-confidence ${page.confidence>=88?"good":page.confidence>=72?"warn":"bad"}`;
+    $("ocrWarningCount").textContent=`${page.suspects.length} จุดควรตรวจ`;
+    const suspects=$("ocrSuspectList");
+    suspects.innerHTML=page.suspects.length?page.suspects.slice(0,30).map((word,index)=>`<button type="button" data-suspect="${index}">${escapeHtml(word.text)} · ${Math.round(word.confidence)}%</button>`).join(""):'<span class="ocr-suspect-empty">ไม่พบคำความมั่นใจต่ำในหน้านี้</span>';
+    suspects.querySelectorAll("[data-suspect]").forEach(button=>button.addEventListener("click",()=>selectSuspectWord(page.suspects[Number(button.dataset.suspect)].text)));
+    $("previousOcrPage").disabled=activeOcrReviewPage===0;
+    $("nextOcrPage").disabled=activeOcrReviewPage===ocrReviewPages.length-1;
+    $("ocrPageDots").innerHTML=ocrReviewPages.map((item,index)=>`<button type="button" data-page="${index}" class="${index===activeOcrReviewPage?"active":""}" title="หน้า ${index+1} · ${item.suspects.length} จุด">${index+1}</button>`).join("");
+    $("ocrPageDots").querySelectorAll("[data-page]").forEach(button=>button.addEventListener("click",()=>showOcrPage(Number(button.dataset.page))));
+    icons();
+  }
+
+  function showOcrPage(index){
+    saveActiveOcrPage();
+    activeOcrReviewPage=Math.max(0,Math.min(ocrReviewPages.length-1,index));
+    renderOcrReview();
+  }
+
+  function openOcrReview(){
+    if(!ocrReviewPages.length)return toast("ยังไม่มีผล OCR สำหรับตรวจเทียบ");
+    activeOcrReviewPage=0;
+    $("ocrReview").hidden=false;
+    document.body.style.overflow="hidden";
+    renderOcrReview();
+  }
+
+  function closeOcrReview(){
+    saveActiveOcrPage();
+    $("ocrReview").hidden=true;
+    document.body.style.overflow="";
+  }
+
+  function applyOcrReview(){
+    saveActiveOcrPage();
+    const text=cleanText(ocrReviewPages.map(page=>page.text).filter(Boolean).join("\n\n")).trim();
+    $("manuscript").value=text;
+    parseManuscript(text);
+    closeOcrReview();
+    $("repairStatus").textContent="ยืนยันข้อความที่ตรวจเทียบกับภาพ PDF แล้ว";
+    toast("บันทึกข้อความที่ตรวจเทียบครบทุกหน้าแล้ว");
+  }
+
   async function ensureOcrWorker(){if(ocrWorker)return ocrWorker;if(!window.Tesseract)throw new Error("โหลดระบบ OCR ไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ต");$("repairStatus").textContent="กำลังดาวน์โหลดตัวอ่านภาษาไทยครั้งแรก...";ocrWorker=await Tesseract.createWorker("tha+eng",1,{logger:message=>{if(message.status==="recognizing text")$("repairStatus").textContent=`กำลังอ่านภาพ PDF ${Math.round((message.progress||0)*100)}%`;}});await ocrWorker.setParameters({tessedit_pageseg_mode:"3",preserve_interword_spaces:"1",user_defined_dpi:"360"});return ocrWorker;}
 
   async function ocrPage(page,index,total){
@@ -146,16 +230,22 @@
     $("repairStatus").textContent=`แปลงหน้า ${index}/${total} เป็นภาพและกำลังอ่านตัวอักษร...`;
     const worker=await ensureOcrWorker();
     const result=await worker.recognize(pageCanvas,{}, {text:true,blocks:true});
-    return arrangeOcrPage(result.data,pageCanvas.width);
+    const words=ocrWords(result.data);
+    const suspects=words.filter(word=>word.confidence<72&&!/^\d+$/.test(word.text));
+    const confidence=words.length?words.reduce((sum,word)=>sum+word.confidence,0)/words.length:0;
+    return {text:arrangeOcrPage(result.data,pageCanvas.width),image:canvasReviewImage(pageCanvas),confidence,suspects};
   }
 
   async function extractPdfText(pdf){
     let pages=[];
     for(let i=1;i<=pdf.numPages;i++)pages.push(await ocrPage(await pdf.getPage(i),i,pdf.numPages));
-    pages=removeRepeatedPageNoise(pages);
-    return{text:cleanText(pages.filter(Boolean).join("\n\n")).trim(),usedOcr:true};
+    const cleaned=removeRepeatedPageNoise(pages.map(page=>page.text));
+    pages=pages.map((page,index)=>({...page,text:cleaned[index]}));
+    ocrReviewPages=pages;
+    $("reviewOcrBtn").disabled=!pages.length;
+    return{text:cleanText(pages.map(page=>page.text).filter(Boolean).join("\n\n")).trim(),usedOcr:true,pages};
   }
-  async function forcePdfOcr(){if(!lastPdfDocument)return toast("กรุณาอัปโหลด PDF ก่อน");const button=$("ocrPdfBtn");button.disabled=true;button.innerHTML='<i data-lucide="loader-circle" class="spin"></i> กำลังแปลง PDF เป็นภาพ...';icons();try{const result=await extractPdfText(lastPdfDocument);const text=repairMojibake(result.text);$("manuscript").value=text;parseManuscript(text);$("repairStatus").textContent="แปลง PDF เป็นภาพ อ่านภาษาไทย และจัดย่อหน้าแล้ว";toast("อ่าน PDF จากภาพและจัดข้อความสำเร็จ");}catch(error){toast(`อ่าน PDF ไม่สำเร็จ: ${error.message}`);}finally{button.disabled=false;button.innerHTML='<i data-lucide="scan-text"></i> PDF เป็นภาพ + จัดข้อความ';icons();}}
+  async function forcePdfOcr(){if(!lastPdfDocument)return toast("กรุณาอัปโหลด PDF ก่อน");const button=$("ocrPdfBtn");button.disabled=true;button.innerHTML='<i data-lucide="loader-circle" class="spin"></i> กำลังแปลง PDF เป็นภาพ...';icons();try{const result=await extractPdfText(lastPdfDocument);const text=repairMojibake(result.text);$("manuscript").value=text;parseManuscript(text);$("repairStatus").textContent="OCR เสร็จแล้ว เปิดตรวจเทียบภาพกับข้อความได้ทันที";toast("OCR เสร็จแล้ว กรุณาตรวจหน้าที่ระบบทำเครื่องหมาย");openOcrReview();}catch(error){toast(`อ่าน PDF ไม่สำเร็จ: ${error.message}`);}finally{button.disabled=false;button.innerHTML='<i data-lucide="scan-text"></i> PDF เป็นภาพ + จัดข้อความ';icons();}}
   function applyRepair(){const input=$("manuscript");const before=input.value;const after=repairMojibake(before);input.value=after;parseManuscript(after);const changed=after!==before;$("repairStatus").textContent=changed?"ซ่อม encoding และอักขระผิดปกติแล้ว":"ข้อความปกติ ไม่พบ encoding ที่ต้องซ่อม";toast(changed?"ซ่อมข้อความเพี้ยนเรียบร้อย":"ตรวจแล้ว ข้อความไม่พบความผิดปกติ");}
   function chunkOcrText(text,max=4200){const paragraphs=String(text||"").split(/\n{2,}/);const chunks=[];let current="";for(const paragraph of paragraphs){if(paragraph.length>max){if(current.trim())chunks.push(current.trim());current="";for(const part of paragraph.match(new RegExp(`[\\s\\S]{1,${max}}(?:\\s|$)`,"g"))||[paragraph])chunks.push(part.trim());continue;}const next=current?`${current}\n\n${paragraph}`:paragraph;if(next.length>max&&current){chunks.push(current.trim());current=paragraph;}else current=next;}if(current.trim())chunks.push(current.trim());return chunks;}
   async function aiRepairOcr(){const input=$("manuscript");const text=input.value.trim();if(!text)return toast("ยังไม่มีข้อความให้ AI ตรวจแก้");const auth=session();if(!auth?.token)return toast("กรุณาล็อกอินก่อนใช้ AI ตรวจแก้ OCR");if(!confirm("ส่งข้อความ OCR ให้ AI ตรวจแก้คำเพี้ยน โดยรักษาเนื้อหาเดิมไว้หรือไม่?"))return;const button=$("aiRepairBtn");button.disabled=true;button.innerHTML='<i data-lucide="loader-circle" class="spin"></i> AI กำลังตรวจแก้...';icons();try{const chunks=chunkOcrText(text);const corrected=[];for(let i=0;i<chunks.length;i++){button.textContent=`AI ตรวจแก้ ${i+1}/${chunks.length}`;const response=await fetch(`${apiUrl}/api/video/ocr-clean`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${auth.token}`},body:JSON.stringify({text:chunks[i]})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||`AI ${response.status}`);corrected.push(String(data.text||"").trim());}const result=cleanText(corrected.join("\n\n"));input.value=result;parseManuscript(result);$("repairStatus").textContent="AI ตรวจแก้ OCR แล้ว กรุณาอ่านทวนชื่อเฉพาะอีกครั้ง";toast("AI ตรวจแก้ต้นฉบับเสร็จแล้ว");}catch(error){toast(`AI ตรวจแก้ไม่สำเร็จ: ${error.message}`);}finally{button.disabled=false;button.innerHTML='<i data-lucide="sparkles"></i> AI ตรวจแก้ต้นฉบับ OCR';icons();}}
@@ -166,7 +256,7 @@
   function refreshContent(){const text=selectedText();captions=makeCaptions(text);$("charCount").textContent=`${state.manuscript.length.toLocaleString()} ตัวอักษร`;$("minuteEstimate").textContent=`ประมาณ ${state.manuscript?Math.max(1,Math.ceil(state.manuscript.length/430)):0} นาที`;$("selectedChars").textContent=`${text.length.toLocaleString()} ตัวอักษร`;$("chapterCount").textContent=`${state.chapters.filter(c=>c.selected).length}/${state.chapters.length} เลือกอยู่`;$("captionCount").textContent=`${captions.length} ช่วง`;$("previewMeta").textContent=`${state.ratio} · ${text?Math.max(1,Math.ceil(text.length/430)):0} นาทีโดยประมาณ`;renderChapters();updateChecklist();renderFrame(currentTime);}
   function renderChapters(){const el=$("chapterList");if(!state.chapters.length){el.innerHTML='<div class="empty-state">เมื่อมีต้นฉบับ รายการตอนจะอยู่ตรงนี้</div>';return;}el.innerHTML=state.chapters.map((c,i)=>`<label class="chapter-row ${c.selected?"selected":""}"><input type="checkbox" data-chapter="${c.id}" ${c.selected?"checked":""}><em>${String(i+1).padStart(2,"0")}</em><span><strong>${escapeHtml(c.title)}</strong><small>${c.text.length.toLocaleString()} ตัวอักษร</small></span></label>`).join("");el.querySelectorAll("[data-chapter]").forEach(input=>input.addEventListener("change",()=>{const c=state.chapters.find(x=>x.id===input.dataset.chapter);if(c)c.selected=input.checked;refreshContent();saveState();}));}
 
-  async function readManuscript(file){if(!file)return;if(file.size>15*1024*1024)return toast("ไฟล์ใหญ่เกิน 15 MB");$("saveState").textContent="กำลังอ่านไฟล์...";try{const ext=file.name.split(".").pop().toLowerCase();let text="",usedOcr=false;const buffer=await file.arrayBuffer();lastPdfDocument=null;$("ocrPdfBtn").disabled=true;if(ext==="txt")text=decodeTextFile(buffer);else if(ext==="docx"){if(!window.mammoth)throw new Error("โหลดตัวอ่าน DOCX ไม่สำเร็จ");text=(await mammoth.extractRawText({arrayBuffer:buffer})).value;}else if(ext==="pdf"){if(!window.pdfjsLib)throw new Error("โหลดตัวอ่าน PDF ไม่สำเร็จ");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";lastPdfDocument=await openPdf(new Uint8Array(buffer));$("ocrPdfBtn").disabled=false;const result=await extractPdfText(lastPdfDocument);text=result.text;usedOcr=result.usedOcr;}else throw new Error("รองรับเฉพาะ TXT, DOCX และ PDF");const repaired=repairMojibake(text);$("manuscript").value=repaired;parseManuscript(repaired);$("repairStatus").textContent=usedOcr?"ตรวจพบฟอนต์ PDF ผิดปกติและใช้ OCR ภาษาไทยแล้ว":repaired!==text?"ระบบซ่อม encoding ให้อัตโนมัติแล้ว":"อ่านไฟล์และตรวจ encoding แล้ว";toast(`อ่าน ${file.name} สำเร็จ${usedOcr?" ด้วย OCR":repaired!==text?" และซ่อมข้อความแล้ว":""}`);}catch(error){toast(error.message);}finally{$("saveState").textContent="บันทึกร่างแล้ว";}}
+  async function readManuscript(file){if(!file)return;if(file.size>15*1024*1024)return toast("ไฟล์ใหญ่เกิน 15 MB");$("saveState").textContent="กำลังอ่านไฟล์...";try{const ext=file.name.split(".").pop().toLowerCase();let text="",usedOcr=false;const buffer=await file.arrayBuffer();lastPdfDocument=null;ocrReviewPages=[];$("ocrPdfBtn").disabled=true;$("reviewOcrBtn").disabled=true;if(ext==="txt")text=decodeTextFile(buffer);else if(ext==="docx"){if(!window.mammoth)throw new Error("โหลดตัวอ่าน DOCX ไม่สำเร็จ");text=(await mammoth.extractRawText({arrayBuffer:buffer})).value;}else if(ext==="pdf"){if(!window.pdfjsLib)throw new Error("โหลดตัวอ่าน PDF ไม่สำเร็จ");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";lastPdfDocument=await openPdf(new Uint8Array(buffer));$("ocrPdfBtn").disabled=false;const result=await extractPdfText(lastPdfDocument);text=result.text;usedOcr=result.usedOcr;}else throw new Error("รองรับเฉพาะ TXT, DOCX และ PDF");const repaired=repairMojibake(text);$("manuscript").value=repaired;parseManuscript(repaired);$("repairStatus").textContent=usedOcr?"OCR เสร็จแล้ว กรุณาตรวจเทียบหน้าที่มีคำความมั่นใจต่ำ":repaired!==text?"ระบบซ่อม encoding ให้อัตโนมัติแล้ว":"อ่านไฟล์และตรวจ encoding แล้ว";toast(`อ่าน ${file.name} สำเร็จ${usedOcr?" ด้วย OCR":repaired!==text?" และซ่อมข้อความแล้ว":""}`);if(usedOcr)openOcrReview();}catch(error){toast(error.message);}finally{$("saveState").textContent="บันทึกร่างแล้ว";}}
   function fileToDataUrl(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});}
   async function resizeImage(file){const raw=await fileToDataUrl(file);const image=await loadImage(raw);const max=1600,scale=Math.min(1,max/Math.max(image.width,image.height));const c=document.createElement("canvas");c.width=Math.round(image.width*scale);c.height=Math.round(image.height*scale);c.getContext("2d").drawImage(image,0,0,c.width,c.height);return c.toDataURL("image/jpeg",.9);}
   function loadImage(src){return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=src;});}
@@ -205,6 +295,13 @@
   setup();
   $("repairTextBtn").addEventListener("click",applyRepair);
   $("ocrPdfBtn").addEventListener("click",forcePdfOcr);
+  $("reviewOcrBtn").addEventListener("click",openOcrReview);
   $("aiRepairBtn").addEventListener("click",aiRepairOcr);
+  $("closeOcrReview").addEventListener("click",closeOcrReview);
+  $("previousOcrPage").addEventListener("click",()=>showOcrPage(activeOcrReviewPage-1));
+  $("nextOcrPage").addEventListener("click",()=>showOcrPage(activeOcrReviewPage+1));
+  $("applyOcrReview").addEventListener("click",applyOcrReview);
+  $("ocrReview").addEventListener("click",event=>{if(event.target===$("ocrReview"))closeOcrReview();});
+  document.addEventListener("keydown",event=>{if($("ocrReview").hidden)return;if(event.key==="Escape")closeOcrReview();if(event.key==="ArrowLeft"&&event.ctrlKey)showOcrPage(activeOcrReviewPage-1);if(event.key==="ArrowRight"&&event.ctrlKey)showOcrPage(activeOcrReviewPage+1);});
   $("manuscript").addEventListener("paste",()=>setTimeout(()=>{const input=$("manuscript");const repaired=repairMojibake(input.value);if(repaired!==input.value){input.value=repaired;parseManuscript(repaired);$("repairStatus").textContent="ซ่อมข้อความที่วางให้อัตโนมัติแล้ว";toast("ตรวจพบ encoding เพี้ยนและซ่อมให้แล้ว");}},0));
 })();
