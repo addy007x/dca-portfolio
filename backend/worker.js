@@ -371,7 +371,7 @@ async function handleFX(url, env) {
   if (!r.ok) return error("Frankfurter upstream error", 502);
   const data = await r.json();
   const out = { rate: data?.rates?.[to], date: data?.date, base: from, quote: to };
-  await cacheSet(env, cacheKey, out, 300);
+  await cacheSet(env, cacheKey, out, 60);
   return json(out);
 }
 

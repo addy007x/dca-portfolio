@@ -90,7 +90,7 @@ async function fetchCryptoPrices(tickers) {
 // ─────── FX (Frankfurter) ───────
 async function fetchFXRate() {
   const cacheKey = "fx:usd-thb";
-  const c = getCached(cacheKey, 5 * 60 * 1000);
+  const c = getCached(cacheKey, 60 * 1000);
   if (c) return c;
   try {
     const res = await fetch("https://api.frankfurter.app/latest?from=USD&to=THB");
