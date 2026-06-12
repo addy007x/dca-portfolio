@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="novel-video-studio.css?v=2">
-  <link rel="stylesheet" href="novel-text-repair.css?v=2">
+  <link rel="stylesheet" href="novel-text-repair.css?v=3">
   <style>
     [hidden]{display:none!important}
     @media(max-width:760px){
@@ -50,11 +50,12 @@
       <div class="text-repair-bar">
         <div class="repair-actions">
           <button type="button" id="repairTextBtn"><i data-lucide="wand-sparkles"></i> ซ่อมข้อความเพี้ยน</button>
+          <button type="button" id="pdfToVoiceBtn" class="pdf-voice" disabled><i data-lucide="headphones"></i> PDF → เสียงทันที</button>
           <button type="button" id="ocrPdfBtn" disabled><i data-lucide="scan-text"></i> PDF เป็นภาพ + จัดข้อความ</button>
           <button type="button" id="reviewOcrBtn" disabled><i data-lucide="columns-2"></i> ตรวจเทียบภาพกับข้อความ</button>
           <button type="button" id="aiRepairBtn" class="ai-repair"><i data-lucide="sparkles"></i> AI ตรวจแก้ต้นฉบับ OCR</button>
         </div>
-        <span id="repairStatus">PDF จะถูกแปลงเป็นภาพ 360 DPI แล้วอ่านและจัดย่อหน้าภาษาไทยใหม่</span>
+        <span id="repairStatus">อัปโหลด PDF แล้วเลือกอ่านเป็นเสียงทันที หรือแปลงเป็นข้อความเพื่อตรวจแก้</span>
       </div>
       <div class="source-stats"><span id="charCount">0 ตัวอักษร</span><span id="minuteEstimate">ประมาณ 0 นาที</span></div>
       <div class="section-head"><span>ตอนและบท</span><small id="chapterCount">0/0 เลือกอยู่</small></div>
@@ -152,6 +153,6 @@
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.9.0/mammoth.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <script src="novel-video-studio.js?v=7"></script>
+  <script src="novel-video-studio.js?v=8"></script>
 </body>
 </html>

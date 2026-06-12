@@ -27,6 +27,7 @@ const COINGECKO_IDS = {
 };
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+let visionLicenseReady = false;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -1246,6 +1247,56 @@ async function handleNovelOcrCleanup(req, env) {
   }
 }
 
+function decodeImageDataUrl(value) {
+  const match = String(value || "").match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+  if (!match) throw new Error("Invalid page image");
+  const binary = atob(match[2]);
+  if (!binary.length || binary.length > 8 * 1024 * 1024) throw new Error("Page image is too large");
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+async function handleNovelPdfVision(req, env) {
+  if (!env.AI) return error("Cloudflare AI binding is not configured", 503);
+  const body = await req.json().catch(() => ({}));
+  let image;
+  try {
+    image = decodeImageDataUrl(body.image);
+  } catch (e) {
+    return error(e.message || "Invalid page image", 400);
+  }
+
+  const page = Math.max(1, Number(body.page) || 1);
+  const total = Math.max(page, Number(body.total) || page);
+  const prompt = [
+    `ถอดข้อความจากภาพหน้าหนังสือภาษาไทย หน้า ${page} จาก ${total}`,
+    "อ่านจากภาพโดยตรงและรักษาข้อความเดิมให้แม่นที่สุด",
+    "รักษาลำดับย่อหน้า บทสนทนา ชื่อตัวละคร ตัวเลข และเครื่องหมายวรรคตอน",
+    "ไม่สรุป ไม่อธิบาย ไม่แปล และห้ามแต่งข้อความที่ไม่มีในภาพ",
+    "ตัดเลขหน้า หัวกระดาษ และท้ายกระดาษที่ไม่ใช่เนื้อเรื่อง",
+    "ถ้าส่วนใดมองไม่ชัดจริงให้ใส่ [อ่านไม่ชัด] แทนการเดา",
+    "ตอบเฉพาะข้อความที่ถอดได้ ไม่ใช้ Markdown",
+  ].join("\n");
+
+  try {
+    if (!visionLicenseReady) {
+      await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", { prompt: "agree" });
+      visionLicenseReady = true;
+    }
+    const result = await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
+      prompt,
+      image: Array.from(image),
+      max_tokens: 4096,
+    });
+    const text = String(result?.description || result?.response || "").trim();
+    if (!text) return error("Vision AI returned no text", 502);
+    return json({ ok: true, page, text });
+  } catch (e) {
+    return error(e.message || "Vision AI could not read this page", 502);
+  }
+}
+
 async function handleNovelVideoImage(req, env) {
   if (!env.OPENAI_API_KEY) return error("AI image is not configured", 503);
   const body = await req.json().catch(() => ({}));
@@ -1837,6 +1888,12 @@ async function handleRequest(req, env, ctx) {
     const user = await getSessionUser(req, env);
     if (!user) return error("Unauthorized", 401);
     return handleNovelOcrCleanup(req, env);
+  }
+  if (path === "/api/video/pdf-vision" && req.method === "POST") {
+    if (!env.DB) return error("D1 database not bound", 500);
+    const user = await getSessionUser(req, env);
+    if (!user) return error("Unauthorized", 401);
+    return handleNovelPdfVision(req, env);
   }
   if (path === "/api/video/image" && req.method === "POST") {
     if (!env.DB) return error("D1 database not bound", 500);
