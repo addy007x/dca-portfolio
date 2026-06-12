@@ -27,7 +27,6 @@ const COINGECKO_IDS = {
 };
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-let visionLicenseReady = false;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -1870,36 +1869,6 @@ async function handleRequest(req, env, ctx) {
     const user = await getSessionUser(req, env);
     if (!user) return error("Unauthorized", 401);
     return handleAiChat(req, env, user);
-  }
-  if (path === "/api/video/script" && req.method === "POST") {
-    if (!env.DB) return error("D1 database not bound", 500);
-    const user = await getSessionUser(req, env);
-    if (!user) return error("Unauthorized", 401);
-    return handleProductVideoScript(req, env);
-  }
-  if (path === "/api/video/tts" && req.method === "POST") {
-    if (!env.DB) return error("D1 database not bound", 500);
-    const user = await getSessionUser(req, env);
-    if (!user) return error("Unauthorized", 401);
-    return handleProductVideoTts(req, env);
-  }
-  if (path === "/api/video/ocr-clean" && req.method === "POST") {
-    if (!env.DB) return error("D1 database not bound", 500);
-    const user = await getSessionUser(req, env);
-    if (!user) return error("Unauthorized", 401);
-    return handleNovelOcrCleanup(req, env);
-  }
-  if (path === "/api/video/pdf-vision" && req.method === "POST") {
-    if (!env.DB) return error("D1 database not bound", 500);
-    const user = await getSessionUser(req, env);
-    if (!user) return error("Unauthorized", 401);
-    return handleNovelPdfVision(req, env);
-  }
-  if (path === "/api/video/image" && req.method === "POST") {
-    if (!env.DB) return error("D1 database not bound", 500);
-    const user = await getSessionUser(req, env);
-    if (!user) return error("Unauthorized", 401);
-    return handleNovelVideoImage(req, env);
   }
   if (path === "/api/line/test" && req.method === "POST") {
     const actor = await requireLineActionAuth(req, env);

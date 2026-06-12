@@ -20,10 +20,6 @@ database_id = "c2bffd98-4718-41c3-8705-c63cad57de68"
 [triggers]
 crons = ["*/5 * * * *"]
 
-# Built-in multilingual model for OCR proofreading. No OpenAI key required.
-[ai]
-binding = "AI"
-
 # Google login. Use the same OAuth Web Client ID that is in auth-config.js:
 #   wrangler secret put GOOGLE_CLIENT_ID
 
