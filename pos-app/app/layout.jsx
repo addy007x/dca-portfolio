@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "SiamFolio Grocery POS",
-  description: "ระบบขายหน้าร้านและจัดการสต๊อกสำหรับร้านขายของชำ"
+  title: "SiamFolio Cashier",
+  description: "ระบบแคชเชียร์ ขายหน้าร้าน และจัดการสต๊อกสำหรับร้านขายของชำ"
 };
 
 export default function RootLayout({ children }) {

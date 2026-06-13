@@ -57,7 +57,7 @@ const salesTrend = [
 ];
 
 const navItems = [
-  ["sale", "ขายสินค้า", ShoppingBasket],
+  ["sale", "แคชเชียร์", ShoppingBasket],
   ["products", "สินค้า", Boxes],
   ["stock", "สต๊อก", ClipboardList],
   ["reports", "รายงาน", TrendingUp],
@@ -97,6 +97,7 @@ export default function PosApp() {
   const [toast, setToast] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [dataMode, setDataMode] = useState("Demo mode");
+  const [now, setNow] = useState(() => new Date());
   const barcodeRef = useRef(null);
 
   useEffect(() => {
@@ -128,6 +129,25 @@ export default function PosApp() {
     const timer = setTimeout(() => setToast(""), 2600);
     return () => clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    const clock = setInterval(() => setNow(new Date()), 1000);
+    const shortcuts = (event) => {
+      if (event.key === "F2") {
+        event.preventDefault();
+        barcodeRef.current?.focus();
+      }
+      if (event.key === "F4" && cart.length) {
+        event.preventDefault();
+        setPaymentOpen(true);
+      }
+    };
+    window.addEventListener("keydown", shortcuts);
+    return () => {
+      clearInterval(clock);
+      window.removeEventListener("keydown", shortcuts);
+    };
+  }, [cart.length]);
 
   const categories = useMemo(() => ["ทั้งหมด", ...new Set(products.map((p) => p.category))], [products]);
   const filteredProducts = useMemo(() => products.filter((product) => {
@@ -186,24 +206,29 @@ export default function PosApp() {
   return (
     <div className="app-shell">
       <aside className={`sidebar ${menuOpen ? "open" : ""}`}>
-        <div className="brand-lockup"><span className="brand-icon"><Store size={24} /></span><div><strong>SiamFolio Grocery</strong><span>Point of Sale</span></div></div>
+        <div className="brand-lockup"><span className="brand-icon"><Store size={24} /></span><div><strong>SiamFolio Cashier</strong><span>Grocery Checkout</span></div></div>
         <nav className="main-nav">
           {navItems.map(([id, label, Icon]) => <button key={id} className={active === id ? "active" : ""} onClick={() => { setActive(id); setMenuOpen(false); }}><Icon size={19} /><span>{label}</span>{id === "stock" && lowStock.length > 0 && <b>{lowStock.length}</b>}</button>)}
         </nav>
-        <div className="sidebar-foot"><div className="cashier"><span className="avatar">A</span><div><strong>แอดดี้</strong><span>ผู้ดูแลร้าน</span></div></div><a href="../dashboard-design.html"><LogOut size={17} /> กลับแดชบอร์ด</a></div>
+        <div className="sidebar-foot"><div className="cashier"><span className="avatar">A</span><div><strong>แอดดี้</strong><span>แคชเชียร์ · กะเช้า</span></div></div><a href="../dashboard-design.html"><LogOut size={17} /> กลับแดชบอร์ด</a></div>
       </aside>
 
       <main className="main-area">
         <header className="topbar">
           <button className="icon-button mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="เปิดเมนู"><Menu size={21} /></button>
-          <div><p className="eyebrow">{navItems.find(([id]) => id === active)?.[1]}</p><h1>{active === "sale" ? "ขายหน้าร้าน" : navItems.find(([id]) => id === active)?.[1]}</h1></div>
-          <div className="topbar-actions"><StatusPill>{dataMode}</StatusPill><div className="shift-chip"><span>กะเช้า</span><strong>{new Intl.DateTimeFormat("th-TH", { hour: "2-digit", minute: "2-digit" }).format(new Date())}</strong></div><button className="icon-button" aria-label="บัญชีผู้ใช้"><UserRound size={20} /></button></div>
+          <div><p className="eyebrow">{active === "sale" ? "ระบบแคชเชียร์" : navItems.find(([id]) => id === active)?.[1]}</p><h1>{active === "sale" ? "ขายหน้าร้าน" : navItems.find(([id]) => id === active)?.[1]}</h1></div>
+          <div className="topbar-actions"><StatusPill>{dataMode}</StatusPill><div className="shift-chip"><span>กะเช้า · จุดขาย 01</span><strong>{new Intl.DateTimeFormat("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(now)}</strong></div><button className="icon-button" aria-label="บัญชีผู้ใช้"><UserRound size={20} /></button></div>
         </header>
 
         {active === "sale" && <section className="sale-layout">
           <div className="catalog-panel">
+            <div className="cashier-strip">
+              <div><span>เลขที่บิลปัจจุบัน</span><strong>{`R-${now.toISOString().slice(2, 10).replaceAll("-", "")}-${String(receipts.length + 1).padStart(3, "0")}`}</strong></div>
+              <div><span>พนักงานประจำจุดขาย</span><strong>แอดดี้ · Cashier 01</strong></div>
+              <button type="button" onClick={() => setToast("เปิดลิ้นชักเก็บเงินแล้ว")}><BadgeDollarSign size={18} /> เปิดลิ้นชัก</button>
+            </div>
             <div className="sale-tools">
-              <label className="search-box"><Barcode size={20} /><input ref={barcodeRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={scanBarcode} placeholder="สแกนบาร์โค้ด หรือค้นหาชื่อสินค้า" autoFocus /><kbd>Enter</kbd></label>
+              <label className="search-box"><Barcode size={20} /><input ref={barcodeRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={scanBarcode} placeholder="สแกนบาร์โค้ด หรือค้นหาชื่อสินค้า" autoFocus /><kbd>F2 / Enter</kbd></label>
               <button className="secondary-button" onClick={() => setProductModal({})}><PackagePlus size={18} /> เพิ่มสินค้า</button>
             </div>
             <div className="category-row">{categories.map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>)}</div>
@@ -225,7 +250,7 @@ export default function PosApp() {
         {active === "users" && <UsersView />}
       </main>
 
-      {paymentOpen && <PaymentModal total={total} onClose={() => setPaymentOpen(false)} onComplete={completeSale} />}
+      {paymentOpen && <PaymentModal total={total} billNumber={`R-${now.toISOString().slice(2, 10).replaceAll("-", "")}-${String(receipts.length + 1).padStart(3, "0")}`} onClose={() => setPaymentOpen(false)} onComplete={completeSale} />}
       {productModal && <ProductModal product={productModal} categories={categories.filter((c) => c !== "ทั้งหมด")} onClose={() => setProductModal(null)} onSave={saveProduct} />}
       {receiptOpen && <ReceiptModal receipt={receiptOpen} onClose={() => setReceiptOpen(null)} />}
       {toast && <div className="toast">{toast}</div>}
@@ -241,11 +266,11 @@ function CartPanel({ cart, subtotal, total, discount, setDiscount, updateQty, cl
   </aside>;
 }
 
-function PaymentModal({ total, onClose, onComplete }) {
+function PaymentModal({ total, billNumber, onClose, onComplete }) {
   const [method, setMethod] = useState("เงินสด");
   const [received, setReceived] = useState(Math.ceil(total / 100) * 100);
   const methods = [["เงินสด", BadgeDollarSign], ["QR", QrCode], ["บัตร", CreditCard]];
-  return <div className="modal-backdrop"><div className="modal payment-modal"><div className="modal-head"><div><span>ชำระเงิน</span><h2>{money(total)}</h2></div><button className="icon-button" onClick={onClose}><X size={20} /></button></div><div className="payment-methods">{methods.map(([label, Icon]) => <button key={label} className={method === label ? "active" : ""} onClick={() => setMethod(label)}><Icon size={24} /><span>{label}</span></button>)}</div>{method === "เงินสด" && <div className="cash-entry"><label>รับเงินมา<input type="number" value={received} onChange={(e) => setReceived(Number(e.target.value))} /></label><div className="quick-cash">{[total, Math.ceil(total / 100) * 100, 500, 1000].filter((v, i, a) => v >= total && a.indexOf(v) === i).map((v) => <button key={v} onClick={() => setReceived(v)}>{money(v)}</button>)}</div><div className="change-row"><span>เงินทอน</span><strong>{money(Math.max(0, received - total))}</strong></div></div>}<button className="confirm-payment" disabled={method === "เงินสด" && received < total} onClick={() => onComplete(method, received)}>ยืนยันการชำระเงิน</button></div></div>;
+  return <div className="modal-backdrop"><div className="modal payment-modal"><div className="modal-head"><div><span>รับชำระ · {billNumber}</span><h2>{money(total)}</h2></div><button className="icon-button" onClick={onClose}><X size={20} /></button></div><div className="payment-methods">{methods.map(([label, Icon]) => <button key={label} className={method === label ? "active" : ""} onClick={() => setMethod(label)}><Icon size={24} /><span>{label}</span></button>)}</div>{method === "เงินสด" && <div className="cash-entry"><label>รับเงินมา<input type="number" autoFocus value={received} onChange={(e) => setReceived(Number(e.target.value))} /></label><div className="quick-cash">{[total, Math.ceil(total / 100) * 100, 500, 1000].filter((v, i, a) => v >= total && a.indexOf(v) === i).map((v) => <button key={v} onClick={() => setReceived(v)}>{money(v)}</button>)}</div><div className="change-row"><span>เงินทอน</span><strong>{money(Math.max(0, received - total))}</strong></div></div>}<button className="confirm-payment" disabled={method === "เงินสด" && received < total} onClick={() => onComplete(method, received)}>ยืนยันและออกใบเสร็จ</button></div></div>;
 }
 
 function ProductModal({ product, categories, onClose, onSave }) {
@@ -278,4 +303,4 @@ function ReceiptsView({ receipts, onOpen }) { return <section className="content
 
 function UsersView() { const users = [{ name: "แอดดี้", email: "hongame5678@gmail.com", role: "ผู้ดูแลร้าน", status: "กำลังใช้งาน" }, { name: "พนักงานกะบ่าย", email: "cashier@siamfolio.local", role: "แคชเชียร์", status: "พร้อมใช้งาน" }]; return <section className="content-page"><div className="page-toolbar"><div><strong>ผู้ใช้งานระบบ</strong><span className="toolbar-note">กำหนดสิทธิ์ผู้ดูแลและแคชเชียร์</span></div><button className="primary-button"><Plus size={18} /> เชิญผู้ใช้</button></div><div className="user-grid">{users.map((user) => <div className="user-card" key={user.email}><span className="large-avatar">{user.name[0]}</span><div><strong>{user.name}</strong><span>{user.email}</span></div><StatusPill>{user.status}</StatusPill><div className="user-role"><UserRound size={16}/><span>{user.role}</span><ChevronDown size={15}/></div></div>)}</div></section>; }
 
-function ReceiptModal({ receipt, onClose }) { return <div className="modal-backdrop"><div className="modal receipt-modal"><div className="modal-head no-print"><div><span>การขายสำเร็จ</span><h2>ใบเสร็จ {receipt.id}</h2></div><button className="icon-button" onClick={onClose}><X size={20}/></button></div><div className="receipt-paper"><div className="receipt-brand"><Store size={26}/><strong>SiamFolio Grocery</strong><span>ขอบคุณที่อุดหนุน</span></div><div className="receipt-meta"><span>{receipt.id}</span><span>{shortDate(receipt.createdAt)}</span><span>พนักงาน: {receipt.cashier}</span></div>{receipt.items.map((item, index) => <div className="receipt-line" key={index}><div><strong>{item.name}</strong><span>{item.qty} x {money(item.price)}</span></div><b>{money(item.qty * item.price)}</b></div>)}<div className="receipt-total"><span>ยอดสุทธิ</span><strong>{money(receipt.total)}</strong></div><div className="receipt-payment"><span>ชำระโดย {receipt.payment}</span>{receipt.change > 0 && <span>เงินทอน {money(receipt.change)}</span>}</div></div><div className="modal-actions no-print"><button className="secondary-button" onClick={onClose}>ปิด</button><button className="primary-button" onClick={() => window.print()}><Printer size={18}/> พิมพ์ใบเสร็จ</button></div></div></div>; }
+function ReceiptModal({ receipt, onClose }) { return <div className="modal-backdrop"><div className="modal receipt-modal"><div className="modal-head no-print"><div><span>การขายสำเร็จ</span><h2>ใบเสร็จ {receipt.id}</h2></div><button className="icon-button" onClick={onClose}><X size={20}/></button></div><div className="receipt-paper"><div className="receipt-brand"><Store size={26}/><strong>SiamFolio Cashier</strong><span>ขอบคุณที่อุดหนุน</span></div><div className="receipt-meta"><span>{receipt.id}</span><span>{shortDate(receipt.createdAt)}</span><span>พนักงาน: {receipt.cashier} · จุดขาย 01</span></div>{receipt.items.map((item, index) => <div className="receipt-line" key={index}><div><strong>{item.name}</strong><span>{item.qty} x {money(item.price)}</span></div><b>{money(item.qty * item.price)}</b></div>)}<div className="receipt-total"><span>ยอดสุทธิ</span><strong>{money(receipt.total)}</strong></div><div className="receipt-payment"><span>ชำระโดย {receipt.payment}</span>{receipt.change > 0 && <span>เงินทอน {money(receipt.change)}</span>}</div></div><div className="modal-actions no-print"><button className="secondary-button" onClick={onClose}>ปิด</button><button className="primary-button" onClick={() => window.print()}><Printer size={18}/> พิมพ์ใบเสร็จ</button></div></div></div>; }
