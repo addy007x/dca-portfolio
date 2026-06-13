@@ -6,5 +6,8 @@ node_modules/
 *.log
 dist/
 build/
+.next/
+pos-app/out/
+.pnpm-store/
 .codex-temp-*
 .codex-write-test
