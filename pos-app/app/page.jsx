@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BadgeDollarSign,
+  Bell,
   Barcode,
   Boxes,
   ChevronDown,
@@ -10,8 +11,10 @@ import {
   ClipboardList,
   CreditCard,
   FileText,
+  Grid3X3,
   LayoutDashboard,
   LogOut,
+  List,
   Menu,
   Minus,
   PackagePlus,
@@ -20,8 +23,10 @@ import {
   QrCode,
   ReceiptText,
   Search,
+  Settings,
   ShoppingBasket,
   Store,
+  Tag,
   Trash2,
   TrendingUp,
   UserRound,
@@ -57,12 +62,12 @@ const salesTrend = [
 ];
 
 const navItems = [
-  ["sale", "แคชเชียร์", ShoppingBasket],
+  ["sale", "หน้าขายสินค้า", ShoppingBasket],
+  ["receipts", "ประวัติการขาย", ReceiptText],
+  ["users", "ลูกค้าและผู้ใช้", UsersRound],
   ["products", "สินค้า", Boxes],
-  ["stock", "สต๊อก", ClipboardList],
-  ["reports", "รายงาน", TrendingUp],
-  ["receipts", "ใบเสร็จ", ReceiptText],
-  ["users", "ผู้ใช้", UsersRound]
+  ["stock", "สต๊อกสินค้า", ClipboardList],
+  ["reports", "รายงาน", TrendingUp]
 ];
 
 const money = (value) => new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", maximumFractionDigits: 2 }).format(value || 0);
@@ -89,6 +94,8 @@ export default function PosApp() {
   const [cart, setCart] = useState([]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("ทั้งหมด");
+  const [sortMode, setSortMode] = useState("popular");
+  const [productView, setProductView] = useState("grid");
   const [discount, setDiscount] = useState(0);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [productModal, setProductModal] = useState(null);
@@ -154,9 +161,15 @@ export default function PosApp() {
     const matchCategory = category === "ทั้งหมด" || product.category === category;
     const needle = query.trim().toLowerCase();
     return matchCategory && (!needle || product.name.toLowerCase().includes(needle) || product.barcode.includes(needle));
-  }), [products, category, query]);
+  }).sort((a, b) => {
+    if (sortMode === "price-low") return a.price - b.price;
+    if (sortMode === "price-high") return b.price - a.price;
+    if (sortMode === "name") return a.name.localeCompare(b.name, "th");
+    return b.stock - a.stock;
+  }), [products, category, query, sortMode]);
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const total = Math.max(0, subtotal - discount);
+  const billNumber = `R-${now.toISOString().slice(2, 10).replaceAll("-", "")}-${String(receipts.length + 1).padStart(3, "0")}`;
   const lowStock = products.filter((p) => p.stock <= p.minStock);
   const todaySales = receipts.filter((r) => new Date(r.createdAt).toDateString() === new Date().toDateString()).reduce((sum, r) => sum + r.total, 0);
 
@@ -204,43 +217,45 @@ export default function PosApp() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell fast-counter">
       <aside className={`sidebar ${menuOpen ? "open" : ""}`}>
-        <div className="brand-lockup"><span className="brand-icon"><Store size={24} /></span><div><strong>SiamFolio Cashier</strong><span>Grocery Checkout</span></div></div>
+        <div className="brand-lockup"><span className="brand-icon"><ShoppingBasket size={25} /></span><div><strong>SiamFolio</strong><span>Smart POS System</span></div></div>
         <nav className="main-nav">
           {navItems.map(([id, label, Icon]) => <button key={id} className={active === id ? "active" : ""} onClick={() => { setActive(id); setMenuOpen(false); }}><Icon size={19} /><span>{label}</span>{id === "stock" && lowStock.length > 0 && <b>{lowStock.length}</b>}</button>)}
+          <button type="button" onClick={() => setToast("หน้าตั้งค่ากำลังเตรียมพร้อม")}><Settings size={19} /><span>ตั้งค่า</span></button>
         </nav>
-        <div className="sidebar-foot"><div className="cashier"><span className="avatar">A</span><div><strong>แอดดี้</strong><span>แคชเชียร์ · กะเช้า</span></div></div><a href="../dashboard-design.html"><LogOut size={17} /> กลับแดชบอร์ด</a></div>
+        <div className="sidebar-sales"><span>ยอดขายวันนี้</span><strong>{money(todaySales)}</strong><small>{receipts.length} รายการ</small></div>
+        <div className="sidebar-foot"><a href="../dashboard-design.html"><LogOut size={17} /> ออกจากระบบ</a><div className="cashier"><span className="avatar">A</span><div><strong>แอดดี้</strong><span>แคชเชียร์ · จุดขาย 01</span></div><ChevronDown size={15} /></div></div>
       </aside>
 
       <main className="main-area">
-        <header className="topbar">
+        <header className={`topbar ${active === "sale" ? "sale-topbar" : ""}`}>
           <button className="icon-button mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="เปิดเมนู"><Menu size={21} /></button>
-          <div><p className="eyebrow">{active === "sale" ? "ระบบแคชเชียร์" : navItems.find(([id]) => id === active)?.[1]}</p><h1>{active === "sale" ? "ขายหน้าร้าน" : navItems.find(([id]) => id === active)?.[1]}</h1></div>
-          <div className="topbar-actions"><StatusPill>{dataMode}</StatusPill><div className="shift-chip"><span>กะเช้า · จุดขาย 01</span><strong>{new Intl.DateTimeFormat("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(now)}</strong></div><button className="icon-button" aria-label="บัญชีผู้ใช้"><UserRound size={20} /></button></div>
+          {active === "sale" ? <>
+            <label className="top-search"><Search size={22} /><input ref={barcodeRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={scanBarcode} placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด" autoFocus /><button type="button" aria-label="สแกนบาร์โค้ด" onClick={() => barcodeRef.current?.focus()}><Barcode size={22} /></button></label>
+            <button className="top-action promotion" type="button" onClick={() => setToast("แสดงสินค้าที่ร่วมโปรโมชั่น")}><Tag size={19} /><span>สินค้าโปรโมชั่น</span></button>
+            <button className="top-action customer" type="button" onClick={() => setActive("users")}><UserRound size={19} /><span>ลูกค้าทั่วไป</span></button>
+            <button className="icon-button notification-button" type="button" onClick={() => setToast(`มีสินค้าใกล้หมด ${lowStock.length} รายการ`)} aria-label="การแจ้งเตือน"><Bell size={20} />{lowStock.length > 0 && <b>{lowStock.length}</b>}</button>
+            <div className="date-clock"><span>{new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" }).format(now)}</span><strong>{new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit" }).format(now)}</strong></div>
+            <button className="icon-button" type="button" onClick={() => setToast(dataMode)} aria-label="ตั้งค่า"><Settings size={20} /></button>
+          </> : <>
+            <div><p className="eyebrow">ระบบจัดการร้านค้า</p><h1>{navItems.find(([id]) => id === active)?.[1]}</h1></div>
+            <div className="topbar-actions"><StatusPill>{dataMode}</StatusPill><div className="shift-chip"><span>กะเช้า · จุดขาย 01</span><strong>{new Intl.DateTimeFormat("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(now)}</strong></div><button className="icon-button" aria-label="บัญชีผู้ใช้"><UserRound size={20} /></button></div>
+          </>}
         </header>
 
         {active === "sale" && <section className="sale-layout">
           <div className="catalog-panel">
-            <div className="cashier-strip">
-              <div><span>เลขที่บิลปัจจุบัน</span><strong>{`R-${now.toISOString().slice(2, 10).replaceAll("-", "")}-${String(receipts.length + 1).padStart(3, "0")}`}</strong></div>
-              <div><span>พนักงานประจำจุดขาย</span><strong>แอดดี้ · Cashier 01</strong></div>
-              <button type="button" onClick={() => setToast("เปิดลิ้นชักเก็บเงินแล้ว")}><BadgeDollarSign size={18} /> เปิดลิ้นชัก</button>
-            </div>
-            <div className="sale-tools">
-              <label className="search-box"><Barcode size={20} /><input ref={barcodeRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={scanBarcode} placeholder="สแกนบาร์โค้ด หรือค้นหาชื่อสินค้า" autoFocus /><kbd>F2 / Enter</kbd></label>
-              <button className="secondary-button" onClick={() => setProductModal({})}><PackagePlus size={18} /> เพิ่มสินค้า</button>
-            </div>
-            <div className="category-row">{categories.map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>)}</div>
-            <div className="catalog-head"><div><strong>สินค้าในร้าน</strong><span>{filteredProducts.length} รายการ</span></div><span className="scanner-ready"><span /> เครื่องสแกนพร้อม</span></div>
-            <div className="product-grid">{filteredProducts.map((product) => <button className="product-card" key={product.id} onClick={() => addToCart(product)} disabled={product.stock <= 0}>
+            <div className="category-row">{categories.map((item, index) => <button key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}><span className="category-icon">{index === 0 ? <Grid3X3 size={21} /> : <Store size={21} />}</span><span>{item}</span></button>)}<button className="add-product-category" onClick={() => setProductModal({})}><span className="category-icon"><PackagePlus size={21} /></span><span>เพิ่มสินค้า</span></button></div>
+            <div className="catalog-head"><div><strong>สินค้าทั้งหมด</strong><span>{filteredProducts.length} รายการ · บิล {billNumber}</span></div><div className="catalog-actions"><select value={sortMode} onChange={(e) => setSortMode(e.target.value)} aria-label="เรียงสินค้า"><option value="popular">เรียงตาม: ยอดนิยม</option><option value="price-low">ราคาต่ำไปสูง</option><option value="price-high">ราคาสูงไปต่ำ</option><option value="name">ชื่อสินค้า</option></select><button className={productView === "grid" ? "active" : ""} onClick={() => setProductView("grid")} aria-label="มุมมองตาราง"><Grid3X3 size={18}/></button><button className={productView === "list" ? "active" : ""} onClick={() => setProductView("list")} aria-label="มุมมองรายการ"><List size={18}/></button></div></div>
+            <div className={`product-grid ${productView === "list" ? "list-view" : ""}`}>{filteredProducts.map((product) => <button className="product-card" key={product.id} onClick={() => addToCart(product)} disabled={product.stock <= 0}>
               <div className="product-image" style={{ background: product.color }}><img src={product.image} alt="" /></div>
-              <div className="product-copy"><strong>{product.name}</strong><span>{product.category}</span><div><b>{money(product.price)}</b><small className={product.stock <= product.minStock ? "low" : ""}>เหลือ {product.stock}</small></div></div>
+              <div className="product-copy"><strong>{product.name}</strong><span>{product.category}</span><div><b>{money(product.price)}</b><small className={product.stock <= product.minStock ? "low" : ""}>คงเหลือ {product.stock}</small></div></div>
             </button>)}</div>
           </div>
-          <CartPanel cart={cart} subtotal={subtotal} total={total} discount={discount} setDiscount={setDiscount} updateQty={updateQty} clear={() => setCart([])} checkout={() => setPaymentOpen(true)} />
+          <CartPanel billNumber={billNumber} cart={cart} subtotal={subtotal} total={total} discount={discount} setDiscount={setDiscount} updateQty={updateQty} clear={() => setCart([])} checkout={() => setPaymentOpen(true)} />
           <button className="mobile-cart-button" onClick={() => setMobileCartOpen(true)}><ShoppingBasket size={19} /><span>{cart.reduce((s, i) => s + i.qty, 0)} ชิ้น</span><strong>{money(total)}</strong></button>
-          {mobileCartOpen && <div className="mobile-cart-overlay" onClick={() => setMobileCartOpen(false)}><div onClick={(e) => e.stopPropagation()}><CartPanel cart={cart} subtotal={subtotal} total={total} discount={discount} setDiscount={setDiscount} updateQty={updateQty} clear={() => setCart([])} checkout={() => setPaymentOpen(true)} close={() => setMobileCartOpen(false)} /></div></div>}
+          {mobileCartOpen && <div className="mobile-cart-overlay" onClick={() => setMobileCartOpen(false)}><div onClick={(e) => e.stopPropagation()}><CartPanel billNumber={billNumber} cart={cart} subtotal={subtotal} total={total} discount={discount} setDiscount={setDiscount} updateQty={updateQty} clear={() => setCart([])} checkout={() => setPaymentOpen(true)} close={() => setMobileCartOpen(false)} /></div></div>}
         </section>}
 
         {active === "products" && <ProductsView products={products} onEdit={setProductModal} onDelete={(id) => setProducts((items) => items.filter((p) => p.id !== id))} onAdd={() => setProductModal({})} />}
@@ -250,7 +265,7 @@ export default function PosApp() {
         {active === "users" && <UsersView />}
       </main>
 
-      {paymentOpen && <PaymentModal total={total} billNumber={`R-${now.toISOString().slice(2, 10).replaceAll("-", "")}-${String(receipts.length + 1).padStart(3, "0")}`} onClose={() => setPaymentOpen(false)} onComplete={completeSale} />}
+      {paymentOpen && <PaymentModal total={total} billNumber={billNumber} onClose={() => setPaymentOpen(false)} onComplete={completeSale} />}
       {productModal && <ProductModal product={productModal} categories={categories.filter((c) => c !== "ทั้งหมด")} onClose={() => setProductModal(null)} onSave={saveProduct} />}
       {receiptOpen && <ReceiptModal receipt={receiptOpen} onClose={() => setReceiptOpen(null)} />}
       {toast && <div className="toast">{toast}</div>}
@@ -258,11 +273,17 @@ export default function PosApp() {
   );
 }
 
-function CartPanel({ cart, subtotal, total, discount, setDiscount, updateQty, clear, checkout, close }) {
+function CartPanel({ billNumber, cart, subtotal, total, discount, setDiscount, updateQty, clear, checkout, close }) {
   return <aside className="cart-panel">
-    <div className="cart-head"><div><span className="cart-icon"><ShoppingBasket size={20} /></span><div><strong>รายการขาย</strong><span>{cart.reduce((s, i) => s + i.qty, 0)} ชิ้น</span></div></div><div>{close && <button className="icon-button" onClick={close}><X size={18} /></button>}<button className="text-button danger" onClick={clear} disabled={!cart.length}>ล้าง</button></div></div>
+    <div className="cart-head"><div><span className="cart-icon"><ShoppingBasket size={20} /></span><div><strong>บิลปัจจุบัน</strong><span>{billNumber} · {cart.reduce((s, i) => s + i.qty, 0)} ชิ้น</span></div></div><div>{close && <button className="icon-button" onClick={close}><X size={18} /></button>}<button className="text-button danger" onClick={clear} disabled={!cart.length}>ล้างบิล</button></div></div>
     <div className="cart-items">{!cart.length ? <EmptyState title="ตะกร้ายังว่าง" detail="สแกนหรือแตะสินค้าเพื่อเริ่มขาย" /> : cart.map((item) => <div className="cart-item" key={item.id}><div className="cart-thumb"><img src={item.image} alt="" /></div><div className="cart-item-copy"><strong>{item.name}</strong><span>{money(item.price)} / {item.unit}</span><div className="qty-control"><button onClick={() => updateQty(item.id, -1)}><Minus size={14} /></button><b>{item.qty}</b><button onClick={() => updateQty(item.id, 1)}><Plus size={14} /></button></div></div><b>{money(item.price * item.qty)}</b></div>)}</div>
-    <div className="cart-summary"><label><span>ส่วนลด</span><span className="discount-input"><span>฿</span><input type="number" min="0" max={subtotal} value={discount || ""} onChange={(e) => setDiscount(Math.max(0, Math.min(subtotal, Number(e.target.value))))} placeholder="0" /></span></label><div><span>ยอดรวม</span><strong>{money(total)}</strong></div><button className="checkout-button" disabled={!cart.length} onClick={checkout}><WalletCards size={20} /> รับชำระเงิน</button></div>
+    <div className="cart-summary">
+      <div className="summary-line"><span>ยอดก่อนส่วนลด</span><b>{money(subtotal)}</b></div>
+      <label><span>ส่วนลดท้ายบิล</span><span className="discount-input"><span>฿</span><input type="number" min="0" max={subtotal} value={discount || ""} onChange={(e) => setDiscount(Math.max(0, Math.min(subtotal, Number(e.target.value))))} placeholder="0" /></span></label>
+      <div className="payable-total"><span>ยอดที่ต้องชำระ</span><strong>{money(total)}</strong></div>
+      <div className="payment-hints"><span>เงินสด</span><span>QR</span><span>บัตร</span></div>
+      <button className="checkout-button" disabled={!cart.length} onClick={checkout}><WalletCards size={20} /><span>รับชำระเงิน</span><kbd>F4</kbd></button>
+    </div>
   </aside>;
 }
 
