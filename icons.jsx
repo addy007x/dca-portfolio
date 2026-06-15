@@ -7,6 +7,8 @@ const Ico = ({ name, size = 18, stroke = 1.7 }) => {
     </svg>
   );
   switch (name) {
+    case "user":     return P(<><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>);
+    case "mail":     return P(<><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M4 7l8 6 8-6"/></>);
     case "home":     return P(<><path d="M3 11.5L12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></>);
     case "wallet":   return P(<><rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18"/><circle cx="17" cy="15" r="1.2" fill="currentColor"/></>);
     case "dca":      return P(<><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-4"/><path d="M12 16V8"/><path d="M16 16V11"/><circle cx="20" cy="5" r="2"/></>);

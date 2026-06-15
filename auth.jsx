@@ -390,10 +390,21 @@ function MangaAuthFrame({ mode = "login", children }) {
   return (
     <div className={`auth-shell-manga auth-mode-${mode}`}>
       <main className="auth-manga-stage">
+        <img
+          className="auth-manga-art"
+          src={mode === "register" ? "assets/manga-auth-signup-wide.png" : "assets/manga-auth-login-wide.png"}
+          alt=""
+          aria-hidden="true"
+        />
         <div className="auth-manga-card">{children}</div>
       </main>
     </div>
   );
+}
+
+function MangaAuthIcon({ name, size = 26 }) {
+  const IconComponent = window.Ico;
+  return IconComponent ? <IconComponent name={name} size={size} stroke={2.2} /> : null;
 }
 
 function MangaAuthSetupPanel() {
@@ -527,24 +538,39 @@ function MangaAuthForm() {
           {mode === "register" && (
             <label>
               <span>ชื่อผู้ใช้</span>
-              <input name="username" type="text" value={form.username} onChange={updateField} placeholder="ตั้งชื่อผู้ใช้" autoComplete="username" minLength="3" maxLength="32" required />
+              <div className="auth-manga-input">
+                <MangaAuthIcon name="user" />
+                <input name="username" type="text" value={form.username} onChange={updateField} placeholder="ตั้งชื่อผู้ใช้" autoComplete="username" minLength="3" maxLength="32" required />
+              </div>
             </label>
           )}
           <label>
             <span>{mode === "register" ? "อีเมล" : "ชื่อผู้ใช้หรืออีเมล"}</span>
-            <input name={mode === "register" ? "email" : "identifier"} type={mode === "register" ? "email" : "text"} value={mode === "register" ? form.email : form.identifier} onChange={updateField} placeholder={mode === "register" ? "กรอกอีเมล" : "กรอกชื่อผู้ใช้หรืออีเมล"} autoComplete={mode === "register" ? "email" : "username"} required />
+            <div className="auth-manga-input">
+              <MangaAuthIcon name={mode === "register" ? "mail" : "user"} />
+              <input name={mode === "register" ? "email" : "identifier"} type={mode === "register" ? "email" : "text"} value={mode === "register" ? form.email : form.identifier} onChange={updateField} placeholder={mode === "register" ? "กรอกอีเมล" : "กรอกชื่อผู้ใช้หรืออีเมล"} autoComplete={mode === "register" ? "email" : "username"} required />
+            </div>
           </label>
           <label>
             <span>รหัสผ่าน</span>
-            <div className="auth-manga-password">
+            <div className="auth-manga-input auth-manga-password">
+              <MangaAuthIcon name="lock" />
               <input name="password" type={showPassword ? "text" : "password"} value={form.password} onChange={updateField} placeholder="กรอกรหัสผ่าน" autoComplete={mode === "register" ? "new-password" : "current-password"} minLength="8" required />
-              <button type="button" onClick={() => setShowPassword(value => !value)}>{showPassword ? "ซ่อน" : "แสดง"}</button>
+              <button type="button" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"} title={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}>
+                <MangaAuthIcon name="eye" size={28} />
+              </button>
             </div>
           </label>
           {mode === "register" && (
             <label>
               <span>ยืนยันรหัสผ่าน</span>
-              <input name="confirm" type={showPassword ? "text" : "password"} value={form.confirm} onChange={updateField} placeholder="ยืนยันรหัสผ่าน" autoComplete="new-password" minLength="8" required />
+              <div className="auth-manga-input auth-manga-password">
+                <MangaAuthIcon name="lock" />
+                <input name="confirm" type={showPassword ? "text" : "password"} value={form.confirm} onChange={updateField} placeholder="ยืนยันรหัสผ่าน" autoComplete="new-password" minLength="8" required />
+                <button type="button" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"} title={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}>
+                  <MangaAuthIcon name="eye" size={28} />
+                </button>
+              </div>
             </label>
           )}
 
@@ -563,7 +589,11 @@ function MangaAuthForm() {
 
         <div className="auth-manga-divider"><span>หรือ</span></div>
         <div className={busy ? "auth-manga-google is-busy" : "auth-manga-google"}>
-          <div ref={buttonRef} className="auth-google-wrap">
+          <div className="auth-google-visual" aria-hidden="true">
+            <img src="assets/google-g.png" alt="" />
+            <span>{mode === "register" ? "สมัครด้วย Google" : "เข้าสู่ระบบด้วย Google"}</span>
+          </div>
+          <div ref={buttonRef} className="auth-google-wrap auth-google-native">
             {!cfg.googleClientId && !message ? "กำลังเตรียมปุ่ม Google..." : null}
           </div>
         </div>

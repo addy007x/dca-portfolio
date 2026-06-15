@@ -21,6 +21,42 @@ Final result: passed
 
 ---
 
+# Widescreen Manga Authentication Design QA
+
+- Login reference: `C:\Users\NITRO5\Downloads\ChatGPT Image 15 มิ.ย. 2569 19_04_23.png`
+- Registration reference: `C:\Users\NITRO5\Downloads\ChatGPT Image 15 มิ.ย. 2569 19_10_12.png`
+- Implementation: `D:\DCA\index.html`, `D:\DCA\auth.jsx`, `D:\DCA\icons.jsx`, and the Manga Quest Auth V3 section in `D:\DCA\styles.css`
+- Desktop viewport: 1672 x 941 px
+- Mobile viewport: 390 x 844 CSS px
+- States: password login, password registration, login/register switching, password visibility, Google OAuth overlay, and responsive mobile forms
+
+## Visual Evidence
+
+- Full login side-by-side comparison: `D:\DCA\.qa-manga-wide\compare-login.png`
+- Full registration side-by-side comparison: `D:\DCA\.qa-manga-wide\compare-signup.png`
+- Final login render: `D:\DCA\.qa-manga-wide\login-final.png`
+- Final registration render: `D:\DCA\.qa-manga-wide\signup-final2.png`
+- Mobile login render: `D:\DCA\.qa-manga-wide\login-mobile-real.png`
+- Mobile registration render: `D:\DCA\.qa-manga-wide\signup-mobile-real.png`
+
+## Checks
+
+- The supplied widescreen artwork is used directly at the source aspect ratio with no recreated or approximate manga imagery.
+- Desktop login preserves the central manga panel composition and places the live HTML form over the reference form area.
+- Desktop registration preserves the illustrated left panel and uses a clean white functional form panel on the right.
+- User, email, lock, and eye controls use the existing icon system and remain aligned at desktop and mobile sizes.
+- The custom Google presentation uses the official Google G asset while the live Google Identity iframe remains the real click target.
+- Login and registration fields, mode switching, Google iframe presence, and password visibility were verified in Chrome through the rendered DOM.
+- Mobile forms fit within a 390 px CSS viewport without horizontal overflow and keep all primary controls reachable by vertical scrolling.
+
+## Result
+
+No actionable P0, P1, or P2 visual issues found. Google can change the internal iframe markup, but its transparent full-size click layer remains contained by the custom button.
+
+Final result: passed
+
+---
+
 # Manga Login and Registration Design QA
 
 - Login reference: `C:\Users\NITRO5\Downloads\ChatGPT Image 15 มิ.ย. 2569 14_43_07.png`
