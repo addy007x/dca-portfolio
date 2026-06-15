@@ -21,6 +21,37 @@ Final result: passed
 
 ---
 
+# Manga Quest Dashboard Design QA
+
+- Reference: `C:\Users\NITRO5\Downloads\ChatGPT Image 15 มิ.ย. 2569 22_53_29.png`
+- Implementation: `D:\DCA\dashboard-design.html` and `D:\DCA\assets\manga-dashboard-scene.webp`
+- Desktop viewport: 1672 x 941 px
+- Mobile viewport: 390 x 844 px
+- Data state: six seeded holdings, earn balance, annual goal, crypto watchlist, profile fallback, and one-minute refresh wiring
+
+## Visual Evidence
+
+- Side-by-side comparison: `D:\DCA\.qa-manga-dashboard\dashboard-manga-comparison.png`
+- Final desktop render: `D:\DCA\.qa-manga-dashboard\dashboard-manga-seeded.png`
+- Final mobile render: `D:\DCA\.qa-manga-dashboard\dashboard-manga-mobile.png`
+
+## Checks
+
+- The supplied black/red Manga Quest art direction is preserved across profile, navigation, portfolio, holdings, central scene, annual goal, crypto market, and news ticker regions.
+- The central castle artwork uses a source-derived bitmap rather than CSS-drawn or placeholder art.
+- Crypto icons use verified CoinGecko image URLs; stock icons use company-domain web favicons with an initials fallback.
+- Portfolio calculations, holdings ordering, annual target, music player, AI chat, LINE OA, command, draggable panels, logout, and one-minute refresh timers remain connected.
+- The desktop layout matches the reference hierarchy at the same viewport without overlapping the three main columns.
+- The mobile layout stacks controls and data panels without horizontal text overlap; long navigation and action rows remain horizontally scrollable.
+
+## Result
+
+No actionable P0, P1, or P2 visual issues found. CoinGecko can temporarily return HTTP 429 during repeated QA refreshes; the dashboard preserves icon rendering and retries market prices on the existing one-minute schedule.
+
+Final result: passed
+
+---
+
 # Widescreen Manga Authentication Design QA
 
 - Login reference: `C:\Users\NITRO5\Downloads\ChatGPT Image 15 มิ.ย. 2569 19_04_23.png`
