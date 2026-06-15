@@ -24,6 +24,7 @@ const Ico = ({ name, size = 18, stroke = 1.7 }) => {
     case "back":     return P(<><path d="M15 18l-6-6 6-6"/></>);
     case "calendar": return P(<><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></>);
     case "edit":     return P(<><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></>);
+    case "check":    return P(<><path d="M5 12l4 4L19 6"/></>);
     case "chev-r":   return P(<><path d="M9 6l6 6-6 6"/></>);
     case "chev-d":   return P(<><path d="M6 9l6 6 6-6"/></>);
     case "more":     return P(<><circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none"/></>);

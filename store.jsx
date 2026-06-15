@@ -370,10 +370,24 @@ function addEarn(e) {
 }
 
 function updateEarn(id, patch) {
-  updateStore(s => ({
-    ...s,
-    earn: s.earn.map(e => e.id === id ? { ...e, ...patch } : e),
-  }));
+  updateStore(s => {
+    const now = Date.now();
+    const earn = s.earn.map(e => {
+      if (e.id !== id) return e;
+
+      const last = Number(e.accruedEarnedAt) || now;
+      const elapsedSeconds = Math.max(0, (now - last) / 1000);
+      const holding = (s.holdings || []).find(h => h.ticker === e.sym);
+      const isStable = ["USDT", "USDC", "BUSD", "DAI", "USD"].includes(e.sym);
+      const price = Number(holding?.price) || (isStable ? 1 : 0);
+      const earnedNative = Number(e.qty || 0) * (Number(e.apy || 0) / 100) * (elapsedSeconds / (365 * 24 * 60 * 60));
+      const pendingUSD = price > 0 ? earnedNative * price : earnedNative;
+      const accruedEarnedUSD = (Number(e.accruedEarnedUSD ?? e.earnedToday ?? 0) || 0) + pendingUSD;
+
+      return { ...e, ...patch, accruedEarnedUSD, accruedEarnedAt: now };
+    });
+    return { ...s, earn };
+  });
 }
 
 function removeEarn(id) {

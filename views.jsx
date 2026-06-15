@@ -295,7 +295,7 @@ function HistoryView({ ccy, onEditTx }) {
 }
 
 // ─────── Earn View (full page) ───────
-function EarnView({ ccy, onAddEarn }) {
+function EarnView({ ccy, onAddEarn, onEditEarn }) {
   const store = window.useStore();
   const FX = store.fx || 35.8;
   const [confirm, setConfirm] = React.useState(null);
@@ -474,6 +474,7 @@ function EarnView({ ccy, onAddEarn }) {
                       </div>
                       <div onClick={e => e.stopPropagation()}>
                         <Menu items={[
+                          { label: "แก้ไข Earn", icon: "edit", onClick: () => onEditEarn?.(p) },
                           { label: "ปิดบัญชี Earn", icon: "trash", danger: true,
                             onClick: () => setConfirm({
                               title: `ปิดบัญชี Earn ${p.sym}?`,

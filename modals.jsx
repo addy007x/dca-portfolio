@@ -371,11 +371,15 @@ function DCAModal({ open, holdings, defaultTicker, editDCA, onClose, onSave }) {
 }
 
 // ─────── Add Earn Position ───────
-function EarnModal({ open, holdings, onClose, onSave }) {
+function EarnModal({ open, holdings, editEarn, onClose, onSave }) {
   const [form, setForm] = React.useState({ sym: "", qty: 0, apy: 0, kind: "ยืดหยุ่น" });
+  const isEdit = !!editEarn;
   React.useEffect(() => {
-    if (open) setForm({ sym: holdings[0]?.ticker || "", qty: 0, apy: 0, kind: "ยืดหยุ่น" });
-  }, [open]);
+    if (!open) return;
+    setForm(editEarn
+      ? { sym: editEarn.sym || "", qty: editEarn.qty || 0, apy: editEarn.apy || 0, kind: editEarn.kind || "ยืดหยุ่น" }
+      : { sym: holdings[0]?.ticker || "", qty: 0, apy: 0, kind: "ยืดหยุ่น" });
+  }, [open, editEarn]);
 
   if (!open) return null;
   const canSave = form.sym.trim() && form.qty > 0 && form.apy > 0;
@@ -397,12 +401,13 @@ function EarnModal({ open, holdings, onClose, onSave }) {
         <div className="modal-ico" style={{background:"var(--up-soft)", color:"var(--up)"}}>
           <Ico name="earn" size={22}/>
         </div>
-        <h3>เพิ่มสินทรัพย์ใน Earn</h3>
-        <p>บันทึกเหรียญที่กำลังสร้างดอกเบี้ย — ระบบจะแสดงรายได้แบบเรียลไทม์</p>
+        <h3>{isEdit ? `แก้ไข Earn ${editEarn.sym}` : "เพิ่มสินทรัพย์ใน Earn"}</h3>
+        <p>{isEdit ? "ปรับจำนวนที่ฝาก ประเภท และ APY โดยดอกเบี้ยสะสมเดิมยังคงอยู่" : "บันทึกเหรียญที่กำลังสร้างดอกเบี้ย — ระบบจะแสดงรายได้แบบเรียลไทม์"}</p>
 
         <FormRow>
           <FormField label="สัญลักษณ์ (Symbol)" hint="เช่น BTC, ETH, USDT">
             <input className="form-input" type="text" autoFocus placeholder="USDT"
+                   disabled={isEdit}
                    value={form.sym}
                    onChange={e => setForm({...form, sym: e.target.value})}/>
           </FormField>
@@ -442,7 +447,7 @@ function EarnModal({ open, holdings, onClose, onSave }) {
         <div className="modal-actions">
           <button type="button" className="btn" onClick={onClose}>ยกเลิก</button>
           <button type="submit" className="btn primary" disabled={!canSave}>
-            <Ico name="plus" size={14}/> เพิ่ม Earn
+            <Ico name={isEdit ? "check" : "plus"} size={14}/> {isEdit ? "บันทึกการแก้ไข" : "เพิ่ม Earn"}
           </button>
         </div>
       </form>

@@ -51,6 +51,7 @@ function App() {
   const [editHolding, setEditHolding] = React.useState(null);
   const [editDCA, setEditDCA] = React.useState(null);
   const [editTx, setEditTx] = React.useState(null);
+  const [editEarn, setEditEarn] = React.useState(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [appReady, setAppReady] = React.useState(false);
 
@@ -122,6 +123,8 @@ function App() {
 
   const openDcaModal = () => { setEditDCA(null); setShowDcaModal(true); };
   const openEditDCA = (d) => { setEditDCA(d); setShowDcaModal(true); };
+  const openEarnModal = () => { setEditEarn(null); setShowEarnModal(true); };
+  const openEditEarn = (position) => { setEditEarn(position); setShowEarnModal(true); };
 
   return (
     <>
@@ -158,7 +161,7 @@ function App() {
             : view.kind === "dca"
             ? <DCAView ccy={s.ccy} onAddDCA={openDcaModal} onEditDCA={openEditDCA}/>
             : view.kind === "earn"
-            ? <EarnView ccy={s.ccy} onAddEarn={() => setShowEarnModal(true)}/>
+            ? <EarnView ccy={s.ccy} onAddEarn={openEarnModal} onEditEarn={openEditEarn}/>
             : view.kind === "history"
             ? <HistoryView ccy={s.ccy} onEditTx={(tx) => { setEditTx(tx); setShowTxModal(true); }}/>
             : view.kind === "tax"
@@ -170,7 +173,8 @@ function App() {
                          onAddHolding={() => { setEditHolding(null); setShowHoldingModal(true); }}
                          onAddTx={() => { setEditTx(null); setShowTxModal(true); }}
                          onAddDCA={openDcaModal}
-                         onAddEarn={() => setShowEarnModal(true)}
+                         onAddEarn={openEarnModal}
+                         onEditEarn={openEditEarn}
                          onEditHolding={(h) => { setEditHolding(h); setShowHoldingModal(true); }}
                          accent={`var(--accent)`}
                          searchQuery={searchQuery}/>
@@ -201,8 +205,12 @@ function App() {
 
       <EarnModal open={showEarnModal}
                  holdings={store.holdings}
-                 onClose={() => setShowEarnModal(false)}
-                 onSave={(e) => window.addEarn(e)}/>
+                 editEarn={editEarn}
+                 onClose={() => { setShowEarnModal(false); setEditEarn(null); }}
+                 onSave={(e) => {
+                   if (editEarn) window.updateEarn(editEarn.id, e);
+                   else window.addEarn(e);
+                 }}/>
 
       <DCAModal open={showDcaModal}
                 holdings={store.holdings}

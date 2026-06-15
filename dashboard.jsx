@@ -255,7 +255,7 @@ function HeroMascot({ dayPct }) {
   );
 }
 
-function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEarn, onEditHolding, accent, searchQuery }) {
+function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEarn, onEditEarn, onEditHolding, accent, searchQuery }) {
   const store = window.useStore();
   const M = window.MOCK; // still used for portfolio history baseline
   const allHoldings = store.holdings;
@@ -798,7 +798,7 @@ function Dashboard({ ccy, onOpenAsset, onAddHolding, onAddTx, onAddDCA, onAddEar
 
       {/* ===== Earn + Bench ===== */}
       <section className="row-2">
-        <EarnPanel ccy={ccy} positions={earnList} FX={FX} holdings={allHoldings} askConfirm={askConfirm} onAdd={onAddEarn}/>
+        <EarnPanel ccy={ccy} positions={earnList} FX={FX} holdings={allHoldings} askConfirm={askConfirm} onAdd={onAddEarn} onEdit={onEditEarn}/>
         <BenchmarkCard benchmarks={benchmarks}/>
       </section>
 
@@ -854,7 +854,7 @@ function PLBars({ holdings, ccy, FX }) {
   );
 }
 
-function EarnPanel({ ccy, positions, FX, holdings, askConfirm, onAdd }) {
+function EarnPanel({ ccy, positions, FX, holdings, askConfirm, onAdd, onEdit }) {
   const [apy, setApy] = React.useState(15);
 
   // ── Real-time tick (every second) ──
@@ -977,6 +977,7 @@ function EarnPanel({ ccy, positions, FX, holdings, askConfirm, onAdd }) {
                     </div>
                   </div>
                   <Menu items={[
+                    { label: "แก้ไข Earn", icon: "edit", onClick: () => onEdit?.(p) },
                     { label: "ปิดบัญชี Earn", icon: "trash", danger: true,
                       onClick: () => askConfirm({
                         title: `ปิดบัญชี Earn ${p.sym}?`,
