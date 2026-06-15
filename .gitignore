@@ -8,6 +8,7 @@ dist/
 build/
 .next/
 pos-app/out/
+pos-app/qa/mobile-scanner/
 .pnpm-store/
 .codex-temp-*
 .codex-write-test

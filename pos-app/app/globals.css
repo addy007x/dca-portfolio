@@ -109,6 +109,36 @@ a { color: inherit; text-decoration: none; }
 .user-grid { display: grid; grid-template-columns: repeat(2, minmax(260px,1fr)); gap: 12px; }.user-card { display: grid; grid-template-columns: 52px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 16px; }.large-avatar { width: 52px; height: 52px; font-size: 18px; }.user-card > div strong, .user-card > div span { display: block; }.user-card > div span { color: var(--muted); font-size: 10px; }.user-role { grid-column: 1 / -1; height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: #faf9f5; }.user-role svg:last-child { margin-left: auto; }
 .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 18px; background: rgba(19, 31, 26, .48); backdrop-filter: blur(3px); }.modal { width: min(560px, 100%); max-height: calc(100vh - 36px); overflow: auto; border: 1px solid #cbcfc9; border-radius: 8px; background: var(--surface); box-shadow: 0 24px 70px rgba(20,40,30,.24); }.modal-head { min-height: 82px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); }.modal-head span, .modal-head h2 { display: block; margin: 0; }.modal-head span { color: var(--muted); font-size: 10px; }.modal-head h2 { font-size: 23px; }.payment-methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; padding: 17px; }.payment-methods button { height: 78px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: white; }.payment-methods button.active { color: var(--green); border-color: var(--green); background: var(--green-soft); }.cash-entry { padding: 0 17px 17px; }.cash-entry label { display: block; color: var(--muted); font-size: 11px; }.cash-entry input { width: 100%; height: 50px; margin-top: 6px; padding: 0 13px; border: 1px solid var(--line); border-radius: 7px; background: white; font-size: 20px; font-weight: 800; }.quick-cash { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 8px; }.quick-cash button { height: 34px; border: 1px solid var(--line); border-radius: 6px; background: white; font-size: 10px; }.change-row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding: 12px; border-radius: 7px; color: var(--green-dark); background: var(--green-soft); }.change-row strong { font-size: 20px; }.confirm-payment { width: calc(100% - 34px); height: 50px; margin: 0 17px 17px; border: 1px solid var(--coral); border-radius: 7px; color: white; background: var(--coral); font-weight: 800; }
 .product-modal { width: min(650px,100%); }.form-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; padding: 17px; }.form-grid label { display: block; color: var(--muted); font-size: 10px; font-weight: 700; }.form-grid label.wide { grid-column: 1 / -1; }.form-grid input, .form-grid select { width: 100%; height: 42px; margin-top: 5px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: white; }.modal-actions { display: flex; justify-content: end; gap: 8px; padding: 14px 17px; border-top: 1px solid var(--line); }
+.input-with-action { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; margin-top: 5px; }
+.form-grid .input-with-action input { margin-top: 0; }
+.scan-field-button { min-width: 88px; height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; border: 1px solid #b9cdef; border-radius: 6px; color: #0c5de5; background: #eef5ff; font-size: 11px; font-weight: 800; }
+.scanner-backdrop { z-index: 130; }
+.scanner-modal { width: min(500px, 100%); overflow: hidden; }
+.scanner-head { min-height: 72px; }
+.scanner-copy { display: flex; align-items: flex-start; gap: 10px; padding: 14px 17px 0; color: #0c5de5; }
+.scanner-copy strong, .scanner-copy span { display: block; }
+.scanner-copy strong { color: #17315f; font-size: 12px; }
+.scanner-copy span { margin-top: 3px; color: #6d7f9c; font-size: 10px; line-height: 1.5; }
+.scanner-stage { position: relative; min-height: 280px; margin: 14px 17px; overflow: hidden; border: 1px solid #bfd0e9; border-radius: 8px; background: #081321; }
+.barcode-reader { width: 100%; min-height: 280px; }
+.barcode-reader video { width: 100%!important; min-height: 280px; max-height: 390px; object-fit: cover; }
+.barcode-reader img, .barcode-reader > div:first-child > img { display: none!important; }
+.barcode-reader #qr-shaded-region { border-width: 44px 56px!important; }
+.scan-guide { position: absolute; inset: 18% 9%; z-index: 3; pointer-events: none; }
+.scan-guide span { position: absolute; width: 34px; height: 34px; border-color: #ffc900; border-style: solid; filter: drop-shadow(0 0 5px rgba(255,201,0,.65)); }
+.scan-guide span:nth-child(1) { top: 0; left: 0; border-width: 3px 0 0 3px; border-radius: 5px 0 0; }
+.scan-guide span:nth-child(2) { top: 0; right: 0; border-width: 3px 3px 0 0; border-radius: 0 5px 0 0; }
+.scan-guide span:nth-child(3) { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 5px; }
+.scan-guide span:nth-child(4) { bottom: 0; left: 0; border-width: 0 0 3px 3px; border-radius: 0 0 0 5px; }
+.scan-guide i { position: absolute; top: 50%; right: 3px; left: 3px; height: 2px; background: linear-gradient(90deg, transparent, #ffd84f 12%, #fff7c0 50%, #ffd84f 88%, transparent); box-shadow: 0 0 10px #ffc900; animation: barcode-scan-line 2s ease-in-out infinite; }
+.scanner-error { display: flex; align-items: center; gap: 8px; margin: -3px 17px 12px; padding: 10px 12px; border: 1px solid #f2b9b9; border-radius: 7px; color: #a93232; background: #fff2f2; font-size: 10px; }
+.manual-barcode { padding: 0 17px 14px; }
+.manual-barcode label > span { color: #596d8e; font-size: 10px; font-weight: 800; }
+.manual-barcode label > div { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 7px; margin-top: 5px; }
+.manual-barcode input { min-width: 0; height: 42px; padding: 0 11px; border: 1px solid #cfdaeb; border-radius: 6px; color: #18315d; background: white; }
+.manual-barcode .primary-button { min-width: 98px; }
+.scanner-tip { padding: 11px 17px 14px; border-top: 1px solid #e2e8f1; color: #7a8aa5; background: #f8faff; font-size: 9px; }
+@keyframes barcode-scan-line { 0%, 100% { transform: translateY(-58px); opacity: .55; } 50% { transform: translateY(58px); opacity: 1; } }
 .receipt-modal { width: min(440px,100%); }.receipt-paper { width: min(330px, calc(100% - 34px)); margin: 17px auto; padding: 20px; border: 1px dashed #aeb4af; background: white; }.receipt-brand { display: flex; flex-direction: column; align-items: center; gap: 3px; padding-bottom: 13px; border-bottom: 1px dashed #b8bdb9; }.receipt-brand span { color: var(--muted); font-size: 10px; }.receipt-meta { display: grid; gap: 3px; padding: 12px 0; color: var(--muted); font-size: 9px; }.receipt-line { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px dotted #d4d7d4; }.receipt-line strong, .receipt-line span { display: block; }.receipt-line strong, .receipt-line b { font-size: 10px; }.receipt-line span { color: var(--muted); font-size: 9px; }.receipt-total { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 12px; border-top: 2px solid var(--ink); }.receipt-total strong { font-size: 20px; }.receipt-payment { display: flex; justify-content: space-between; margin-top: 12px; color: var(--muted); font-size: 9px; }
 .toast { position: fixed; left: 50%; bottom: 24px; z-index: 200; transform: translateX(-50%); padding: 10px 16px; border-radius: 7px; color: white; background: #233b32; box-shadow: 0 10px 30px rgba(0,0,0,.18); font-size: 12px; }
 
@@ -469,4 +499,14 @@ a { color: inherit; text-decoration: none; }
   .fast-counter .cart-panel { display: none; }
   .fast-counter .mobile-cart-button { border-radius: 8px; background: var(--pos-blue); box-shadow: 0 10px 28px rgba(12,93,229,.25); }
   .fast-counter .mobile-cart-overlay .cart-panel { display: flex; }
+  .scanner-backdrop { padding: 0; align-items: end; }
+  .scanner-modal { width: 100%; max-height: 94vh; border-radius: 12px 12px 0 0; }
+  .scanner-stage, .barcode-reader, .barcode-reader video { min-height: 310px; }
+  .scanner-stage { margin: 12px; }
+  .scanner-copy { padding: 12px 13px 0; }
+  .manual-barcode { padding: 0 13px 13px; }
+  .scanner-tip { padding: 10px 13px 15px; }
+  .input-with-action { grid-template-columns: minmax(0,1fr) 48px; }
+  .scan-field-button { min-width: 48px; padding: 0; }
+  .scan-field-button span { display: none; }
 }

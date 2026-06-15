@@ -6,6 +6,7 @@ import {
   Bell,
   Barcode,
   Boxes,
+  Camera,
   ChevronDown,
   CircleAlert,
   ClipboardList,
@@ -101,6 +102,7 @@ export default function PosApp() {
   const [productModal, setProductModal] = useState(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(null);
+  const [saleScannerOpen, setSaleScannerOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [dataMode, setDataMode] = useState("Demo mode");
@@ -187,11 +189,23 @@ export default function PosApp() {
     setCart((current) => current.map((item) => item.id === id ? { ...item, qty: Math.max(0, Math.min(item.stock, item.qty + change)) } : item).filter((item) => item.qty > 0));
   }
 
+  function processSaleBarcode(rawBarcode) {
+    const barcode = rawBarcode.trim();
+    if (!barcode) return;
+    const product = products.find((item) => item.barcode === barcode);
+    if (product) {
+      addToCart(product);
+      setQuery("");
+      return;
+    }
+    setQuery("");
+    setProductModal({ barcode });
+    setToast("ยังไม่มีสินค้านี้ กรอกข้อมูลเพิ่มได้เลย");
+  }
+
   function scanBarcode(event) {
     if (event.key !== "Enter") return;
-    const product = products.find((item) => item.barcode === query.trim());
-    if (product) { addToCart(product); setQuery(""); }
-    else setToast("ไม่พบบาร์โค้ดนี้ ลองเพิ่มสินค้าใหม่");
+    processSaleBarcode(query);
   }
 
   function completeSale(method, received = total) {
@@ -232,7 +246,7 @@ export default function PosApp() {
         <header className={`topbar ${active === "sale" ? "sale-topbar" : ""}`}>
           <button className="icon-button mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="เปิดเมนู"><Menu size={21} /></button>
           {active === "sale" ? <>
-            <label className="top-search"><Search size={22} /><input ref={barcodeRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={scanBarcode} placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด" autoFocus /><button type="button" aria-label="สแกนบาร์โค้ด" onClick={() => barcodeRef.current?.focus()}><Barcode size={22} /></button></label>
+            <label className="top-search"><Search size={22} /><input ref={barcodeRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={scanBarcode} placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด" autoFocus /><button type="button" aria-label="เปิดกล้องสแกนบาร์โค้ด" title="เปิดกล้องสแกนบาร์โค้ด" onClick={() => setSaleScannerOpen(true)}><Barcode size={22} /></button></label>
             <button className="top-action promotion" type="button" onClick={() => setToast("แสดงสินค้าที่ร่วมโปรโมชั่น")}><Tag size={19} /><span>สินค้าโปรโมชั่น</span></button>
             <button className="top-action customer" type="button" onClick={() => setActive("users")}><UserRound size={19} /><span>ลูกค้าทั่วไป</span></button>
             <button className="icon-button notification-button" type="button" onClick={() => setToast(`มีสินค้าใกล้หมด ${lowStock.length} รายการ`)} aria-label="การแจ้งเตือน"><Bell size={20} />{lowStock.length > 0 && <b>{lowStock.length}</b>}</button>
@@ -268,6 +282,7 @@ export default function PosApp() {
       {paymentOpen && <PaymentModal total={total} billNumber={billNumber} onClose={() => setPaymentOpen(false)} onComplete={completeSale} />}
       {productModal && <ProductModal product={productModal} categories={categories.filter((c) => c !== "ทั้งหมด")} onClose={() => setProductModal(null)} onSave={saveProduct} />}
       {receiptOpen && <ReceiptModal receipt={receiptOpen} onClose={() => setReceiptOpen(null)} />}
+      {saleScannerOpen && <BarcodeScannerModal title="สแกนสินค้าที่ขาย" detail="เล็งบาร์โค้ดให้อยู่กลางกรอบ ระบบจะเพิ่มสินค้าเข้าตะกร้าอัตโนมัติ" onClose={() => setSaleScannerOpen(false)} onDetected={(barcode) => { setSaleScannerOpen(false); processSaleBarcode(barcode); }} />}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );
@@ -296,8 +311,94 @@ function PaymentModal({ total, billNumber, onClose, onComplete }) {
 
 function ProductModal({ product, categories, onClose, onSave }) {
   const [form, setForm] = useState({ id: product.id || "", barcode: product.barcode || "", name: product.name || "", category: product.category || categories[0] || "ทั่วไป", price: product.price || "", cost: product.cost || "", stock: product.stock ?? 0, minStock: product.minStock ?? 5, unit: product.unit || "ชิ้น", image: product.image || "", color: product.color || "#dcfce7" });
+  const [scannerOpen, setScannerOpen] = useState(false);
   const change = (key) => (e) => setForm({ ...form, [key]: e.target.value });
-  return <div className="modal-backdrop"><form className="modal product-modal" onSubmit={(e) => { e.preventDefault(); onSave(form); }}><div className="modal-head"><div><span>จัดการสินค้า</span><h2>{product.id ? "แก้ไขสินค้า" : "เพิ่มสินค้าใหม่"}</h2></div><button type="button" className="icon-button" onClick={onClose}><X size={20} /></button></div><div className="form-grid"><label className="wide">ชื่อสินค้า<input required value={form.name} onChange={change("name")} /></label><label>บาร์โค้ด<input required value={form.barcode} onChange={change("barcode")} /></label><label>หมวดหมู่<select value={form.category} onChange={change("category")}>{categories.map((c) => <option key={c}>{c}</option>)}</select></label><label>ราคาขาย<input required type="number" min="0" step="0.01" value={form.price} onChange={change("price")} /></label><label>ต้นทุน<input required type="number" min="0" step="0.01" value={form.cost} onChange={change("cost")} /></label><label>สต๊อก<input required type="number" min="0" value={form.stock} onChange={change("stock")} /></label><label>เตือนเมื่อเหลือ<input required type="number" min="0" value={form.minStock} onChange={change("minStock")} /></label><label>หน่วย<input value={form.unit} onChange={change("unit")} /></label><label className="wide">ลิงก์รูปสินค้า<input value={form.image} onChange={change("image")} placeholder="https://..." /></label></div><div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>ยกเลิก</button><button className="primary-button">บันทึกสินค้า</button></div></form></div>;
+  return <><div className="modal-backdrop"><form className="modal product-modal" onSubmit={(e) => { e.preventDefault(); onSave(form); }}><div className="modal-head"><div><span>จัดการสินค้า</span><h2>{product.id ? "แก้ไขสินค้า" : "เพิ่มสินค้าใหม่"}</h2></div><button type="button" className="icon-button" onClick={onClose}><X size={20} /></button></div><div className="form-grid"><label className="wide">ชื่อสินค้า<input required value={form.name} onChange={change("name")} /></label><label>บาร์โค้ด<div className="input-with-action"><input required inputMode="numeric" value={form.barcode} onChange={change("barcode")} /><button type="button" className="scan-field-button" onClick={() => setScannerOpen(true)}><Barcode size={17} /><span>สแกน</span></button></div></label><label>หมวดหมู่<select value={form.category} onChange={change("category")}>{categories.map((c) => <option key={c}>{c}</option>)}</select></label><label>ราคาขาย<input required type="number" min="0" step="0.01" value={form.price} onChange={change("price")} /></label><label>ต้นทุน<input required type="number" min="0" step="0.01" value={form.cost} onChange={change("cost")} /></label><label>สต๊อก<input required type="number" min="0" value={form.stock} onChange={change("stock")} /></label><label>เตือนเมื่อเหลือ<input required type="number" min="0" value={form.minStock} onChange={change("minStock")} /></label><label>หน่วย<input value={form.unit} onChange={change("unit")} /></label><label className="wide">ลิงก์รูปสินค้า<input value={form.image} onChange={change("image")} placeholder="https://..." /></label></div><div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>ยกเลิก</button><button className="primary-button">บันทึกสินค้า</button></div></form></div>{scannerOpen && <BarcodeScannerModal title="สแกนบาร์โค้ดสินค้าใหม่" detail="เมื่อสแกนสำเร็จ เลขบาร์โค้ดจะถูกกรอกในฟอร์มให้ทันที" onClose={() => setScannerOpen(false)} onDetected={(barcode) => { setForm((current) => ({ ...current, barcode })); setScannerOpen(false); }} />}</>;
+}
+
+function BarcodeScannerModal({ title, detail, onClose, onDetected }) {
+  const readerId = useRef(`barcode-reader-${Math.random().toString(36).slice(2)}`);
+  const scannerRef = useRef(null);
+  const handledRef = useRef(false);
+  const [status, setStatus] = useState("กำลังเปิดกล้อง...");
+  const [error, setError] = useState("");
+  const [manualBarcode, setManualBarcode] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    function loadScannerLibrary() {
+      if (window.Html5Qrcode) return Promise.resolve();
+      const existing = document.querySelector('script[data-pos-barcode-scanner="true"]');
+      if (existing) {
+        return new Promise((resolve, reject) => {
+          existing.addEventListener("load", resolve, { once: true });
+          existing.addEventListener("error", reject, { once: true });
+        });
+      }
+      return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = `${PUBLIC_BASE}/vendor/html5-qrcode.min.js`;
+        script.async = true;
+        script.dataset.posBarcodeScanner = "true";
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+
+    async function startScanner() {
+      try {
+        await loadScannerLibrary();
+        if (cancelled || !window.Html5Qrcode) return;
+        const scanner = new window.Html5Qrcode(readerId.current, { verbose: false });
+        scannerRef.current = scanner;
+        await scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: (width, height) => ({ width: Math.floor(width * 0.82), height: Math.min(170, Math.floor(height * 0.36)) }),
+            aspectRatio: 1.777778,
+            disableFlip: false
+          },
+          (decodedText) => {
+            if (handledRef.current) return;
+            handledRef.current = true;
+            navigator.vibrate?.(80);
+            setStatus(`พบรหัส ${decodedText}`);
+            onDetected(decodedText);
+          },
+          () => {}
+        );
+        if (!cancelled) setStatus("พร้อมสแกน · เล็งบาร์โค้ดให้อยู่ในกรอบ");
+      } catch (scannerError) {
+        if (cancelled) return;
+        const name = scannerError?.name || "";
+        if (name === "NotAllowedError") setError("ยังไม่ได้อนุญาตใช้กล้อง กรุณากดอนุญาตกล้องแล้วลองใหม่");
+        else if (name === "NotFoundError") setError("ไม่พบกล้องบนอุปกรณ์นี้");
+        else setError("เปิดกล้องไม่สำเร็จ กรุณาใช้ Chrome/Safari เวอร์ชันล่าสุด หรือกรอกรหัสด้านล่าง");
+        setStatus("ใช้การกรอกรหัสแทนได้");
+      }
+    }
+
+    startScanner();
+    return () => {
+      cancelled = true;
+      const scanner = scannerRef.current;
+      scannerRef.current = null;
+      if (scanner?.isScanning) scanner.stop().catch(() => {});
+    };
+  }, [onDetected]);
+
+  function submitManual(event) {
+    event.preventDefault();
+    const barcode = manualBarcode.trim();
+    if (!barcode) return;
+    handledRef.current = true;
+    onDetected(barcode);
+  }
+
+  return <div className="modal-backdrop scanner-backdrop" role="dialog" aria-modal="true" aria-label={title}><div className="modal scanner-modal"><div className="modal-head scanner-head"><div><span>กล้องมือถือ</span><h2>{title}</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="ปิดกล้อง"><X size={20} /></button></div><div className="scanner-copy"><Camera size={20} /><div><strong>{status}</strong><span>{detail}</span></div></div><div className="scanner-stage"><div id={readerId.current} className="barcode-reader" /><div className="scan-guide" aria-hidden="true"><span /><span /><span /><span /><i /></div></div>{error && <div className="scanner-error"><CircleAlert size={18} /><span>{error}</span></div>}<form className="manual-barcode" onSubmit={submitManual}><label><span>กรอกรหัสเอง</span><div><input inputMode="numeric" autoComplete="off" value={manualBarcode} onChange={(event) => setManualBarcode(event.target.value)} placeholder="เช่น 8850127000011" /><button className="primary-button" type="submit">ใช้รหัสนี้</button></div></label></form><div className="scanner-tip">กล้องใช้งานได้บนเว็บไซต์ HTTPS และต้องอนุญาตสิทธิ์กล้องเมื่อมือถือถาม</div></div></div>;
 }
 
 function ProductsView({ products, onEdit, onDelete, onAdd }) {
