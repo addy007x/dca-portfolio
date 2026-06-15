@@ -90,6 +90,18 @@ CREATE TABLE IF NOT EXISTS user_sessions (
 CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_exp ON user_sessions(expires_at);
 
+CREATE TABLE IF NOT EXISTS user_credentials (
+  user_id       TEXT PRIMARY KEY,
+  username      TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  email         TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  password_hash TEXT NOT NULL,
+  password_salt TEXT NOT NULL,
+  created_at    INTEGER NOT NULL,
+  updated_at    INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_user_credentials_username ON user_credentials(username);
+CREATE INDEX IF NOT EXISTS idx_user_credentials_email ON user_credentials(email);
+
 CREATE TABLE IF NOT EXISTS portfolio_snapshots (
   user_id    TEXT PRIMARY KEY,
   data       TEXT NOT NULL,

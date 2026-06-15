@@ -51,23 +51,33 @@ async function resolveAuthConfig() {
 function loadAuthSession() {
   if (_authSession) return _authSession;
   try {
-    const saved = JSON.parse(localStorage.getItem(AUTH_SESSION_KEY) || "null");
+    const saved = JSON.parse(localStorage.getItem(AUTH_SESSION_KEY) || sessionStorage.getItem(AUTH_SESSION_KEY) || "null");
     if (saved?.token && saved?.user && (!saved.expiresAt || saved.expiresAt > Date.now())) {
       _authSession = saved;
       return saved;
     }
   } catch (_) {}
   localStorage.removeItem(AUTH_SESSION_KEY);
+  sessionStorage.removeItem(AUTH_SESSION_KEY);
   return null;
 }
 
 function saveAuthSession(session, options = {}) {
   _authSession = session;
   if (session) {
-    localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+    if (options.persist === false) {
+      sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+      localStorage.removeItem(AUTH_SESSION_KEY);
+    } else {
+      localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+      sessionStorage.removeItem(AUTH_SESSION_KEY);
+    }
     saveLastAuthProfile(session.user);
   }
-  else localStorage.removeItem(AUTH_SESSION_KEY);
+  else {
+    localStorage.removeItem(AUTH_SESSION_KEY);
+    sessionStorage.removeItem(AUTH_SESSION_KEY);
+  }
   if (options.silent) return;
   window.dispatchEvent(new Event("siamfolio.auth.changed"));
 }
@@ -179,6 +189,24 @@ async function signInWithGoogleCredential(credential, options = {}) {
   const data = await authFetch("/api/auth/google", {
     method: "POST",
     body: JSON.stringify({ credential }),
+  });
+  saveAuthSession(data, options);
+  return data;
+}
+
+async function signInWithPassword(identifier, password, options = {}) {
+  const data = await authFetch("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ identifier, password }),
+  });
+  saveAuthSession(data, options);
+  return data;
+}
+
+async function registerWithPassword(username, email, password, options = {}) {
+  const data = await authFetch("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ username, email, password }),
   });
   saveAuthSession(data, options);
   return data;
@@ -358,6 +386,213 @@ function AuthForm() {
   );
 }
 
+function MangaAuthFrame({ mode = "login", children }) {
+  return (
+    <div className={`auth-shell-manga auth-mode-${mode}`}>
+      <main className="auth-manga-stage">
+        <div className="auth-manga-card">{children}</div>
+      </main>
+    </div>
+  );
+}
+
+function MangaAuthSetupPanel() {
+  return (
+    <MangaAuthFrame>
+      <section className="auth-manga-status">
+        <div className="auth-manga-kicker">SYSTEM MESSAGE</div>
+        <h1>ประตูยังไม่พร้อม</h1>
+        <p>ระบบล็อกอินยังขาด Worker URL ใน <code>auth-config.js</code></p>
+        <div className="auth-manga-alert">ตั้งค่า API URL แล้วรีเฟรชหน้านี้อีกครั้ง</div>
+      </section>
+    </MangaAuthFrame>
+  );
+}
+
+function MangaAuthForm() {
+  const buttonRef = React.useRef(null);
+  const [cfg, setCfg] = React.useState(() => getAuthConfig());
+  const [mode, setMode] = React.useState(() => new URLSearchParams(location.search).get("auth") === "register" ? "register" : "login");
+  const [busy, setBusy] = React.useState(false);
+  const [message, setMessage] = React.useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [form, setForm] = React.useState({ username: "", email: "", identifier: "", password: "", confirm: "", remember: true, accepted: false });
+
+  React.useEffect(() => {
+    let alive = true;
+    resolveAuthConfig()
+      .then(nextCfg => alive && setCfg(nextCfg))
+      .catch(error => alive && setMessage(error.message));
+    return () => { alive = false; };
+  }, []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    let timer = null;
+
+    const renderGoogleButton = () => {
+      if (cancelled || !buttonRef.current || !cfg.googleClientId) return;
+      if (!window.google?.accounts?.id) {
+        timer = setTimeout(renderGoogleButton, 120);
+        return;
+      }
+      buttonRef.current.innerHTML = "";
+      window.google.accounts.id.initialize({
+        client_id: cfg.googleClientId,
+        callback: async (response) => {
+          setBusy(true);
+          setMessage("");
+          try {
+            await signInWithGoogleCredential(response.credential, { silent: true });
+            setMessage("เข้าสู่ระบบสำเร็จ กำลังเปิดหน้าหลัก...");
+            reloadAfterAuthDelay(getPostLoginUrl());
+          } catch (error) {
+            setMessage(error.message);
+            setBusy(false);
+          }
+        },
+      });
+      window.google.accounts.id.renderButton(buttonRef.current, {
+        theme: "outline",
+        size: "large",
+        type: "standard",
+        text: mode === "register" ? "signup_with" : "signin_with",
+        shape: "rectangular",
+        logo_alignment: "left",
+        width: Math.max(240, Math.min(430, Math.floor(buttonRef.current.getBoundingClientRect().width || 360))),
+      });
+    };
+
+    renderGoogleButton();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [cfg.googleClientId, mode]);
+
+  const updateField = (event) => {
+    const { name, type, checked, value } = event.target;
+    setForm(current => ({ ...current, [name]: type === "checkbox" ? checked : value }));
+  };
+
+  const switchMode = (nextMode) => {
+    setMode(nextMode);
+    setMessage("");
+    setShowPassword(false);
+    const url = new URL(location.href);
+    if (nextMode === "register") url.searchParams.set("auth", "register");
+    else url.searchParams.delete("auth");
+    history.replaceState(null, "", url);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setMessage("");
+
+    if (mode === "register" && form.password !== form.confirm) {
+      setMessage("รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน");
+      return;
+    }
+    if (mode === "register" && !form.accepted) {
+      setMessage("กรุณายอมรับข้อตกลงการใช้งานและนโยบายความเป็นส่วนตัว");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      if (mode === "register") {
+        await registerWithPassword(form.username, form.email, form.password, { silent: true });
+        setMessage("สมัครสมาชิกสำเร็จ กำลังเปิดหน้าหลัก...");
+      } else {
+        await signInWithPassword(form.identifier, form.password, { silent: true, persist: form.remember });
+        setMessage("เข้าสู่ระบบสำเร็จ กำลังเปิดหน้าหลัก...");
+      }
+      reloadAfterAuthDelay(getPostLoginUrl());
+    } catch (error) {
+      try {
+        const parsed = JSON.parse(error.message);
+        setMessage(parsed.error || error.message);
+      } catch (_) {
+        setMessage(error.message);
+      }
+      setBusy(false);
+    }
+  };
+
+  return (
+    <MangaAuthFrame mode={mode}>
+      <section className="auth-manga-content">
+        <h1>{mode === "register" ? "สมัครสมาชิก" : "เข้าสู่ระบบ"}</h1>
+        <form className="auth-manga-form" onSubmit={handleSubmit}>
+          {mode === "register" && (
+            <label>
+              <span>ชื่อผู้ใช้</span>
+              <input name="username" type="text" value={form.username} onChange={updateField} placeholder="ตั้งชื่อผู้ใช้" autoComplete="username" minLength="3" maxLength="32" required />
+            </label>
+          )}
+          <label>
+            <span>{mode === "register" ? "อีเมล" : "ชื่อผู้ใช้หรืออีเมล"}</span>
+            <input name={mode === "register" ? "email" : "identifier"} type={mode === "register" ? "email" : "text"} value={mode === "register" ? form.email : form.identifier} onChange={updateField} placeholder={mode === "register" ? "กรอกอีเมล" : "กรอกชื่อผู้ใช้หรืออีเมล"} autoComplete={mode === "register" ? "email" : "username"} required />
+          </label>
+          <label>
+            <span>รหัสผ่าน</span>
+            <div className="auth-manga-password">
+              <input name="password" type={showPassword ? "text" : "password"} value={form.password} onChange={updateField} placeholder="กรอกรหัสผ่าน" autoComplete={mode === "register" ? "new-password" : "current-password"} minLength="8" required />
+              <button type="button" onClick={() => setShowPassword(value => !value)}>{showPassword ? "ซ่อน" : "แสดง"}</button>
+            </div>
+          </label>
+          {mode === "register" && (
+            <label>
+              <span>ยืนยันรหัสผ่าน</span>
+              <input name="confirm" type={showPassword ? "text" : "password"} value={form.confirm} onChange={updateField} placeholder="ยืนยันรหัสผ่าน" autoComplete="new-password" minLength="8" required />
+            </label>
+          )}
+
+          <div className="auth-manga-options">
+            <label className="auth-manga-check">
+              <input name={mode === "register" ? "accepted" : "remember"} type="checkbox" checked={mode === "register" ? form.accepted : form.remember} onChange={updateField} />
+              <span>{mode === "register" ? "ฉันยอมรับข้อตกลงการใช้งานและนโยบายความเป็นส่วนตัว" : "จดจำฉันไว้"}</span>
+            </label>
+            {mode === "login" && <button type="button" className="auth-manga-link" onClick={() => setMessage("โปรดติดต่อผู้ดูแลระบบเพื่อรีเซ็ตรหัสผ่าน")}>ลืมรหัสผ่าน?</button>}
+          </div>
+
+          <button className="auth-manga-submit" type="submit" disabled={busy}>
+            {busy ? "กำลังดำเนินการ..." : mode === "register" ? "สมัครสมาชิก" : "เข้าสู่ระบบ"}
+          </button>
+        </form>
+
+        <div className="auth-manga-divider"><span>หรือ</span></div>
+        <div className={busy ? "auth-manga-google is-busy" : "auth-manga-google"}>
+          <div ref={buttonRef} className="auth-google-wrap">
+            {!cfg.googleClientId && !message ? "กำลังเตรียมปุ่ม Google..." : null}
+          </div>
+        </div>
+
+        {message && <div className="auth-manga-message">{message}</div>}
+        <p className="auth-manga-switch">
+          {mode === "register" ? "มีบัญชีอยู่แล้ว?" : "ยังไม่มีบัญชี?"}{" "}
+          <button type="button" onClick={() => switchMode(mode === "register" ? "login" : "register")}>
+            {mode === "register" ? "เข้าสู่ระบบ" : "สมัครสมาชิก"}
+          </button>
+        </p>
+      </section>
+    </MangaAuthFrame>
+  );
+}
+
+function MangaAuthStatus({ title, message, action }) {
+  return (
+    <MangaAuthFrame>
+      <section className="auth-manga-content auth-manga-status">
+        <div className="auth-manga-chapter">SYSTEM MESSAGE</div>
+        <h1>{title}</h1>
+        <p>{message}</p>
+        {action}
+      </section>
+    </MangaAuthFrame>
+  );
+}
+
 function AuthGate({ children }) {
   const auth = useAuthSession();
   const [syncState, setSyncState] = React.useState("idle");
@@ -379,19 +614,11 @@ function AuthGate({ children }) {
     return () => { alive = false; };
   }, [auth.session?.user?.id]);
 
-  if (!isAuthConfigured()) return <AuthSetupPanel/>;
-  if (!auth.session) return <AuthForm/>;
-  if (syncState === "loading") return <div className="auth-shell"><div className="auth-card"><p>กำลังโหลดข้อมูลพอร์ต...</p></div></div>;
+  if (!isAuthConfigured()) return <MangaAuthSetupPanel/>;
+  if (!auth.session) return <MangaAuthForm/>;
+  if (syncState === "loading") return <MangaAuthStatus title="กำลังเปิดพอร์ต" message="กำลังโหลดข้อมูลและเตรียมแดชบอร์ดของคุณ..."/>;
   if (syncState === "error") {
-    return (
-      <div className="auth-shell">
-        <div className="auth-card">
-          <h1>โหลดข้อมูลไม่สำเร็จ</h1>
-          <p>{syncError}</p>
-          <button className="auth-button" onClick={() => location.reload()}>ลองใหม่</button>
-        </div>
-      </div>
-    );
+    return <MangaAuthStatus title="โหลดข้อมูลไม่สำเร็จ" message={syncError} action={<button className="auth-manga-retry" onClick={() => location.reload()}>ลองใหม่</button>}/>;
   }
   return children;
 }

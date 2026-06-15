@@ -6,9 +6,11 @@
 //   GET  /api/prices/fx?from=USD&to=THB
 //   GET  /api/health
 //
-// Google session endpoints:
+// User session endpoints:
 //   GET  /api/auth/config
 //   POST /api/auth/google
+//   POST /api/auth/register
+//   POST /api/auth/login
 //   GET  /api/auth/me
 //   POST /api/auth/logout
 //
@@ -82,6 +84,49 @@ function randomCode(length = 6) {
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
   return [...bytes].map(b => alphabet[b % alphabet.length]).join("");
+}
+
+function bytesToBase64(bytes) {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function base64ToBytes(value) {
+  const binary = atob(value);
+  return Uint8Array.from(binary, char => char.charCodeAt(0));
+}
+
+async function hashPassword(password, saltBase64 = "") {
+  const salt = saltBase64 ? base64ToBytes(saltBase64) : crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt, iterations: 100000 },
+    key,
+    256
+  );
+  return { salt: bytesToBase64(salt), hash: bytesToHex(bits) };
+}
+
+function safeEqual(left, right) {
+  if (!left || !right || left.length !== right.length) return false;
+  let result = 0;
+  for (let i = 0; i < left.length; i += 1) result |= left.charCodeAt(i) ^ right.charCodeAt(i);
+  return result === 0;
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function validateEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 function bangkokNow(ms = Date.now()) {
@@ -188,8 +233,74 @@ async function getSessionUser(req, env) {
 async function handleGoogleAuth(req, env) {
   if (!env.DB) return error("D1 database not bound", 500);
   const body = await req.json().catch(() => ({}));
-  const user = await verifyGoogleCredential(body.credential, env);
+  const googleUser = await verifyGoogleCredential(body.credential, env);
+  const localAccount = await env.DB.prepare(
+    "SELECT user_id FROM user_credentials WHERE email = ? COLLATE NOCASE"
+  ).bind(googleUser.email).first().catch(() => null);
+  const user = localAccount ? { ...googleUser, id: localAccount.user_id } : googleUser;
   return json(await createSession(env, user));
+}
+
+async function handleRegister(req, env) {
+  if (!env.DB) return error("D1 database not bound", 500);
+  const body = await req.json().catch(() => ({}));
+  const username = String(body.username || "").trim();
+  const email = normalizeEmail(body.email);
+  const password = String(body.password || "");
+
+  if (!/^[A-Za-z0-9._-]{3,32}$/.test(username)) {
+    return error("ชื่อผู้ใช้ต้องมี 3-32 ตัว และใช้ตัวอักษร ตัวเลข จุด ขีดกลาง หรือขีดล่าง", 400);
+  }
+  if (!validateEmail(email)) return error("รูปแบบอีเมลไม่ถูกต้อง", 400);
+  if (password.length < 8) return error("รหัสผ่านต้องมีอย่างน้อย 8 ตัว", 400);
+
+  const exists = await env.DB.prepare(
+    "SELECT user_id FROM user_credentials WHERE username = ? COLLATE NOCASE OR email = ? COLLATE NOCASE"
+  ).bind(username, email).first();
+  if (exists) return error("ชื่อผู้ใช้หรืออีเมลนี้ถูกใช้งานแล้ว", 409);
+
+  const user = { id: `local:${crypto.randomUUID()}`, email, name: username, picture: "" };
+  const passwordData = await hashPassword(password);
+  const session = await createSession(env, user);
+  try {
+    await env.DB.prepare(
+      `INSERT INTO user_credentials(user_id,username,email,password_hash,password_salt,created_at,updated_at)
+       VALUES(?,?,?,?,?,?,?)`
+    ).bind(user.id, username, email, passwordData.hash, passwordData.salt, Date.now(), Date.now()).run();
+  } catch (registerError) {
+    await env.DB.prepare("DELETE FROM user_sessions WHERE user_id = ?").bind(user.id).run().catch(() => {});
+    await env.DB.prepare("DELETE FROM users WHERE id = ?").bind(user.id).run().catch(() => {});
+    throw registerError;
+  }
+  return json(session, 201);
+}
+
+async function handlePasswordLogin(req, env) {
+  if (!env.DB) return error("D1 database not bound", 500);
+  const body = await req.json().catch(() => ({}));
+  const identifier = String(body.identifier || "").trim();
+  const password = String(body.password || "");
+  if (!identifier || !password) return error("กรุณากรอกชื่อผู้ใช้หรืออีเมลและรหัสผ่าน", 400);
+
+  const credential = await env.DB.prepare(
+    `SELECT c.user_id,c.password_hash,c.password_salt,u.email,u.name,u.picture
+     FROM user_credentials c
+     JOIN users u ON u.id = c.user_id
+     WHERE c.username = ? COLLATE NOCASE OR c.email = ? COLLATE NOCASE`
+  ).bind(identifier, normalizeEmail(identifier)).first();
+  if (!credential) return error("ชื่อผู้ใช้ อีเมล หรือรหัสผ่านไม่ถูกต้อง", 401);
+
+  const passwordData = await hashPassword(password, credential.password_salt);
+  if (!safeEqual(passwordData.hash, credential.password_hash)) {
+    return error("ชื่อผู้ใช้ อีเมล หรือรหัสผ่านไม่ถูกต้อง", 401);
+  }
+
+  return json(await createSession(env, {
+    id: credential.user_id,
+    email: credential.email,
+    name: credential.name,
+    picture: credential.picture || "",
+  }));
 }
 
 async function handleMe(req, env) {
@@ -1861,6 +1972,8 @@ async function handleRequest(req, env, ctx) {
     return json({ googleClientId: env.GOOGLE_CLIENT_ID || "" });
   }
   if (path === "/api/auth/google" && req.method === "POST") return handleGoogleAuth(req, env);
+  if (path === "/api/auth/register" && req.method === "POST") return handleRegister(req, env);
+  if (path === "/api/auth/login" && req.method === "POST") return handlePasswordLogin(req, env);
   if (path === "/api/auth/me" && req.method === "GET") return handleMe(req, env);
   if (path === "/api/auth/logout" && req.method === "POST") return handleLogout(req, env);
   if (path === "/api/line/link-code" && req.method === "POST") return handleLineLinkCode(req, env);
