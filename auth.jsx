@@ -422,6 +422,7 @@ function MangaAuthSetupPanel() {
 
 function MangaAuthForm() {
   const buttonRef = React.useRef(null);
+  const googleReadyRef = React.useRef(false);
   const [cfg, setCfg] = React.useState(() => getAuthConfig());
   const [mode, setMode] = React.useState(() => new URLSearchParams(location.search).get("auth") === "register" ? "register" : "login");
   const [busy, setBusy] = React.useState(false);
@@ -450,6 +451,7 @@ function MangaAuthForm() {
       buttonRef.current.innerHTML = "";
       window.google.accounts.id.initialize({
         client_id: cfg.googleClientId,
+        use_fedcm_for_prompt: true,
         callback: async (response) => {
           setBusy(true);
           setMessage("");
@@ -472,6 +474,7 @@ function MangaAuthForm() {
         logo_alignment: "left",
         width: Math.max(240, Math.min(430, Math.floor(buttonRef.current.getBoundingClientRect().width || 360))),
       });
+      googleReadyRef.current = true;
     };
 
     renderGoogleButton();
@@ -480,6 +483,17 @@ function MangaAuthForm() {
       clearTimeout(timer);
     };
   }, [cfg.googleClientId, mode]);
+
+  const handleGoogleClick = () => {
+    if (busy) return;
+    if (!cfg.googleClientId) {
+      setMessage("Google ยังโหลดไม่เสร็จ ลองกดอีกครั้งในอีกสักครู่");
+      return;
+    }
+    if (window.google?.accounts?.id && googleReadyRef.current) {
+      window.google.accounts.id.prompt();
+    }
+  };
 
   const updateField = (event) => {
     const { name, type, checked, value } = event.target;
@@ -588,7 +602,18 @@ function MangaAuthForm() {
         </form>
 
         <div className="auth-manga-divider"><span>หรือ</span></div>
-        <div className={busy ? "auth-manga-google is-busy" : "auth-manga-google"}>
+        <div
+          className={busy ? "auth-manga-google is-busy" : "auth-manga-google"}
+          onClick={handleGoogleClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              handleGoogleClick();
+            }
+          }}
+        >
           <div className="auth-google-visual" aria-hidden="true">
             <img src="assets/google-g.png" alt="" />
             <span>{mode === "register" ? "สมัครด้วย Google" : "เข้าสู่ระบบด้วย Google"}</span>

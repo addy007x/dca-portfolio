@@ -2770,12 +2770,20 @@ button { font-family: inherit; cursor: pointer; }
   justify-content: center;
   min-height: 0;
   overflow: hidden;
-  opacity: 0;
+  opacity: .001;
+  pointer-events: auto;
 }
-.auth-manga-google .auth-google-native > div,
+.auth-manga-google .auth-google-native > div {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+}
 .auth-manga-google .auth-google-native iframe {
   width: 100% !important;
+  height: 100% !important;
   max-width: none !important;
+  min-height: 52px !important;
+  pointer-events: auto !important;
 }
 .auth-manga-message,
 .auth-manga-alert {
