@@ -1751,7 +1751,7 @@ body:before {
     radial-gradient(circle at 53% 18%, rgba(255, 52, 65, .12), transparent 24%),
     linear-gradient(90deg, rgba(0,0,0,.42), transparent 22%, transparent 70%, rgba(0,0,0,.30)),
     linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.26)),
-    url("assets/manga-dashboard-castle.png") center center / cover no-repeat;
+    url("assets/manga-dashboard-library.png") center center / cover no-repeat;
   filter: saturate(1.08) contrast(1.08);
 }
 .scene-board:after {
@@ -1910,7 +1910,7 @@ body:before {
 /* Compact manga command room refresh */
 @media (min-width: 1101px) {
   :root {
-    --display: "Barlow Condensed", "IBM Plex Sans Thai", sans-serif;
+    --display: "IBM Plex Sans Thai", "Barlow Condensed", sans-serif;
   }
   html,
   body {
@@ -2018,8 +2018,14 @@ body:before {
     overflow: hidden;
     gap: 8px;
   }
+  .left {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
   .mini-panel {
     padding: 9px 11px;
+  }
+  .wallet-panel {
+    padding: 7px 10px;
   }
   .section-head {
     margin-bottom: 8px;
@@ -2028,30 +2034,38 @@ body:before {
   }
   .wallet-value {
     gap: 8px;
-    margin-bottom: 7px;
+    margin-bottom: 4px;
   }
   .wallet-value strong {
-    font-size: clamp(30px, 2.9vw, 42px);
+    font-size: clamp(24px, 2.35vw, 34px);
   }
   .wallet-value span {
-    padding: 5px 10px;
-    font-size: 14px;
+    padding: 4px 8px;
+    font-size: 12px;
   }
   .wallet-delta {
     width: max-content;
-    margin-bottom: 9px;
-    padding: 4px 10px;
-    font-size: 15px;
+    margin-top: 3px;
+    margin-bottom: 6px;
+    padding: 3px 8px;
+    font-size: 12px;
   }
   .small-lines {
-    gap: 5px;
-    font-size: 14px;
+    gap: 3px;
+    margin-top: 5px;
+    font-size: 11px;
   }
   .holdings-panel {
     min-height: 0;
-    flex: 1;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
   }
-  .holdings-panel .agent-list,
+  .holdings-panel .agent-list {
+    gap: 4px;
+    max-height: none;
+    overflow: auto;
+    padding-right: 2px;
+  }
   .crypto-list {
     gap: 0;
     max-height: none;
@@ -2060,27 +2074,27 @@ body:before {
   .holding-row,
   .asset-row,
   .event-row {
-    min-height: 47px;
-    padding: 6px 8px;
+    min-height: 40px;
+    padding: 5px 7px;
   }
   .asset-icon {
     display: none !important;
   }
   .holding-symbol > b,
   .crypto-copy b {
-    font-size: 15px;
+    font-size: 13px;
   }
   .holding-meta,
   .crypto-copy span {
-    font-size: 11px;
+    font-size: 10px;
   }
   .holding-value b,
   .crypto-price b {
-    font-size: 14px;
+    font-size: 12px;
   }
   .holding-value i,
   .crypto-price i {
-    font-size: 12px;
+    font-size: 10px;
   }
   .goal-panel {
     height: 292px;
@@ -2120,7 +2134,7 @@ body:before {
       radial-gradient(circle at 50% 25%, rgba(255, 36, 48, .13), transparent 23%),
       linear-gradient(90deg, rgba(0,0,0,.18), transparent 13%, transparent 86%, rgba(0,0,0,.18)),
       linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.16)),
-      url("assets/manga-dashboard-command-room.png") center center / cover no-repeat;
+      url("assets/manga-dashboard-library.png") center center / cover no-repeat;
     filter: saturate(1.13) contrast(1.08);
   }
   .scene-board:after {
@@ -2207,21 +2221,8 @@ body:before {
     gap: 7px;
   }
   .music-play {
-    width: 44px;
+    width: 27px;
     height: 27px;
-    border-radius: 2px;
-    color: #ffe2a0;
-    font: 800 9px/1 var(--mono);
-    text-transform: uppercase;
-  }
-  .music-play:before,
-  .music-player.is-playing .music-play:before {
-    display: none !important;
-  }
-  .music-player.is-playing .music-play {
-    color: #fff;
-    border-color: rgba(255, 56, 65, .68);
-    background: linear-gradient(180deg, rgba(177, 10, 20, .88), rgba(62, 2, 8, .86));
   }
   .music-time {
     min-width: 34px;
@@ -2244,19 +2245,22 @@ body:before {
     height: 22px;
   }
   .command-row {
-    grid-template-columns: 1fr 52px;
+    grid-template-columns: 1fr 38px;
   }
   .command-row input {
     height: 36px;
   }
   .command-row button {
     height: 36px;
-    font-size: 10px;
-    text-transform: uppercase;
+    font-size: 0;
+  }
+  .command-row button svg {
+    width: 16px;
+    height: 16px;
   }
   .crypto-remove {
-    width: 38px;
-    font-size: 9px;
+    width: 24px;
+    font-size: 12px;
   }
   .news-ticker {
     height: 40px;
@@ -2317,7 +2321,7 @@ body:before {
         <span class="rail-item">EARN</span>
         <span class="rail-item">LINE</span>
       </div>
-      <section class="mini-panel panel">
+      <section class="mini-panel panel wallet-panel">
         <div class="section-head"><span>Portfolio + Earn</span><span id="clockText">--:--:--</span></div>
         <div class="wallet-value"><strong id="walletTotalValue">฿0</strong><span id="walletStatus">Live</span></div>
         <div class="wallet-delta" id="walletDailyPnl"><b>+฿0</b><span>วันนี้</span></div>
@@ -2386,7 +2390,7 @@ body:before {
             <div class="music-title"><b id="musicTitle"></b><button class="music-open" id="musicOpenDashboard" type="button">Open</button></div>
             <div class="music-subtitle" id="musicSubtitle">Paste YouTube or direct audio URL</div>
             <div class="music-controls">
-              <button class="music-play" id="musicPlayBtn" type="button" aria-label="Play or pause">PLAY</button>
+              <button class="music-play" id="musicPlayBtn" type="button" aria-label="Play or pause"></button>
               <span class="music-progress" id="musicProgress" aria-label="Music progress"><span id="musicProgressFill"></span></span>
               <span class="music-time" id="musicTime">0:00</span>
             </div>
@@ -2413,7 +2417,7 @@ body:before {
         <div class="window-body">
           <div class="command-row">
             <input id="commandInput" placeholder="พิมพ์ dca, ai, line...">
-            <button id="commandBtn" type="button" aria-label="Run command">RUN</button>
+            <button id="commandBtn" type="button" aria-label="Run command"><i data-lucide="send-horizontal"></i></button>
           </div>
         </div>
       </div>
@@ -2952,7 +2956,7 @@ body:before {
             <b>${fmtUSDPrice(price)}</b>
             <i class="${changeClass}">${changeText}</i>
           </span>
-          <button class="crypto-remove" type="button" data-remove-crypto="all" data-symbol="${escapeHtml(symbol)}" aria-label="Remove ${escapeHtml(symbol)}">ลบ</button>
+          <button class="crypto-remove" type="button" data-remove-crypto="all" data-symbol="${escapeHtml(symbol)}" aria-label="Remove ${escapeHtml(symbol)}">X</button>
         </div>
       `;
     }).join("");
@@ -3461,7 +3465,6 @@ body:before {
   }
   function setMusicStatus(text) {
     if (musicStatus) musicStatus.textContent = text;
-    if (musicPlayBtn) musicPlayBtn.textContent = musicPlayer?.classList.contains("is-playing") ? "PAUSE" : "PLAY";
   }
   function setMusicMode(mode) {
     musicMode = mode;
