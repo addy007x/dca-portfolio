@@ -1818,37 +1818,59 @@ body:before {
     linear-gradient(90deg, rgba(0,0,0,.22), transparent 17%, transparent 80%, rgba(0,0,0,.18)),
     linear-gradient(180deg, rgba(0,0,0,.12), transparent 42%, rgba(0,0,0,.28));
 }
-.scene-actions {
+.quick-action-rail {
   position: absolute;
-  z-index: 6;
+  z-index: 8;
   left: 50%;
-  top: 10px;
+  top: 8px;
   display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
-  max-width: calc(100% - 24px);
+  width: min(720px, calc(100% - 32px));
+  min-height: 46px;
+  padding: 6px 10px;
   transform: translateX(-50%);
+  border: 1px solid rgba(239, 184, 70, .22);
+  background:
+    linear-gradient(90deg, rgba(4, 2, 1, .86), rgba(40, 19, 4, .82), rgba(4, 2, 1, .86));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .42), inset 0 0 0 1px rgba(255, 221, 143, .05);
+  backdrop-filter: blur(5px);
 }
-.scene-action {
-  flex: 0 0 auto;
-  min-width: 78px;
-  height: 36px;
+.quick-action {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 0 13px;
+  padding: 0 10px;
   border: 1px solid rgba(239, 184, 70, .88);
-  background: rgba(55, 31, 8, .56);
+  background:
+    linear-gradient(180deg, rgba(84, 45, 9, .82), rgba(31, 15, 3, .9));
   color: #ffe7a4;
-  font: 800 12px/1 var(--mono);
-  text-shadow: none;
+  font: 900 11px/1 var(--mono);
+  letter-spacing: .02em;
   text-transform: uppercase;
+  text-decoration: none;
   white-space: nowrap;
-  box-shadow: inset 0 0 0 1px rgba(255, 231, 164, .08), 0 0 14px rgba(239, 184, 70, .12);
-  backdrop-filter: none;
+  text-shadow: 0 0 8px rgba(255, 211, 108, .34);
+  box-shadow: inset 0 0 0 1px rgba(255, 239, 184, .08), 0 0 12px rgba(239, 184, 70, .14);
 }
-.scene-action:hover { color: #fff5c9; border-color: #ffd36c; background: rgba(93, 50, 9, .78); }
-.scene-action svg { width: 16px; height: 16px; color: #ff4650; }
+.quick-action span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quick-action:hover {
+  color: #fff8da;
+  border-color: #ffd36c;
+  background: linear-gradient(180deg, rgba(119, 68, 16, .92), rgba(45, 21, 4, .96));
+}
+.quick-action:focus-visible {
+  outline: 2px solid rgba(255, 221, 143, .9);
+  outline-offset: 2px;
+}
 .floating {
   border-color: rgba(226, 40, 49, .46);
   background: rgba(4, 4, 5, .86);
@@ -1958,8 +1980,8 @@ body:before {
   .left, .right { grid-template-columns: 1fr; }
   .scene-board { min-height: 720px; }
   .scene-bg { background-position: 43% center; }
-  .scene-actions { left: 8px; right: 8px; transform: none; overflow-x: auto; justify-content: flex-start; }
-  .scene-action { flex: 0 0 auto; }
+  .quick-action-rail { left: 8px; right: 8px; width: auto; transform: none; overflow-x: auto; justify-content: flex-start; }
+  .quick-action { flex: 0 0 auto; min-width: 92px; }
   .status-card.one { top: 58px; left: 8px; right: 8px; width: auto; }
   .project-link { top: 190px; left: 8px; right: 8px; width: auto; }
   .line-link { left: 8px; right: 8px; width: auto; bottom: 116px; }
@@ -2205,27 +2227,24 @@ body:before {
       linear-gradient(180deg, rgba(0,0,0,.12), transparent 40%, rgba(0,0,0,.24)),
       linear-gradient(90deg, rgba(0,0,0,.18), transparent 18%, transparent 82%, rgba(0,0,0,.16));
   }
-  .scene-actions {
+  .quick-action-rail {
     top: 7px;
     gap: 6px;
-    max-width: calc(100% - 18px);
+    width: min(650px, calc(100% - 18px));
+    min-height: 42px;
+    padding: 5px 8px;
   }
-  .scene-action {
-    min-width: 76px;
+  .quick-action {
+    min-width: 72px;
     height: 32px;
-    gap: 0;
     padding: 0 10px;
     border-color: rgba(239, 184, 70, .88);
-    background: rgba(55, 31, 8, .56);
+    background: linear-gradient(180deg, rgba(84, 45, 9, .82), rgba(31, 15, 3, .9));
     color: #ffe7a4;
     font: 800 10px/1 var(--mono);
     text-shadow: none;
     text-transform: uppercase;
     box-shadow: inset 0 0 0 1px rgba(255, 231, 164, .08), 0 0 14px rgba(239, 184, 70, .12);
-  }
-  .scene-action i,
-  .scene-action svg {
-    display: none !important;
   }
   .floating {
     box-shadow: 0 14px 34px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.04);
@@ -2407,13 +2426,13 @@ body:before {
 
     <section class="scene-board reveal" style="animation-delay:.1s" aria-label="Pixel trading office scene">
       <div class="scene-bg"></div>
-      <div class="scene-actions" aria-label="Dashboard quick actions">
-        <button class="scene-action" type="button" data-panel-target="status-card-one"><span>Schedule</span></button>
-        <a class="scene-action" href="./index.html#line-oa"><span>LINE OA</span></a>
-        <button class="scene-action" type="button" data-panel-target="project-link"><span>Music</span></button>
-        <button class="scene-action" type="button" id="quickAgentsBtn"><span>AI Chat</span></button>
-        <button class="scene-action" type="button" data-panel-target="team-chat"><span>Team Chat</span></button>
-        <button class="scene-action" type="button" data-panel-target="terminal"><span>Command</span></button>
+      <div class="quick-action-rail" aria-label="Dashboard quick actions">
+        <button class="quick-action" type="button" data-panel-target="status-card-one"><span>Schedule</span></button>
+        <a class="quick-action" href="./index.html#line-oa"><span>LINE OA</span></a>
+        <button class="quick-action" type="button" data-panel-target="project-link"><span>Music</span></button>
+        <button class="quick-action" type="button" id="quickAgentsBtn"><span>AI Chat</span></button>
+        <button class="quick-action" type="button" data-panel-target="team-chat"><span>Team Chat</span></button>
+        <button class="quick-action" type="button" data-panel-target="terminal"><span>Command</span></button>
       </div>
       <div class="panel-dock" id="panelDock" aria-label="Open or hide dashboard panels"></div>
       <div class="floating status-card appointment-card one" data-drag-id="status-card-one">
