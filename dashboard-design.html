@@ -1908,6 +1908,9 @@ body:before {
 
 /* Compact manga command room refresh */
 @media (min-width: 1101px) {
+  :root {
+    --display: "Barlow Condensed", "IBM Plex Sans Thai", sans-serif;
+  }
   html,
   body {
     height: 100%;
@@ -1942,23 +1945,23 @@ body:before {
     min-height: 0;
   }
   .brand {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     min-height: 72px;
-    padding: 7px 11px;
+    padding: 9px 13px;
   }
   .brand:after {
     left: 118px;
     width: 120px;
   }
   .brand-mark {
-    width: 58px;
-    height: 58px;
-    flex-basis: 58px;
+    display: none !important;
   }
   .brand h1 {
     max-width: 100%;
     overflow: hidden;
     font-family: "Barlow Condensed", "IBM Plex Sans Thai", sans-serif;
-    font-size: clamp(23px, 1.9vw, 31px);
+    font-size: clamp(20px, 1.55vw, 26px);
     font-weight: 800;
     line-height: 1.16;
     padding-top: 2px;
@@ -1971,7 +1974,7 @@ body:before {
   }
   .brand p {
     margin-top: 4px;
-    font-size: 11px;
+    font-size: 10px;
   }
   .brand-copy:after {
     margin-top: 3px;
@@ -1987,7 +1990,7 @@ body:before {
     min-width: 76px;
     height: 42px;
     padding: 0 10px;
-    font-size: 15px;
+    font-size: 13px;
   }
   .player-hud {
     min-height: 72px;
@@ -1995,7 +1998,7 @@ body:before {
     gap: 10px;
   }
   .hud-level {
-    font-size: clamp(26px, 2.3vw, 36px);
+    font-size: clamp(22px, 1.8vw, 30px);
   }
   .hud-track {
     height: 13px;
@@ -2006,8 +2009,7 @@ body:before {
     min-width: 62px;
   }
   .hud-book {
-    width: 44px;
-    height: 44px;
+    display: none !important;
   }
   .left,
   .right {
@@ -2021,18 +2023,18 @@ body:before {
   .section-head {
     margin-bottom: 8px;
     padding-bottom: 6px;
-    font-size: 17px;
+    font-size: 15px;
   }
   .wallet-value {
     gap: 8px;
     margin-bottom: 7px;
   }
   .wallet-value strong {
-    font-size: clamp(40px, 4vw, 58px);
+    font-size: clamp(30px, 2.9vw, 42px);
   }
   .wallet-value span {
     padding: 5px 10px;
-    font-size: 17px;
+    font-size: 14px;
   }
   .wallet-delta {
     width: max-content;
@@ -2042,7 +2044,7 @@ body:before {
   }
   .small-lines {
     gap: 5px;
-    font-size: 16px;
+    font-size: 14px;
   }
   .holdings-panel {
     min-height: 0;
@@ -2061,13 +2063,11 @@ body:before {
     padding: 6px 8px;
   }
   .asset-icon {
-    width: 33px;
-    height: 33px;
-    flex-basis: 33px;
+    display: none !important;
   }
   .holding-symbol > b,
   .crypto-copy b {
-    font-size: 17px;
+    font-size: 15px;
   }
   .holding-meta,
   .crypto-copy span {
@@ -2075,7 +2075,7 @@ body:before {
   }
   .holding-value b,
   .crypto-price b {
-    font-size: 16px;
+    font-size: 14px;
   }
   .holding-value i,
   .crypto-price i {
@@ -2089,7 +2089,7 @@ body:before {
     padding: 10px 12px;
   }
   .goal-hero b {
-    font-size: clamp(28px, 2.4vw, 38px);
+    font-size: clamp(24px, 2vw, 32px);
   }
   .goal-grid {
     gap: 7px;
@@ -2100,7 +2100,7 @@ body:before {
     padding: 8px;
   }
   .goal-metric b {
-    font-size: 18px;
+    font-size: 16px;
   }
   .crypto-panel {
     min-height: 0;
@@ -2134,8 +2134,13 @@ body:before {
   }
   .scene-action {
     height: 32px;
-    padding: 0 11px;
-    font-size: 13px;
+    gap: 0;
+    padding: 0 13px;
+    font-size: 12px;
+  }
+  .scene-action i,
+  .scene-action svg {
+    display: none !important;
   }
   .floating {
     box-shadow: 0 14px 34px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.04);
@@ -2143,11 +2148,11 @@ body:before {
   .window-bar {
     min-height: 30px;
     padding: 6px 9px;
-    font-size: 14px;
+    font-size: 12px;
   }
   .window-body {
     padding: 8px 9px;
-    font-size: 11px;
+    font-size: 10px;
   }
   .window-body p + p {
     margin-top: 5px;
@@ -2180,16 +2185,15 @@ body:before {
     width: 282px;
   }
   .music-body {
-    grid-template-columns: 52px 1fr;
+    grid-template-columns: 1fr;
     gap: 8px;
     padding: 8px;
   }
   .music-cover {
-    width: 52px;
-    height: 52px;
+    display: none !important;
   }
   .music-title {
-    font-size: 13px;
+    font-size: 12px;
   }
   .music-subtitle {
     font-size: 11px;
@@ -2198,8 +2202,21 @@ body:before {
     gap: 7px;
   }
   .music-play {
-    width: 27px;
+    width: 44px;
     height: 27px;
+    border-radius: 2px;
+    color: #ffe2a0;
+    font: 800 9px/1 var(--mono);
+    text-transform: uppercase;
+  }
+  .music-play:before,
+  .music-player.is-playing .music-play:before {
+    display: none !important;
+  }
+  .music-player.is-playing .music-play {
+    color: #fff;
+    border-color: rgba(255, 56, 65, .68);
+    background: linear-gradient(180deg, rgba(177, 10, 20, .88), rgba(62, 2, 8, .86));
   }
   .music-time {
     min-width: 34px;
@@ -2222,13 +2239,19 @@ body:before {
     height: 22px;
   }
   .command-row {
-    grid-template-columns: 1fr 38px;
+    grid-template-columns: 1fr 52px;
   }
   .command-row input {
     height: 36px;
   }
   .command-row button {
     height: 36px;
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+  .crypto-remove {
+    width: 38px;
+    font-size: 9px;
   }
   .news-ticker {
     height: 40px;
@@ -2236,10 +2259,10 @@ body:before {
     grid-template-columns: 132px 1fr auto;
   }
   .news-label {
-    font-size: 18px;
+    font-size: 15px;
   }
   .news-items {
-    font-size: 14px;
+    font-size: 12px;
   }
   .news-item {
     padding: 0 22px;
@@ -2310,12 +2333,12 @@ body:before {
     <section class="scene-board reveal" style="animation-delay:.1s" aria-label="Pixel trading office scene">
       <div class="scene-bg"></div>
       <div class="scene-actions" aria-label="Dashboard quick actions">
-        <button class="scene-action" type="button" data-panel-target="status-card-one"><i data-lucide="calendar-days"></i><span>Schedule</span></button>
-        <a class="scene-action" href="./index.html#line-oa"><i data-lucide="message-square"></i><span>LINE OA</span></a>
-        <button class="scene-action" type="button" data-panel-target="project-link"><i data-lucide="music-2"></i><span>Music</span></button>
-        <button class="scene-action" type="button" id="quickAgentsBtn"><i data-lucide="bot"></i><span>AI Chat</span></button>
-        <button class="scene-action" type="button" data-panel-target="team-chat"><i data-lucide="users"></i><span>Team Chat</span></button>
-        <button class="scene-action" type="button" data-panel-target="terminal"><i data-lucide="terminal"></i><span>Command</span></button>
+        <button class="scene-action" type="button" data-panel-target="status-card-one"><span>Schedule</span></button>
+        <a class="scene-action" href="./index.html#line-oa"><span>LINE OA</span></a>
+        <button class="scene-action" type="button" data-panel-target="project-link"><span>Music</span></button>
+        <button class="scene-action" type="button" id="quickAgentsBtn"><span>AI Chat</span></button>
+        <button class="scene-action" type="button" data-panel-target="team-chat"><span>Team Chat</span></button>
+        <button class="scene-action" type="button" data-panel-target="terminal"><span>Command</span></button>
       </div>
       <div class="panel-dock" id="panelDock" aria-label="Open or hide dashboard panels"></div>
       <div class="floating status-card appointment-card one" data-drag-id="status-card-one">
@@ -2358,7 +2381,7 @@ body:before {
             <div class="music-title"><b id="musicTitle"></b><button class="music-open" id="musicOpenDashboard" type="button">Open</button></div>
             <div class="music-subtitle" id="musicSubtitle">Paste YouTube or direct audio URL</div>
             <div class="music-controls">
-              <button class="music-play" id="musicPlayBtn" type="button" aria-label="Play or pause"></button>
+              <button class="music-play" id="musicPlayBtn" type="button" aria-label="Play or pause">PLAY</button>
               <span class="music-progress" id="musicProgress" aria-label="Music progress"><span id="musicProgressFill"></span></span>
               <span class="music-time" id="musicTime">0:00</span>
             </div>
@@ -2385,7 +2408,7 @@ body:before {
         <div class="window-body">
           <div class="command-row">
             <input id="commandInput" placeholder="พิมพ์ dca, ai, line...">
-            <button id="commandBtn" type="button" aria-label="Run command">›</button>
+            <button id="commandBtn" type="button" aria-label="Run command">RUN</button>
           </div>
         </div>
       </div>
@@ -2935,7 +2958,7 @@ body:before {
             <b>${fmtUSDPrice(price)}</b>
             <i class="${changeClass}">${changeText}</i>
           </span>
-          <button class="crypto-remove" type="button" data-remove-crypto="all" data-symbol="${escapeHtml(symbol)}" aria-label="Remove ${escapeHtml(symbol)}">X</button>
+          <button class="crypto-remove" type="button" data-remove-crypto="all" data-symbol="${escapeHtml(symbol)}" aria-label="Remove ${escapeHtml(symbol)}">ลบ</button>
         </div>
       `;
     }).join("");
@@ -3444,6 +3467,7 @@ body:before {
   }
   function setMusicStatus(text) {
     if (musicStatus) musicStatus.textContent = text;
+    if (musicPlayBtn) musicPlayBtn.textContent = musicPlayer?.classList.contains("is-playing") ? "PAUSE" : "PLAY";
   }
   function setMusicMode(mode) {
     musicMode = mode;
