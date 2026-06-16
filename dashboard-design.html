@@ -1577,9 +1577,11 @@ body:before {
   padding: 10px 14px;
   border-color: rgba(246, 45, 54, .66);
   background:
-    linear-gradient(115deg, rgba(219, 25, 34, .24), transparent 46%),
-    radial-gradient(circle at 10% 50%, rgba(255, 35, 45, .19), transparent 35%),
+    linear-gradient(90deg, rgba(2, 2, 3, .82), rgba(2, 2, 3, .68)),
+    linear-gradient(115deg, rgba(219, 25, 34, .34), transparent 52%),
+    url("assets/manga-panel-frames.png") left 9% top 6% / 1650px auto no-repeat,
     #030304;
+  background-blend-mode: normal, screen, normal, normal;
 }
 .brand:before { border-color: rgba(255, 64, 71, .23); }
 .brand:after {
@@ -1603,17 +1605,26 @@ body:before {
   font-weight: 700;
   letter-spacing: .02em;
 }
-.brand p { color: #c7b7b5; font-size: 12px; }
-.brand-copy:after {
-  content: "PRO";
-  display: inline-block;
+.brand p {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   margin-top: 6px;
-  padding: 2px 7px;
-  background: #d91620;
-  color: #fff;
-  font: 800 10px/1 var(--display);
-  letter-spacing: .08em;
-  transform: skewX(-8deg);
+  padding: 3px 8px 3px 4px;
+  border: 1px solid rgba(255, 47, 57, .35);
+  background: rgba(6, 2, 3, .66);
+  color: #f0d7d4;
+  font: 900 11px/1 var(--mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.brand p img {
+  width: 18px;
+  height: 18px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 47, 57, .42);
+  background: #020203;
+  box-shadow: 0 0 12px rgba(255, 34, 44, .36);
 }
 .nav {
   gap: 4px;
@@ -1718,6 +1729,47 @@ body:before {
 }
 .side-rail { display: none; }
 .mini-panel { padding: 12px 14px; }
+.wallet-panel,
+.holdings-panel,
+.goal-panel,
+.crypto-panel,
+.player-hud {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.wallet-panel > *,
+.holdings-panel > *,
+.goal-panel > *,
+.crypto-panel > *,
+.player-hud > * {
+  position: relative;
+  z-index: 1;
+}
+.wallet-panel:before,
+.holdings-panel:before,
+.goal-panel:before,
+.crypto-panel:before,
+.player-hud:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .54;
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,.38), rgba(0,0,0,.78)),
+    radial-gradient(circle at 50% 35%, rgba(255, 30, 40, .18), transparent 48%),
+    url("assets/manga-panel-frames.png");
+  background-repeat: no-repeat;
+  background-size: 100% 100%, 100% 100%, 1450px auto;
+  filter: grayscale(.18) saturate(1.08) contrast(1.15);
+}
+.wallet-panel:before { background-position: center, center, left 0 top 15%; opacity: .50; }
+.holdings-panel:before { background-position: center, center, left 0 bottom 1%; opacity: .46; }
+.goal-panel:before { background-position: center, center, right 0 top 15%; opacity: .50; }
+.crypto-panel:before { background-position: center, center, right 0 bottom 1%; opacity: .50; }
+.player-hud:before { background-position: center, center, right 0 top 2%; opacity: .36; }
 .section-head {
   margin-bottom: 10px;
   padding-bottom: 8px;
@@ -2379,7 +2431,7 @@ body:before {
         </div>
         <div class="brand-copy">
           <h1 id="profileName">SiamFolio</h1>
-          <p id="profileEmail">DCA Portfolio Tracker</p>
+          <p id="profileEmail" class="brand-tag"><img src="assets/blood-compass-emblem.png" alt=""><span>DCA Portfolio</span></p>
         </div>
       </div>
       <nav class="nav panel" aria-label="Pixel command sections">
@@ -3344,7 +3396,11 @@ body:before {
     const email = (user.email || "DCA Portfolio Tracker").trim();
     const picture = user.picture || user.avatar || user.avatarUrl || user.photoURL || "";
     if (profileName) profileName.textContent = displayName;
-    if (profileEmail) profileEmail.textContent = email;
+    if (profileEmail) {
+      const tagText = profileEmail.querySelector("span");
+      if (tagText) tagText.textContent = "DCA Portfolio";
+      else profileEmail.textContent = "DCA Portfolio";
+    }
     if (profileInitials) profileInitials.textContent = getInitials(name, email);
     if (profileAvatarImg && profileAvatar) {
       if (picture) {
