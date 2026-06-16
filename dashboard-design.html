@@ -1905,6 +1905,350 @@ body:before {
   .news-date { display: none; }
   .news-items { overflow-x: auto; }
 }
+
+/* Compact manga command room refresh */
+@media (min-width: 1101px) {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+  body {
+    background:
+      radial-gradient(circle at 50% -12%, rgba(233, 19, 32, .23), transparent 33%),
+      radial-gradient(circle at 82% 10%, rgba(255, 56, 65, .14), transparent 22%),
+      linear-gradient(135deg, #020101 0%, #080204 52%, #000 100%);
+  }
+  .page {
+    height: 100vh;
+    padding: 10px;
+    overflow: hidden;
+  }
+  .screen {
+    height: calc(100vh - 20px);
+    min-height: 0;
+    grid-template-columns: minmax(300px, 23.5vw) minmax(570px, 1fr) minmax(285px, 19vw);
+    grid-template-rows: 72px minmax(0, 1fr) 40px;
+    gap: 8px;
+    overflow: hidden;
+    border-color: rgba(255, 52, 62, .55);
+    background:
+      linear-gradient(90deg, rgba(255, 35, 45, .05), transparent 18%, transparent 82%, rgba(255, 35, 45, .05)),
+      #020203;
+  }
+  .topbar {
+    grid-template-columns: minmax(300px, 23.5vw) minmax(570px, 1fr) minmax(285px, 19vw);
+    gap: 8px;
+    min-height: 0;
+  }
+  .brand {
+    min-height: 72px;
+    padding: 7px 11px;
+  }
+  .brand:after {
+    left: 118px;
+    width: 120px;
+  }
+  .brand-mark {
+    width: 58px;
+    height: 58px;
+    flex-basis: 58px;
+  }
+  .brand h1 {
+    max-width: 100%;
+    overflow: hidden;
+    font-family: "Barlow Condensed", "IBM Plex Sans Thai", sans-serif;
+    font-size: clamp(23px, 1.9vw, 31px);
+    font-weight: 800;
+    line-height: 1.16;
+    padding-top: 2px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .brand-copy {
+    min-width: 0;
+    align-self: center;
+  }
+  .brand p {
+    margin-top: 4px;
+    font-size: 11px;
+  }
+  .brand-copy:after {
+    margin-top: 3px;
+    padding: 2px 6px;
+  }
+  .nav {
+    min-height: 72px;
+    justify-content: center;
+    gap: 5px;
+    padding: 10px 12px;
+  }
+  .tab {
+    min-width: 76px;
+    height: 42px;
+    padding: 0 10px;
+    font-size: 15px;
+  }
+  .player-hud {
+    min-height: 72px;
+    padding: 8px 12px;
+    gap: 10px;
+  }
+  .hud-level {
+    font-size: clamp(26px, 2.3vw, 36px);
+  }
+  .hud-track {
+    height: 13px;
+    min-width: 76px;
+  }
+  .hud-time {
+    font-size: 14px;
+    min-width: 62px;
+  }
+  .hud-book {
+    width: 44px;
+    height: 44px;
+  }
+  .left,
+  .right {
+    min-height: 0;
+    overflow: hidden;
+    gap: 8px;
+  }
+  .mini-panel {
+    padding: 9px 11px;
+  }
+  .section-head {
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    font-size: 17px;
+  }
+  .wallet-value {
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+  .wallet-value strong {
+    font-size: clamp(40px, 4vw, 58px);
+  }
+  .wallet-value span {
+    padding: 5px 10px;
+    font-size: 17px;
+  }
+  .wallet-delta {
+    width: max-content;
+    margin-bottom: 9px;
+    padding: 4px 10px;
+    font-size: 15px;
+  }
+  .small-lines {
+    gap: 5px;
+    font-size: 16px;
+  }
+  .holdings-panel {
+    min-height: 0;
+    flex: 1;
+  }
+  .holdings-panel .agent-list,
+  .crypto-list {
+    gap: 0;
+    max-height: none;
+    overflow: hidden;
+  }
+  .holding-row,
+  .asset-row,
+  .event-row {
+    min-height: 47px;
+    padding: 6px 8px;
+  }
+  .asset-icon {
+    width: 33px;
+    height: 33px;
+    flex-basis: 33px;
+  }
+  .holding-symbol > b,
+  .crypto-copy b {
+    font-size: 17px;
+  }
+  .holding-meta,
+  .crypto-copy span {
+    font-size: 11px;
+  }
+  .holding-value b,
+  .crypto-price b {
+    font-size: 16px;
+  }
+  .holding-value i,
+  .crypto-price i {
+    font-size: 12px;
+  }
+  .goal-panel {
+    height: 292px;
+    flex: 0 0 292px;
+  }
+  .goal-hero {
+    padding: 10px 12px;
+  }
+  .goal-hero b {
+    font-size: clamp(28px, 2.4vw, 38px);
+  }
+  .goal-grid {
+    gap: 7px;
+    margin: 7px 0;
+  }
+  .goal-metric {
+    min-height: 58px;
+    padding: 8px;
+  }
+  .goal-metric b {
+    font-size: 18px;
+  }
+  .crypto-panel {
+    min-height: 0;
+    flex: 1 1 auto;
+  }
+  .crypto-list .asset-row:nth-child(n+6) {
+    display: none;
+  }
+  .scene-board {
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+  .scene-bg {
+    background:
+      radial-gradient(circle at 50% 25%, rgba(255, 36, 48, .13), transparent 23%),
+      linear-gradient(90deg, rgba(0,0,0,.18), transparent 13%, transparent 86%, rgba(0,0,0,.18)),
+      linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.16)),
+      url("assets/manga-dashboard-command-room.png") center center / cover no-repeat;
+    filter: saturate(1.13) contrast(1.08);
+  }
+  .scene-board:after {
+    background:
+      linear-gradient(180deg, rgba(0,0,0,.12), transparent 40%, rgba(0,0,0,.24)),
+      linear-gradient(90deg, rgba(0,0,0,.18), transparent 18%, transparent 82%, rgba(0,0,0,.16));
+  }
+  .scene-actions {
+    top: 7px;
+    gap: 6px;
+    max-width: calc(100% - 18px);
+  }
+  .scene-action {
+    height: 32px;
+    padding: 0 11px;
+    font-size: 13px;
+  }
+  .floating {
+    box-shadow: 0 14px 34px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .window-bar {
+    min-height: 30px;
+    padding: 6px 9px;
+    font-size: 14px;
+  }
+  .window-body {
+    padding: 8px 9px;
+    font-size: 11px;
+  }
+  .window-body p + p {
+    margin-top: 5px;
+  }
+  .status-card.one {
+    top: 49px;
+    left: 12px;
+    width: 252px;
+  }
+  .status-card.two {
+    display: none;
+  }
+  .project-link {
+    top: auto;
+    right: 12px;
+    bottom: 96px;
+    width: 260px;
+  }
+  .line-link {
+    right: 12px;
+    bottom: 12px;
+    width: 260px;
+  }
+  .team-chat {
+    display: none;
+  }
+  .terminal {
+    left: 12px;
+    bottom: 12px;
+    width: 282px;
+  }
+  .music-body {
+    grid-template-columns: 52px 1fr;
+    gap: 8px;
+    padding: 8px;
+  }
+  .music-cover {
+    width: 52px;
+    height: 52px;
+  }
+  .music-title {
+    font-size: 13px;
+  }
+  .music-subtitle {
+    font-size: 11px;
+  }
+  .music-controls {
+    gap: 7px;
+  }
+  .music-play {
+    width: 27px;
+    height: 27px;
+  }
+  .music-time {
+    min-width: 34px;
+    font-size: 10px;
+  }
+  .music-url-row {
+    gap: 6px;
+  }
+  .music-url-row input {
+    height: 28px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+  .music-url-row button {
+    height: 28px;
+    width: 45px;
+    font-size: 10px;
+  }
+  .music-wave {
+    height: 22px;
+  }
+  .command-row {
+    grid-template-columns: 1fr 38px;
+  }
+  .command-row input {
+    height: 36px;
+  }
+  .command-row button {
+    height: 36px;
+  }
+  .news-ticker {
+    height: 40px;
+    min-height: 40px;
+    grid-template-columns: 132px 1fr auto;
+  }
+  .news-label {
+    font-size: 18px;
+  }
+  .news-items {
+    font-size: 14px;
+  }
+  .news-item {
+    padding: 0 22px;
+  }
+  .news-date {
+    padding: 0 12px;
+    font-size: 11px;
+  }
+}
 </style>
 </head>
 <body>
@@ -3331,7 +3675,7 @@ body:before {
   function initDraggablePanels() {
     if (!sceneBoard) return;
     const panels = [...sceneBoard.querySelectorAll(".floating")];
-    const storageKey = "siamfolio.dashboardDesign.panelPositions.manga.v2";
+    const storageKey = "siamfolio.dashboardDesign.panelPositions.manga.v3";
     const getSaved = () => {
       try { return JSON.parse(localStorage.getItem(storageKey) || "{}"); }
       catch { return {}; }
