@@ -1700,6 +1700,11 @@ body:before {
   transform: rotate(-1deg);
 }
 .wallet-delta.negative { background: #f5f2ed; color: #c11720; }
+.wallet-delta.positive,
+.wallet-delta.positive b,
+.wallet-delta.positive span {
+  color: #111 !important;
+}
 .small-lines { font-family: var(--display); font-size: 17px; }
 .agent-list { gap: 0; }
 .agent-row, .asset-row, .event-row {
@@ -1766,24 +1771,24 @@ body:before {
   top: 10px;
   display: flex;
   gap: 8px;
-  padding: 4px;
   max-width: calc(100% - 24px);
   transform: translateX(-50%);
-  border: 1px solid rgba(255, 49, 58, .26);
-  background: #030304;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, .36), inset 0 1px 0 rgba(255,255,255,.04);
 }
 .scene-action {
+  flex: 0 0 auto;
+  min-width: 86px;
   height: 36px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   padding: 0 13px;
   border: 1px solid rgba(230, 42, 51, .52);
-  background: #070708;
+  background: rgba(7, 7, 8, .94);
   color: #f7eeee;
   font: italic 700 14px/1 var(--display);
   text-shadow: none;
+  white-space: nowrap;
   box-shadow: inset 0 1px rgba(255,255,255,.04);
   backdrop-filter: none;
 }
@@ -2145,16 +2150,15 @@ body:before {
   .scene-actions {
     top: 7px;
     gap: 6px;
-    padding: 3px;
     max-width: calc(100% - 18px);
-    background: #030304;
   }
   .scene-action {
+    min-width: 76px;
     height: 32px;
     gap: 0;
-    padding: 0 13px;
-    font-size: 12px;
-    background: #070708;
+    padding: 0 10px;
+    font-size: 11px;
+    background: rgba(7, 7, 8, .94);
     text-shadow: none;
   }
   .scene-action i,
