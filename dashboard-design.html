@@ -8,64 +8,42 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,600;1,700;1,800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
-  .quick-action-rail {
+ .top-menu {
   display: flex;
   justify-content: center;
-  gap: 8px;
-  padding: 20px;
+  gap: 10px;
+  padding: 28px 0;
+  background: #2b160e;
 }
 
-.quick-action {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  min-width: 110px;
-  height: 42px;
-
-  background: rgba(40, 22, 12, 0.75);
-  border: 2px solid #c69437;
-
-  color: #f8d98c;
-  text-decoration: none;
-  text-transform: uppercase;
-
-  font-family: "Orbitron", sans-serif;
+.top-menu button {
+  background: rgba(40, 20, 10, 0.75);
+  color: #ffe6a3;
+  border: 2px solid #c6922e;
+  padding: 8px 18px;
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1px;
-
+  font-weight: 900;
+  font-family: "Arial Black", sans-serif;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all .25s ease;
 
   box-shadow:
-    inset 0 0 0 1px rgba(255, 220, 150, .25),
-    inset 0 0 8px rgba(255, 180, 60, .15),
-    0 0 8px rgba(255, 180, 60, .15);
+    inset 0 0 8px rgba(255, 190, 70, 0.35),
+    0 0 6px rgba(255, 170, 40, 0.35);
 }
 
-.quick-action::before {
-  content: "";
-  position: absolute;
-  inset: 3px;
-  border: 1px solid rgba(255, 220, 150, .35);
-  pointer-events: none;
-}
-
-.quick-action:hover {
-  background: rgba(90, 50, 20, .9);
+.top-menu button:hover {
+  background: rgba(120, 70, 20, 0.8);
+  color: #fff3c0;
   box-shadow:
-    inset 0 0 12px rgba(255, 220, 100, .4),
-    0 0 12px rgba(255, 180, 60, .6);
-  transform: translateY(-2px);
+    inset 0 0 10px rgba(255, 210, 100, 0.6),
+    0 0 12px rgba(255, 180, 50, 0.8);
 }
-
-.quick-action span {
-  position: relative;
-  z-index: 1;
+  .top-menu {
+  background-image: url("wood-bg.png");
+  background-size: cover;
+  background-position: center;
 }
-
   
 :root {
   --bg: #050913;
@@ -2707,7 +2685,7 @@ body:before {
         <span class="candle-flame flame-two"></span>
         <span class="candle-flame flame-three"></span>
       </div>
-      <div class="quick-action-rail" aria-label="Dashboard quick actions">
+      <!-- <div class="quick-action-rail" aria-label="Dashboard quick actions">
         <button class="quick-action" type="button" data-panel-target="status-card-one"><span>Schedule</span></button>
         <a class="quick-action" href="./index.html#line-oa"><span>LINE OA</span></a>
         <button class="quick-action" type="button" data-panel-target="project-link"><span>Music</span></button>
@@ -2715,7 +2693,15 @@ body:before {
         <button class="quick-action" type="button" data-panel-target="team-chat"><span>Team Chat</span></button>
         <button class="quick-action" type="button" data-panel-target="terminal"><span>Command</span></button>
         
-      </div>
+      </div> -->
+      <div class="top-menu">
+  <button>SCHEDULE</button>
+  <button>LINE OA</button>
+  <button>MUSIC</button>
+  <button>LINE OA</button>
+  <button>TEAM CHAT</button>
+  <button>COMMAND</button>
+  </div>
       <div class="panel-dock" id="panelDock" aria-label="Open or hide dashboard panels"></div>
       <div class="floating status-card appointment-card one" data-drag-id="status-card-one">
         <div class="window-bar"><span>Schedule</span><span>Line OA</span></div>
