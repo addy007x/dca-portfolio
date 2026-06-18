@@ -671,10 +671,7 @@ function AuthGate({ children }) {
 
   if (!isAuthConfigured()) return <MangaAuthSetupPanel/>;
   if (!auth.session) return <MangaAuthForm/>;
-  if (syncState === "loading") return <MangaAuthStatus title="กำลังเปิดพอร์ต" message="กำลังโหลดข้อมูลและเตรียมแดชบอร์ดของคุณ..."/>;
-  if (syncState === "error") {
-    return <MangaAuthStatus title="โหลดข้อมูลไม่สำเร็จ" message={syncError} action={<button className="auth-manga-retry" onClick={() => location.reload()}>ลองใหม่</button>}/>;
-  }
+  // Show the dashboard immediately; cloud data hydrates the local store in the background.
   return children;
 }
 
