@@ -2171,13 +2171,86 @@ body:before {
   font-style: italic;
 }
 .window-body { color: #eee4e3; }
-.status-card.one { top: 58px; left: 14px; width: 290px; }
-.status-card.two { top: 58px; left: 314px; width: 238px; }
-.appointment-card { min-height: 0; }
-.appointment-form,
-.appointment-meta,
-.appointment-message,
-.appointment-list { display: none; }
+.status-card.one { top: 58px; left: 14px; width: 340px; }
+.status-card.two { top: 58px; left: 370px; width: 238px; }
+.appointment-card {
+  min-height: 0;
+  width: 340px;
+}
+.appointment-body {
+  display: grid;
+  gap: 8px;
+  max-height: 430px;
+  overflow: auto;
+}
+.appointment-status {
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(231, 42, 51, .24);
+}
+.appointment-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px 74px;
+  gap: 6px;
+}
+.appointment-form input,
+.appointment-note {
+  border-color: rgba(226, 40, 49, .38);
+  background: rgba(7, 4, 6, .76);
+  color: #fff3f2;
+}
+.appointment-form input {
+  height: 30px;
+  padding: 0 8px;
+  font-size: 10px;
+}
+.appointment-form button {
+  grid-column: 3;
+  height: 30px;
+  border-color: rgba(255, 211, 108, .62);
+  background: linear-gradient(180deg, rgba(117, 11, 18, .86), rgba(32, 5, 8, .96));
+  color: #ffe7ad;
+}
+.appointment-note {
+  grid-column: 1 / -1;
+  min-height: 52px;
+  padding: 8px;
+  font-size: 10px;
+}
+.appointment-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #d8c9c7;
+  font-size: 9px;
+}
+.appointment-message {
+  display: block;
+  min-height: 14px;
+  color: #7df4af;
+  font-size: 10px;
+}
+.appointment-list {
+  display: grid;
+  gap: 6px;
+  max-height: 150px;
+  overflow: auto;
+  padding-right: 2px;
+}
+.appointment-item {
+  border-color: rgba(226, 40, 49, .26);
+  background: rgba(8, 4, 6, .72);
+  padding: 7px;
+}
+.appointment-title { font-size: 11px; }
+.appointment-time,
+.appointment-note-text,
+.appointment-badge { font-size: 9px; }
+.appointment-delete {
+  width: auto;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 9px;
+}
 .project-link { right: 14px; top: 58px; bottom: auto; width: 310px; }
 .line-link { right: 14px; bottom: 112px; width: 255px; }
 .team-chat { right: 14px; bottom: 14px; width: 255px; }
@@ -4153,7 +4226,7 @@ body:before {
     const minPanelSize = panel => {
       if (panel.classList.contains("music-player")) return { w: 270, h: 190 };
       if (panel.classList.contains("terminal")) return { w: 260, h: 112 };
-      if (panel.classList.contains("appointment-card")) return { w: 240, h: 112 };
+      if (panel.classList.contains("appointment-card")) return { w: 330, h: 330 };
       if (panel.classList.contains("status-card")) return { w: 220, h: 112 };
       if (panel.classList.contains("line-link")) return { w: 220, h: 86 };
       if (panel.classList.contains("team-chat")) return { w: 220, h: 86 };
