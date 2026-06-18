@@ -10,20 +10,30 @@
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@700;800&display=swap" rel="stylesheet">
  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,600;1,700;1,800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
-.brand-mark{
-    width: 84px;
-    height: 84px;
-    overflow: hidden;
-    position: relative;
-}
-
+/* กรอบ */
 .avatar-frame{
     position: absolute;
-    width: 160%;
-    height: 160%;
-    left: -30%;
-    top: -22%;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
+    z-index: 2;
+}
+
+/* รูปคน */
+.profile-image{
+    position: absolute;
+    width: 52%;
+    height: 52%;
+    border-radius: 50%;
+    object-fit: cover;
+
+    /* จัดกึ่งกลาง */
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+
+    z-index: 1;
 }
  
 .wallet-label{
