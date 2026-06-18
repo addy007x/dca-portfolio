@@ -2833,8 +2833,7 @@ body:before {
     <header class="topbar reveal">
       <div class="brand panel">
         <div class="brand-mark" id="profileAvatar">
-          <!-- <img id="profileAvatarImg" class="profile-image" alt=""> -->
-            <img src="./boom.png" class="avatar-frame" alt="">
+          <img id="profileAvatarImg" class="profile-image" alt="">
          
           <span id="profileInitials">SF</span>
         </div>
@@ -3830,7 +3829,6 @@ body:before {
     const name = getDisplayName(user);
     const displayName = name.toLocaleUpperCase("en-US");
     const email = (user.email || "DCA Portfolio Tracker").trim();
-    const picture = user.picture || user.avatar || user.avatarUrl || user.photoURL || "";
     if (profileName) profileName.textContent = displayName;
     if (profileEmail) {
       const tagText = profileEmail.querySelector("span");
@@ -3839,15 +3837,9 @@ body:before {
     }
     if (profileInitials) profileInitials.textContent = getInitials(name, email);
     if (profileAvatarImg && profileAvatar) {
-      if (picture) {
-        profileAvatarImg.src = picture;
-        profileAvatarImg.alt = displayName;
-        profileAvatar.classList.add("has-image");
-      } else {
-        profileAvatarImg.src = "assets/portfolio-earn-panel-bg.png";
-        profileAvatarImg.alt = "SiamFolio";
-        profileAvatar.classList.add("has-image");
-      }
+      profileAvatarImg.src = "./boom.png";
+      profileAvatarImg.alt = displayName || "SiamFolio";
+      profileAvatar.classList.add("has-image");
     }
   }
   function escapeHtml(value) {

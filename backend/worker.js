@@ -758,12 +758,13 @@ function validateReminderBody(body, fallback = {}) {
 
 function formatAppointmentReminderLine(row) {
   const lines = [
-    "SiamFolio นัดหมาย",
-    "ถึงเวลาที่ตั้งไว้แล้ว",
-    `หัวข้อ: ${row.title || "-"}`,
-    `เวลา: ${row.remind_date} ${row.remind_time} UTC+7`,
+    "SIAMFOLIO REMINDER",
+    "----------------",
+    `\u0e40\u0e1b\u0e49\u0e32\u0e2b\u0e21\u0e32\u0e22: ${row.title || "-"}`,
+    `\u0e40\u0e27\u0e25\u0e32: ${row.remind_date} ${row.remind_time} UTC+7`,
   ];
-  if (row.note) lines.push("", String(row.note).slice(0, 800));
+  if (row.note) lines.push("", "\u0e02\u0e49\u0e2d\u0e04\u0e27\u0e32\u0e21\u0e41\u0e08\u0e49\u0e07\u0e40\u0e15\u0e37\u0e2d\u0e19", String(row.note).slice(0, 800));
+  lines.push("", "\u0e23\u0e30\u0e1a\u0e1a\u0e25\u0e1a\u0e19\u0e31\u0e14\u0e2b\u0e21\u0e32\u0e22\u0e19\u0e35\u0e49\u0e43\u0e2b\u0e49\u0e2d\u0e31\u0e15\u0e42\u0e19\u0e21\u0e31\u0e15\u0e34\u0e2b\u0e25\u0e31\u0e07\u0e41\u0e08\u0e49\u0e07\u0e40\u0e15\u0e37\u0e2d\u0e19\u0e41\u0e25\u0e49\u0e27");
   return lines.join("\n").slice(0, 4500);
 }
 
@@ -959,6 +960,18 @@ async function getLatestPortfolioData(env, userId = "") {
   return { holdings, fx: 35.8 };
 }
 
+async function getUserProfileLabel(env, userId = "") {
+  if (!env.DB || !userId) return "SiamFolio";
+  const row = await env.DB.prepare("SELECT name,email FROM users WHERE id = ?")
+    .bind(userId)
+    .first()
+    .catch(() => null);
+  const raw = String(row?.name || row?.email || "").trim();
+  if (!raw) return "SiamFolio";
+  const label = raw.includes("@") ? raw.split("@")[0] : raw;
+  return label.trim() || "SiamFolio";
+}
+
 function portfolioRows(snapshot) {
   const holdings = snapshot?.holdings || [];
   const fx = Number(snapshot?.fx) || 35.8;
@@ -995,6 +1008,20 @@ function portfolioStats(snapshot) {
   const gains = rows.filter(r => r.plTHB > 0).sort((a, b) => b.plTHB - a.plTHB);
   const losses = rows.filter(r => r.plTHB < 0).sort((a, b) => a.plTHB - b.plTHB);
   return { rows, totalValue, totalCost, totalPL, totalPct, gains, losses };
+}
+
+function portfolioGoalStats(snapshot, totalValue) {
+  const rawTarget =
+    snapshot?.annualGoalTHB ??
+    snapshot?.annualGoal?.target ??
+    snapshot?.settings?.annualGoalTHB ??
+    snapshot?.settings?.annualGoal?.target ??
+    120000;
+  const target = Math.max(0, Number(rawTarget) || 0);
+  const invested = Math.max(0, Number(totalValue) || 0);
+  const remaining = Math.max(0, target - invested);
+  const pct = target > 0 ? Math.min(100, (invested / target) * 100) : 0;
+  return { target, invested, remaining, pct };
 }
 
 function compactSnapshotForAi(snapshot) {
@@ -1538,13 +1565,16 @@ function flexList(title, rows, emptyText, color) {
   };
 }
 
-function portfolioFlexMessage(snapshot) {
+function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
   const { rows, totalValue, totalPL, totalPct, gains, losses } = portfolioStats(snapshot);
   if (!rows.length) return formatPortfolioSummary(snapshot, "summary");
 
   const positive = totalPL >= 0;
   const accent = positive ? "#26A269" : "#D94E4E";
-  const altText = `SiamFolio Portfolio ${fmtTHB(totalValue)} ${fmtSignedTHB(totalPL)} (${fmtPctValue(totalPct)})`;
+  const ownerName = String(profileLabel || "SiamFolio").trim() || "SiamFolio";
+  const ownerTitle = ownerName.toLocaleUpperCase("en-US");
+  const goal = portfolioGoalStats(snapshot, totalValue);
+  const altText = `${ownerName} Portfolio ${fmtTHB(totalValue)} ${fmtSignedTHB(totalPL)} (${fmtPctValue(totalPct)})`;
 
   return {
     type: "flex",
@@ -1557,8 +1587,8 @@ function portfolioFlexMessage(snapshot) {
         paddingAll: "18px",
         backgroundColor: "#191512",
         contents: [
-          flexText("SIAMFOLIO", { size: "xs", color: "#E6C56A", weight: "bold" }),
-          flexText("Portfolio Snapshot", { size: "xl", color: "#FFFFFF", weight: "bold", margin: "sm" }),
+          flexText("SIAMFOLIO PORTFOLIO", { size: "xs", color: "#E6C56A", weight: "bold" }),
+          flexText(ownerTitle, { size: "xl", color: "#FFFFFF", weight: "bold", margin: "sm", wrap: true }),
           flexText(new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }), {
             size: "xs",
             color: "#C9B8A5",
@@ -1597,6 +1627,57 @@ function portfolioFlexMessage(snapshot) {
             contents: [
               flexMetric("สินทรัพย์", `${rows.length} ตัว`, "#211C18"),
               flexMetric("สถานะ", positive ? "กำไร" : "ติดลบ", accent),
+            ],
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            spacing: "sm",
+            paddingAll: "14px",
+            backgroundColor: "#191512",
+            borderColor: "#E6C56A",
+            borderWidth: "1px",
+            cornerRadius: "14px",
+            contents: [
+              flexText("ANNUAL GOAL", { size: "xs", color: "#E6C56A", weight: "bold" }),
+              flexText(`TARGET / PORTFOLIO ${fmtTHB(goal.target)}`, {
+                size: "sm",
+                color: "#FFFFFF",
+                weight: "bold",
+                wrap: true,
+              }),
+              {
+                type: "box",
+                layout: "horizontal",
+                spacing: "md",
+                contents: [
+                  flexMetric("Portfolio", fmtTHB(goal.invested), "#FFFFFF"),
+                  flexMetric("Remaining", fmtTHB(goal.remaining), "#E6C56A"),
+                ],
+              },
+              flexText(`${goal.pct.toFixed(2)}% ถึงเป้าหมาย`, {
+                size: "xs",
+                color: "#C9B8A5",
+                weight: "bold",
+              }),
+              {
+                type: "box",
+                layout: "vertical",
+                height: "8px",
+                backgroundColor: "#3A211D",
+                cornerRadius: "999px",
+                contents: [
+                  {
+                    type: "box",
+                    layout: "vertical",
+                    height: "8px",
+                    width: `${Math.max(3, goal.pct).toFixed(0)}%`,
+                    backgroundColor: "#D91F2B",
+                    cornerRadius: "999px",
+                    contents: [],
+                  },
+                ],
+              },
             ],
           },
           { type: "separator", margin: "lg", color: "#E8DDCF" },
@@ -1704,7 +1785,8 @@ async function lineCommandReply(env, text, targetId = "") {
   }
   const snapshot = await refreshSnapshotPrices(env, await getLatestPortfolioData(env, userId), userId);
   if (command === "summary") {
-    const flex = portfolioFlexMessage(snapshot);
+    const profileLabel = await getUserProfileLabel(env, userId);
+    const flex = portfolioFlexMessage(snapshot, profileLabel);
     return {
       __lineReply: true,
       messages: lineMessages(flex),
