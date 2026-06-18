@@ -8,6 +8,20 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,600;1,700;1,800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
+
+
+
+  .wallet-label {
+    font-family: "Bangers", cursive;
+    font-size: 18px;
+    letter-spacing: 1px;
+    color: #ffe2a0;
+
+    text-shadow:
+        0 0 10px rgba(255,190,80,.4),
+        2px 2px 0 #3a1d0b;
+}
+  
 .wallet-delta {
   color: #111 !important;
 }
@@ -2663,9 +2677,9 @@ body:before {
         <div class="wallet-value"><strong id="walletTotalValue">฿0</strong><span id="walletStatus">Live</span></div>
         <div class="wallet-delta" id="walletDailyPnl"><b>+฿0</b><span>วันนี้</span></div>
         <div class="small-lines">
-          <div><span>Portfolio value</span><b id="walletPortfolioValue">฿0</b></div>
-          <div><span>Earn value</span><b id="walletEarnValue">฿0</b></div>
-          <div><span>Daily P/L</span><b id="walletDailyPct" class="positive">+0.00%</b></div>
+          <div class="wallet-label"><span>Portfolio value</span><b id="walletPortfolioValue">฿0</b></div>
+          <div class="wallet-label"><span>Earn value</span><b id="walletEarnValue">฿0</b></div>
+          <div class="wallet-label"><span>Daily P/L</span><b id="walletDailyPct" class="positive">+0.00%</b></div>
         </div>
       </section>
       <section class="mini-panel panel holdings-panel">
