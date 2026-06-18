@@ -772,9 +772,8 @@ async function listReminders(env, user) {
     `SELECT *
      FROM appointment_reminders
      WHERE user_id = ?
-     ORDER BY
-       CASE status WHEN 'active' THEN 0 WHEN 'sent' THEN 1 ELSE 2 END,
-       remind_date ASC,
+       AND status = 'active'
+     ORDER BY remind_date ASC,
        remind_time ASC,
        created_at DESC
      LIMIT 100`
@@ -847,8 +846,8 @@ async function handleAppointmentReminderCron(env, clock) {
         sent += results.length;
       }
       await env.DB.prepare(
-        "UPDATE appointment_reminders SET status = 'sent', line_sent_at = ?, updated_at = ? WHERE id = ?"
-      ).bind(Date.now(), Date.now(), row.id).run();
+        "DELETE FROM appointment_reminders WHERE id = ?"
+      ).bind(row.id).run();
       processed += 1;
     } catch (e) {
       console.error(`Appointment reminder failed (${row.id}):`, e.stack || e);

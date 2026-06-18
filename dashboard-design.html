@@ -2206,9 +2206,10 @@ body:before {
 .appointment-form button {
   grid-column: 3;
   height: 30px;
-  border-color: rgba(255, 211, 108, .62);
-  background: linear-gradient(180deg, rgba(117, 11, 18, .86), rgba(32, 5, 8, .96));
-  color: #ffe7ad;
+  border: 1px solid rgba(255, 255, 255, .28);
+  background: #efefef;
+  color: #171717;
+  box-shadow: none;
 }
 .appointment-note {
   grid-column: 1 / -1;
@@ -2250,6 +2251,11 @@ body:before {
   height: 22px;
   padding: 0 8px;
   font-size: 9px;
+}
+.appointment-form button:hover {
+  border-color: rgba(255, 255, 255, .5);
+  background: #fff;
+  color: #111;
 }
 .project-link { right: 14px; top: 58px; bottom: auto; width: 310px; }
 .line-link { right: 14px; bottom: 112px; width: 255px; }
@@ -3830,12 +3836,23 @@ body:before {
       `;
     }).join("");
   }
+  async function removeCompletedAppointments(reminders = []) {
+    const active = reminders.filter(item => !item.status || item.status === "active");
+    const completed = reminders.filter(item => item?.id && item.status && item.status !== "active");
+    if (completed.length) {
+      await Promise.allSettled(completed.map(item =>
+        remindersFetch(`/api/reminders/${encodeURIComponent(item.id)}`, { method: "DELETE" })
+      ));
+    }
+    return active;
+  }
   async function refreshAppointments(silent = false) {
     if (!appointmentList) return;
     try {
       if (!silent) setAppointmentMessage("กำลังโหลดนัดหมาย...");
       const data = await remindersFetch();
-      renderAppointments(data.reminders || []);
+      const activeReminders = await removeCompletedAppointments(data.reminders || []);
+      renderAppointments(activeReminders);
       setAppointmentMessage("พร้อมแจ้งเตือนผ่าน LINE OA");
     } catch (error) {
       renderAppointments([]);
