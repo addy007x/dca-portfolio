@@ -10,25 +10,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@700;800&display=swap" rel="stylesheet">
  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,600;1,700;1,800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
- .brand-mark
-.avatar-frame
-.profile-image
- .avatar-frame{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    object-fit:contain;
-    z-index:1;
+.brand-mark{
+  width: 92px;
+  height: 92px;
+  overflow: visible;
+  position: relative;
 }
 
-.profile-image{
-    position:absolute;
-    width:58%;
-    height:58%;
-    border-radius:50%;
-    object-fit:cover;
-    z-index:2;
+.avatar-frame{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
  
 .wallet-label{
@@ -2655,11 +2648,14 @@ body:before {
   <section class="screen">
     <header class="topbar reveal">
       <div class="brand panel">
-        <div class="brand-mark" id="profileAvatar">
+        <!-- <div class="brand-mark" id="profileAvatar">
             <img src="./addy.png" class="avatar-frame" alt="">
-          <!-- <img id="profileAvatarImg" class="profile-image" alt=""> -->
+          <img id="profileAvatarImg" class="profile-image" alt="">
           <span id="profileInitials">SF</span>
-        </div>
+        </div> -->
+       <div class="brand-mark" id="profileAvatar">
+  <img src="./addy.png" class="avatar-frame" alt="">
+</div>
         <div class="brand-copy">
           <h1 id="profileName">SiamFolio</h1>
           <p id="profileEmail" class="brand-tag"><img src="assets/blood-compass-emblem.png" alt=""><span>DCA Portfolio Tracker</span></p>
