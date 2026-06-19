@@ -1723,7 +1723,7 @@ function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
         paddingAll: "18px",
         backgroundColor: "#191512",
         contents: [
-          flexText("Investment portfolio", { size: "xs", color: "#E6C56A", weight: "bold" }),
+          flexText("INVESTMENT PORTFOLIO", { size: "xs", color: "#E6C56A", weight: "bold" }),
           flexText(ownerTitle, { size: "xl", color: "#FFFFFF", weight: "bold", margin: "sm", wrap: true }),
           flexText(new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }), {
             size: "xs",
