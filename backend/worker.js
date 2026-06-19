@@ -713,7 +713,7 @@ async function lineStatus(env) {
   };
 }
 
-async function sendLinePush(env, text, toOverride) {
+async function sendLinePush(env, payload, toOverride) {
   if (!env.LINE_CHANNEL_ACCESS_TOKEN) throw new Error("LINE_CHANNEL_ACCESS_TOKEN is not configured");
   const targets = toOverride
     ? Array.isArray(toOverride) ? toOverride : [toOverride]
@@ -730,7 +730,7 @@ async function sendLinePush(env, text, toOverride) {
       },
       body: JSON.stringify({
         to,
-        messages: [{ type: "text", text }],
+        messages: lineMessages(payload),
       }),
     });
     const body = await res.text().catch(() => "");
@@ -783,6 +783,122 @@ function formatAppointmentReminderLine(row) {
   if (row.note) lines.push("", "\u0e02\u0e49\u0e2d\u0e04\u0e27\u0e32\u0e21\u0e41\u0e08\u0e49\u0e07\u0e40\u0e15\u0e37\u0e2d\u0e19", String(row.note).slice(0, 800));
   lines.push("", "\u0e23\u0e30\u0e1a\u0e1a\u0e25\u0e1a\u0e19\u0e31\u0e14\u0e2b\u0e21\u0e32\u0e22\u0e19\u0e35\u0e49\u0e43\u0e2b\u0e49\u0e2d\u0e31\u0e15\u0e42\u0e19\u0e21\u0e31\u0e15\u0e34\u0e2b\u0e25\u0e31\u0e07\u0e41\u0e08\u0e49\u0e07\u0e40\u0e15\u0e37\u0e2d\u0e19\u0e41\u0e25\u0e49\u0e27");
   return lines.join("\n").slice(0, 4500);
+}
+
+function appointmentReminderFlexMessage(row) {
+  const title = String(row.title || "-").trim() || "-";
+  const note = String(row.note || "").trim();
+  const remindDate = String(row.remind_date || "-");
+  const remindTime = String(row.remind_time || "--:--");
+  const altText = `SiamFolio Schedule: ${title} (${remindDate} ${remindTime})`;
+
+  return {
+    type: "flex",
+    altText,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "18px",
+        backgroundColor: "#191512",
+        contents: [
+          flexText("SIAMFOLIO SCHEDULE", { size: "xs", color: "#E6C56A", weight: "bold" }),
+          flexText("แจ้งเตือนนัดหมาย", {
+            size: "xl",
+            color: "#FFFFFF",
+            weight: "bold",
+            margin: "sm",
+            wrap: true,
+          }),
+          flexText("LINE OA ALERT", { size: "xs", color: "#C9B8A5", margin: "xs" }),
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        paddingAll: "18px",
+        backgroundColor: "#FBF7EF",
+        contents: [
+          {
+            type: "box",
+            layout: "vertical",
+            paddingAll: "14px",
+            backgroundColor: "#FFF4E7",
+            borderColor: "#E6C56A",
+            borderWidth: "1px",
+            cornerRadius: "14px",
+            contents: [
+              flexText("เป้าหมาย", { size: "xs", color: "#8C7D6B", weight: "bold" }),
+              flexText(title, {
+                size: "xl",
+                color: "#191512",
+                weight: "bold",
+                wrap: true,
+                margin: "sm",
+              }),
+            ],
+          },
+          {
+            type: "box",
+            layout: "horizontal",
+            spacing: "md",
+            contents: [
+              flexMetric("วันที่", remindDate, "#191512"),
+              flexMetric("เวลา", `${remindTime} UTC+7`, "#D91F2B"),
+            ],
+          },
+          ...(note
+            ? [{
+                type: "box",
+                layout: "vertical",
+                spacing: "xs",
+                paddingAll: "14px",
+                backgroundColor: "#191512",
+                borderColor: "#D91F2B",
+                borderWidth: "1px",
+                cornerRadius: "14px",
+                contents: [
+                  flexText("ข้อความแจ้งเตือน", { size: "xs", color: "#E6C56A", weight: "bold" }),
+                  flexText(note.slice(0, 500), {
+                    size: "sm",
+                    color: "#FFFFFF",
+                    wrap: true,
+                    margin: "sm",
+                  }),
+                ],
+              }]
+            : []),
+          { type: "separator", margin: "lg", color: "#E8DDCF" },
+          flexText("ระบบลบนัดหมายนี้ให้อัตโนมัติหลังแจ้งเตือนแล้ว", {
+            size: "xs",
+            color: "#8C7D6B",
+            align: "center",
+            wrap: true,
+          }),
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: "#191512",
+            action: {
+              type: "uri",
+              label: "เปิด Dashboard",
+              uri: "https://addy007x.github.io/dca-portfolio/",
+            },
+          },
+        ],
+      },
+    },
+  };
 }
 
 async function listReminders(env, user) {
@@ -860,7 +976,7 @@ async function handleAppointmentReminderCron(env, clock) {
     try {
       const targets = await getLinkedLineTargets(env, row.user_id);
       if (targets.length) {
-        const results = await sendLinePush(env, formatAppointmentReminderLine(row), targets);
+        const results = await sendLinePush(env, appointmentReminderFlexMessage(row), targets);
         sent += results.length;
       }
       await env.DB.prepare(
