@@ -3849,6 +3849,9 @@ body:before {
       renderWalletSummary(summarizeWallet(remoteStore), "Live");
       renderHoldingsPanel(remoteStore, "Live");
       renderAnnualGoalPanel(remoteStore);
+      const localTarget = getAnnualGoalTarget();
+      const remoteTarget = Number(remoteStore.annualGoalTHB || remoteStore.annualGoal?.target || remoteStore.settings?.annualGoalTHB || remoteStore.settings?.annualGoal?.target || 0);
+      if (Math.round(remoteTarget) !== Math.round(localTarget)) pushAnnualGoalTarget(localTarget, remoteStore);
     }
     if (!localStore && !remoteStore) {
       if (walletStatus) walletStatus.textContent = "No data";
