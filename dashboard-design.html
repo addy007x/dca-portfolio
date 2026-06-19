@@ -966,11 +966,28 @@ button { cursor: pointer; }
 .terminal { left: 24px; bottom: 24px; width: 290px; }
 .project-link { left: 325px; bottom: 24px; width: 300px; }
 .music-player {
+  position: absolute;
   overflow: hidden;
   border-color: rgba(238, 201, 112, .38);
   background:
     linear-gradient(135deg, rgba(255, 226, 160, .08), transparent 32%),
-    linear-gradient(180deg, rgba(7, 16, 30, .94), rgba(3, 7, 15, .90));
+    linear-gradient(180deg, rgba(2, 5, 10, .50), rgba(3, 7, 15, .86)),
+    url("assets/music-youtube-panel-bg.png") center / cover no-repeat;
+  box-shadow:
+    0 0 0 1px rgba(238, 201, 112, .10) inset,
+    0 18px 36px rgba(0, 0, 0, .40);
+}
+.music-player:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255, 241, 191, .18), transparent 28%),
+    linear-gradient(90deg, rgba(1, 6, 13, .48), rgba(1, 6, 13, .22) 45%, rgba(1, 6, 13, .66)),
+    repeating-linear-gradient(180deg, rgba(255,255,255,.04) 0 1px, transparent 1px 5px);
+  opacity: .86;
 }
 .music-player .window-bar {
   position: relative;
