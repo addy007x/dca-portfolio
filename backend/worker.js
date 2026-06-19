@@ -778,19 +778,21 @@ function formatAppointmentReminderLine(row) {
     "SIAMFOLIO REMINDER",
     "----------------",
     `\u0e40\u0e1b\u0e49\u0e32\u0e2b\u0e21\u0e32\u0e22: ${row.title || "-"}`,
-    `\u0e40\u0e27\u0e25\u0e32: ${row.remind_date} ${row.remind_time} UTC+7`,
+    `\u0e40\u0e27\u0e25\u0e32: ${row.remind_date} ${row.remind_time}`,
   ];
   if (row.note) lines.push("", "\u0e02\u0e49\u0e2d\u0e04\u0e27\u0e32\u0e21\u0e41\u0e08\u0e49\u0e07\u0e40\u0e15\u0e37\u0e2d\u0e19", String(row.note).slice(0, 800));
   lines.push("", "\u0e23\u0e30\u0e1a\u0e1a\u0e25\u0e1a\u0e19\u0e31\u0e14\u0e2b\u0e21\u0e32\u0e22\u0e19\u0e35\u0e49\u0e43\u0e2b\u0e49\u0e2d\u0e31\u0e15\u0e42\u0e19\u0e21\u0e31\u0e15\u0e34\u0e2b\u0e25\u0e31\u0e07\u0e41\u0e08\u0e49\u0e07\u0e40\u0e15\u0e37\u0e2d\u0e19\u0e41\u0e25\u0e49\u0e27");
   return lines.join("\n").slice(0, 4500);
 }
 
-function appointmentReminderFlexMessage(row) {
+function appointmentReminderFlexMessage(row, profileLabel = "SiamFolio") {
   const title = String(row.title || "-").trim() || "-";
   const note = String(row.note || "").trim();
   const remindDate = String(row.remind_date || "-");
   const remindTime = String(row.remind_time || "--:--");
-  const altText = `SiamFolio Schedule: ${title} (${remindDate} ${remindTime})`;
+  const ownerName = String(profileLabel || "SiamFolio").trim() || "SiamFolio";
+  const ownerTitle = ownerName.toLocaleUpperCase("en-US");
+  const altText = `${ownerName} Schedule: ${title} (${remindDate} ${remindTime})`;
 
   return {
     type: "flex",
@@ -804,7 +806,7 @@ function appointmentReminderFlexMessage(row) {
         paddingAll: "18px",
         backgroundColor: "#191512",
         contents: [
-          flexText("SIAMFOLIO SCHEDULE", { size: "xs", color: "#E6C56A", weight: "bold" }),
+          flexText(`${ownerTitle} SCHEDULE`, { size: "xs", color: "#E6C56A", weight: "bold", wrap: true }),
           flexText("แจ้งเตือนนัดหมาย", {
             size: "xl",
             color: "#FFFFFF",
@@ -847,7 +849,7 @@ function appointmentReminderFlexMessage(row) {
             spacing: "md",
             contents: [
               flexMetric("วันที่", remindDate, "#191512"),
-              flexMetric("เวลา", `${remindTime} UTC+7`, "#D91F2B"),
+              flexMetric("เวลา", remindTime, "#D91F2B"),
             ],
           },
           ...(note
@@ -976,7 +978,8 @@ async function handleAppointmentReminderCron(env, clock) {
     try {
       const targets = await getLinkedLineTargets(env, row.user_id);
       if (targets.length) {
-        const results = await sendLinePush(env, appointmentReminderFlexMessage(row), targets);
+        const profileLabel = await getUserProfileLabel(env, row.user_id);
+        const results = await sendLinePush(env, appointmentReminderFlexMessage(row, profileLabel), targets);
         sent += results.length;
       }
       await env.DB.prepare(
