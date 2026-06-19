@@ -59,41 +59,48 @@
   color: #111 !important;
 }
  
- .top-menu {
+.top-menu {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  z-index: 8;
   display: flex;
   justify-content: center;
-  gap: 10px;
-  padding: 28px 0;
-  background: #2b160e;
+  gap: 8px;
+  padding: 5px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(198, 146, 46, .22);
+  background: linear-gradient(90deg, rgba(7, 3, 2, .18), rgba(48, 22, 6, .50), rgba(7, 3, 2, .18));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .28);
+  backdrop-filter: blur(3px);
 }
 
 .top-menu button {
-  background: rgba(40, 20, 10, 0.75);
+  min-width: 96px;
+  height: 34px;
+  border: 1px solid rgba(198, 146, 46, .9);
+  background: rgba(40, 20, 10, 0.62);
   color: #ffe6a3;
-  border: 2px solid #c6922e;
-  padding: 8px 18px;
+  padding: 0 15px;
   font-size: 12px;
   font-weight: 900;
   font-family: "Arial Black", sans-serif;
   text-transform: uppercase;
   cursor: pointer;
-
+  text-shadow: 0 0 8px rgba(255, 209, 111, .35);
   box-shadow:
-    inset 0 0 8px rgba(255, 190, 70, 0.35),
-    0 0 6px rgba(255, 170, 40, 0.35);
+    inset 0 0 8px rgba(255, 190, 70, 0.26),
+    0 0 6px rgba(255, 170, 40, 0.20);
 }
 
-.top-menu button:hover {
-  background: rgba(120, 70, 20, 0.8);
+.top-menu button:hover,
+.top-menu button:focus-visible {
+  background: rgba(120, 70, 20, 0.78);
   color: #fff3c0;
+  outline: 0;
   box-shadow:
-    inset 0 0 10px rgba(255, 210, 100, 0.6),
-    0 0 12px rgba(255, 180, 50, 0.8);
-}
-  .top-menu {
-  background-image: url("wood-bg.png");
-  background-size: cover;
-  background-position: center;
+    inset 0 0 10px rgba(255, 210, 100, 0.56),
+    0 0 14px rgba(255, 180, 50, 0.52);
 }
   
 :root {
@@ -732,6 +739,14 @@ button { cursor: pointer; }
   border-color: rgba(255, 215, 94, .86);
   box-shadow: 0 18px 40px rgba(0,0,0,.44), 0 0 18px rgba(34,217,255,.20), inset 0 1px 0 rgba(255,255,255,.10);
 }
+.floating.is-focused-panel {
+  z-index: 10;
+  border-color: rgba(255, 215, 94, .84);
+  box-shadow:
+    0 24px 52px rgba(0, 0, 0, .54),
+    0 0 30px rgba(255, 38, 48, .24),
+    inset 0 1px 0 rgba(255,255,255,.10);
+}
 .floating.is-hidden-panel {
   display: none;
 }
@@ -965,19 +980,19 @@ button { cursor: pointer; }
 }
 .terminal { left: 24px; bottom: 24px; width: 290px; }
 .project-link { left: 325px; bottom: 24px; width: 300px; }
-.music-player {
+.floating.music-player {
   position: absolute;
   overflow: hidden;
   border-color: rgba(238, 201, 112, .38);
   background:
     linear-gradient(135deg, rgba(255, 226, 160, .08), transparent 32%),
-    linear-gradient(180deg, rgba(2, 5, 10, .50), rgba(3, 7, 15, .86)),
+    linear-gradient(180deg, rgba(2, 5, 10, .28), rgba(3, 7, 15, .72)),
     url("assets/music-youtube-panel-bg.png") center / cover no-repeat;
   box-shadow:
     0 0 0 1px rgba(238, 201, 112, .10) inset,
     0 18px 36px rgba(0, 0, 0, .40);
 }
-.music-player:before {
+.floating.music-player:before {
   content: "";
   position: absolute;
   inset: 0;
@@ -985,9 +1000,9 @@ button { cursor: pointer; }
   pointer-events: none;
   background:
     radial-gradient(circle at 20% 10%, rgba(255, 241, 191, .18), transparent 28%),
-    linear-gradient(90deg, rgba(1, 6, 13, .48), rgba(1, 6, 13, .22) 45%, rgba(1, 6, 13, .66)),
+    linear-gradient(90deg, rgba(1, 6, 13, .34), rgba(1, 6, 13, .10) 45%, rgba(1, 6, 13, .52)),
     repeating-linear-gradient(180deg, rgba(255,255,255,.04) 0 1px, transparent 1px 5px);
-  opacity: .86;
+  opacity: .70;
 }
 .music-player .window-bar {
   position: relative;
@@ -2934,12 +2949,10 @@ body:before {
         
       </div> -->
       <div class="top-menu">
-  <button>SCHEDULE</button>
-  <button>LINE OA</button>
-  <button>MUSIC</button>
-  <button>LINE OA</button>
-  <button>TEAM CHAT</button>
-  <button>COMMAND</button>
+  <button type="button" data-panel-target="status-card-one">SCHEDULE</button>
+  <button type="button" data-panel-target="project-link">MUSIC</button>
+  <button type="button" data-panel-target="status-card-two">LINE OA</button>
+  <button type="button" data-panel-target="terminal">COMMAND</button>
   </div>
       <div class="panel-dock" id="panelDock" aria-label="Open or hide dashboard panels"></div>
       <div class="floating status-card appointment-card one" data-drag-id="status-card-one">
@@ -4069,16 +4082,31 @@ body:before {
   function showQuickPanel(target) {
     const selectors = {
       "status-card-one": '[data-drag-id="status-card-one"]',
+      "status-card-two": ".status-card.two",
       "project-link": '[data-drag-id="project-link"]',
       "team-chat": ".team-chat",
       terminal: ".terminal"
     };
     const panel = sceneBoard?.querySelector(selectors[target] || "");
     if (!panel) return;
+    sceneBoard.querySelectorAll(".floating.is-focused-panel").forEach(item => item.classList.remove("is-focused-panel"));
     panel.classList.remove("is-hidden-panel");
+    const board = sceneBoard.getBoundingClientRect();
+    const centerPanel = () => {
+      const panelWidth = panel.offsetWidth || 300;
+      const panelHeight = panel.offsetHeight || 140;
+      const safeTop = Math.max(58, Math.round((board.height - panelHeight) / 2));
+      const safeLeft = Math.max(8, Math.round((board.width - panelWidth) / 2));
+      panel.style.left = `${Math.min(safeLeft, Math.max(8, board.width - panelWidth - 8))}px`;
+      panel.style.top = `${Math.min(safeTop, Math.max(58, board.height - panelHeight - 8))}px`;
+      panel.style.right = "auto";
+      panel.style.bottom = "auto";
+      panel.classList.add("is-focused-panel");
+    };
+    centerPanel();
     panel.animate([
-      { transform: "translateY(-5px)", boxShadow: "0 0 0 rgba(255,40,50,0)" },
-      { transform: "translateY(0)", boxShadow: "0 0 28px rgba(255,40,50,.38)" }
+      { transform: "translateY(-7px) scale(.98)", boxShadow: "0 0 0 rgba(255,40,50,0)" },
+      { transform: "translateY(0) scale(1)", boxShadow: "0 0 34px rgba(255,40,50,.38)" }
     ], { duration: 340, easing: "ease-out" });
   }
   function formatMusicTime(seconds) {
