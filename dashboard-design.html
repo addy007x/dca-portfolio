@@ -3234,7 +3234,7 @@ body:before {
   function readLocalStore() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
-      return raw ? JSON.parse(raw) : null;
+      return raw ? withAnnualGoalMetadata(JSON.parse(raw)) : null;
     } catch {
       return null;
     }
@@ -3251,9 +3251,9 @@ body:before {
           headers: { Authorization: `Bearer ${session.token}` }
         });
         if (!fallback.ok) return null;
-        return await fallback.json();
+        return withAnnualGoalMetadata(await fallback.json());
       }
-      return await response.json();
+      return withAnnualGoalMetadata(await response.json());
     } catch {
       return null;
     }
@@ -3281,6 +3281,45 @@ body:before {
   function getAnnualGoalTarget() {
     const saved = Number(localStorage.getItem(ANNUAL_GOAL_KEY));
     return Number.isFinite(saved) && saved > 0 ? saved : 120000;
+  }
+  function withAnnualGoalMetadata(store, target = getAnnualGoalTarget()) {
+    if (!store || typeof store !== "object") return store;
+    const cleanTarget = Math.max(1, Math.round(Number(target) || 120000));
+    return {
+      ...store,
+      annualGoalTHB: cleanTarget,
+      annualGoal: { ...(store.annualGoal || {}), target: cleanTarget },
+      settings: {
+        ...(store.settings || {}),
+        annualGoalTHB: cleanTarget,
+        annualGoal: { ...(store.settings?.annualGoal || {}), target: cleanTarget }
+      }
+    };
+  }
+  async function pushAnnualGoalTarget(target, sourceStore = null) {
+    const session = getSession();
+    if (!apiUrl || !session?.token) return;
+    let baseStore = sourceStore || latestPortfolioStore || readLocalStore();
+    if (!baseStore || typeof baseStore !== "object" || !Object.keys(baseStore).length) {
+      try {
+        const response = await fetch(`${apiUrl}/api/portfolio`, {
+          headers: { Authorization: `Bearer ${session.token}` }
+        });
+        if (response.ok) baseStore = await response.json();
+      } catch (_) {}
+    }
+    if (!baseStore || typeof baseStore !== "object" || !Object.keys(baseStore).length) return;
+    const body = withAnnualGoalMetadata(baseStore, target);
+    try {
+      await fetch(`${apiUrl}/api/portfolio`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${session.token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+    } catch (_) {}
   }
   function firstArray(...values) {
     return values.find(value => Array.isArray(value)) || [];
@@ -3405,8 +3444,12 @@ body:before {
     if (raw === null) return;
     const next = Number(String(raw).replace(/,/g, "").trim());
     if (!Number.isFinite(next) || next <= 0) return;
-    localStorage.setItem(ANNUAL_GOAL_KEY, String(Math.round(next)));
-    renderAnnualGoalPanel(latestPortfolioStore || readLocalStore() || {});
+    const cleanTarget = Math.round(next);
+    localStorage.setItem(ANNUAL_GOAL_KEY, String(cleanTarget));
+    const store = withAnnualGoalMetadata(latestPortfolioStore || readLocalStore() || {}, cleanTarget);
+    latestPortfolioStore = store;
+    renderAnnualGoalPanel(store);
+    pushAnnualGoalTarget(cleanTarget, store);
   }
   function fmtPct(value) {
     const n = Number.isFinite(value) ? value : 0;

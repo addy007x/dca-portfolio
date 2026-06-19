@@ -2,6 +2,7 @@
 
 const AUTH_SESSION_KEY = "siamfolio.googleSession";
 const AUTH_LAST_PROFILE_KEY = "siamfolio.lastProfile";
+const DASHBOARD_ANNUAL_GOAL_KEY = "siamfolio.dashboardDesign.annualGoalTHB";
 const CLOUD_SYNC_DELAY_MS = 1200;
 const AUTH_RELOAD_DELAY_MS = 5000;
 
@@ -93,6 +94,15 @@ function saveLastAuthProfile(user) {
   } catch (_) {}
 }
 
+function getDashboardAnnualGoalTarget() {
+  try {
+    const saved = Number(localStorage.getItem(DASHBOARD_ANNUAL_GOAL_KEY));
+    return Number.isFinite(saved) && saved > 0 ? Math.round(saved) : 120000;
+  } catch (_) {
+    return 120000;
+  }
+}
+
 function reloadAfterAuthDelay(targetUrl = "") {
   clearTimeout(_authReloadTimer);
   _authReloadTimer = setTimeout(() => {
@@ -170,6 +180,7 @@ async function askPortfolioAi(question, history = []) {
 }
 
 function serializePortfolio(s) {
+  const annualGoalTHB = getDashboardAnnualGoalTarget();
   return {
     version: s.version,
     holdings: s.holdings || [],
@@ -181,7 +192,13 @@ function serializePortfolio(s) {
     fx: s.fx,
     fxUpdatedAt: s.fxUpdatedAt || 0,
     pricesUpdatedAt: s.pricesUpdatedAt || 0,
-    settings: s.settings || {},
+    annualGoalTHB,
+    annualGoal: { ...(s.annualGoal || {}), target: annualGoalTHB },
+    settings: {
+      ...(s.settings || {}),
+      annualGoalTHB,
+      annualGoal: { ...(s.settings?.annualGoal || {}), target: annualGoalTHB },
+    },
   };
 }
 

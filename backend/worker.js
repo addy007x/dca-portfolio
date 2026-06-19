@@ -374,6 +374,23 @@ async function mergePortfolioSnapshotForSave(env, user, incoming) {
   }
 
   const next = { ...incoming };
+  const currentGoal = current.annualGoalTHB ?? current.annualGoal?.target ?? current.settings?.annualGoalTHB ?? current.settings?.annualGoal?.target;
+  const incomingGoal = incoming.annualGoalTHB ?? incoming.annualGoal?.target ?? incoming.settings?.annualGoalTHB ?? incoming.settings?.annualGoal?.target;
+  const annualGoalTHB = Number(incomingGoal || currentGoal || 0);
+  if (Number.isFinite(annualGoalTHB) && annualGoalTHB > 0) {
+    next.annualGoalTHB = Math.round(annualGoalTHB);
+    next.annualGoal = { ...(incoming.annualGoal || current.annualGoal || {}), target: Math.round(annualGoalTHB) };
+    next.settings = {
+      ...(current.settings || {}),
+      ...(incoming.settings || {}),
+      annualGoalTHB: Math.round(annualGoalTHB),
+      annualGoal: {
+        ...(current.settings?.annualGoal || {}),
+        ...(incoming.settings?.annualGoal || {}),
+        target: Math.round(annualGoalTHB),
+      },
+    };
+  }
   const incomingTx = Array.isArray(incoming.transactions) ? incoming.transactions : [];
   const currentTx = Array.isArray(current.transactions) ? current.transactions : [];
   const txIds = new Set(incomingTx.map(t => t.id).filter(Boolean));
@@ -1587,7 +1604,7 @@ function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
         paddingAll: "18px",
         backgroundColor: "#191512",
         contents: [
-          flexText("SIAMFOLIO PORTFOLIO", { size: "xs", color: "#E6C56A", weight: "bold" }),
+          flexText("Investment portfolio", { size: "xs", color: "#E6C56A", weight: "bold" }),
           flexText(ownerTitle, { size: "xl", color: "#FFFFFF", weight: "bold", margin: "sm", wrap: true }),
           flexText(new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }), {
             size: "xs",
@@ -1640,8 +1657,13 @@ function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
             cornerRadius: "14px",
             contents: [
               flexText("ANNUAL GOAL", { size: "xs", color: "#E6C56A", weight: "bold" }),
-              flexText(`TARGET / PORTFOLIO ${fmtTHB(goal.target)}`, {
-                size: "sm",
+              flexText("TARGET / PORTFOLIO", {
+                size: "xs",
+                color: "#C9B8A5",
+                weight: "bold",
+              }),
+              flexText(fmtTHB(goal.target), {
+                size: "xl",
                 color: "#FFFFFF",
                 weight: "bold",
                 wrap: true,
@@ -1651,11 +1673,35 @@ function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
                 layout: "horizontal",
                 spacing: "md",
                 contents: [
-                  flexMetric("Portfolio", fmtTHB(goal.invested), "#FFFFFF"),
-                  flexMetric("Remaining", fmtTHB(goal.remaining), "#E6C56A"),
+                  {
+                    type: "box",
+                    layout: "vertical",
+                    spacing: "xs",
+                    paddingAll: "10px",
+                    backgroundColor: "#241D19",
+                    cornerRadius: "8px",
+                    flex: 1,
+                    contents: [
+                      flexText("Portfolio", { size: "xs", color: "#C9B8A5", weight: "bold" }),
+                      flexText(fmtTHB(goal.invested), { size: "lg", color: "#FFFFFF", weight: "bold", wrap: true }),
+                    ],
+                  },
+                  {
+                    type: "box",
+                    layout: "vertical",
+                    spacing: "xs",
+                    paddingAll: "10px",
+                    backgroundColor: "#241D19",
+                    cornerRadius: "8px",
+                    flex: 1,
+                    contents: [
+                      flexText("Remaining", { size: "xs", color: "#C9B8A5", weight: "bold" }),
+                      flexText(fmtTHB(goal.remaining), { size: "lg", color: "#E6C56A", weight: "bold", wrap: true }),
+                    ],
+                  },
                 ],
               },
-              flexText(`${goal.pct.toFixed(2)}% ถึงเป้าหมาย`, {
+              flexText(`${goal.pct.toFixed(2)}% to target`, {
                 size: "xs",
                 color: "#C9B8A5",
                 weight: "bold",
