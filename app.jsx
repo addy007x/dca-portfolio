@@ -40,6 +40,20 @@ function setRouteHash(kind) {
   if (location.hash !== next) history.pushState(null, "", next);
 }
 
+function MangaPageLoader({ active, title = "Opening Portfolio" }) {
+  return (
+    <div className={`manga-page-loader ${active ? "is-active" : ""}`} aria-hidden={!active}>
+      <div className="manga-load-card" role="status" aria-live="polite">
+        <div className="manga-load-emblem" aria-hidden="true"></div>
+        <div className="manga-load-kicker">MANGA SYSTEM</div>
+        <div className="manga-load-title">{title}</div>
+        <div className="manga-load-sub">SYNC DATA / DRAW PANELS / READY</div>
+        <div className="manga-load-track"><span></span></div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const store = useStore();
   const s = store.settings;
@@ -68,8 +82,8 @@ function App() {
       setAppReady(true);
       return;
     }
-    const id = requestAnimationFrame(() => setAppReady(true));
-    return () => cancelAnimationFrame(id);
+    const id = window.setTimeout(() => setAppReady(true), 1200);
+    return () => window.clearTimeout(id);
   }, []);
 
   React.useEffect(() => {
@@ -128,6 +142,7 @@ function App() {
 
   return (
     <>
+      <MangaPageLoader active={!appReady} title="กำลังเปิดพอร์ต" />
       <div className="app" style={{
         opacity: appReady ? 1 : 0,
         transform: appReady ? "translateY(0)" : "translateY(14px)",
