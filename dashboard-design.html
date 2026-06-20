@@ -1232,9 +1232,9 @@ button { cursor: pointer; }
 .music-wave {
   display: flex;
   align-items: end;
-  gap: 3px;
+  gap: 2px;
   height: 28px;
-  width: 112px;
+  width: min(100%, 188px);
   padding: 4px 6px;
   border-radius: 8px;
   background:
@@ -1243,7 +1243,9 @@ button { cursor: pointer; }
   box-shadow: inset 0 0 0 1px rgba(255, 210, 104, .12);
 }
 .music-wave i {
-  width: 5px;
+  flex: 1 1 2px;
+  min-width: 2px;
+  max-width: 4px;
   height: 7px;
   display: block;
   border-radius: 8px 8px 2px 2px;
@@ -1269,6 +1271,13 @@ button { cursor: pointer; }
 .music-wave i:nth-child(12) { height: 20px; }
 .music-wave i:nth-child(13) { height: 10px; }
 .music-wave i:nth-child(14) { height: 16px; }
+.music-wave i:nth-child(7n+1) { height: 10px; }
+.music-wave i:nth-child(7n+2) { height: 19px; }
+.music-wave i:nth-child(7n+3) { height: 13px; }
+.music-wave i:nth-child(7n+4) { height: 24px; }
+.music-wave i:nth-child(7n+5) { height: 15px; }
+.music-wave i:nth-child(7n+6) { height: 22px; }
+.music-wave i:nth-child(7n) { height: 9px; }
 .music-player.is-playing .music-wave i {
   opacity: .96;
   filter: saturate(1.25) brightness(1.14);
@@ -3229,7 +3238,15 @@ body:before {
               <input id="musicUrlInput" type="url" placeholder="Paste YouTube / .mp3 URL">
               <button id="musicLoadBtn" type="button">LOAD</button>
             </div>
-            <div class="music-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="music-wave" aria-hidden="true">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
           </div>
         </div>
         <audio id="musicAudio" preload="metadata"></audio>
