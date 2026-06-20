@@ -2789,7 +2789,7 @@ body:before {
       linear-gradient(180deg, rgba(0,0,0,.12), transparent 40%, rgba(0,0,0,.24)),
       linear-gradient(90deg, rgba(0,0,0,.18), transparent 18%, transparent 82%, rgba(0,0,0,.16));
   }
-  .quick-action-rail {
+  /* .quick-action-rail {
     top: 7px;
     gap: 6px;
     width: min(650px, calc(100% - 18px));
@@ -2807,8 +2807,67 @@ body:before {
     font: 800 10px/1 var(--mono);
     text-shadow: 0 1px 0 rgba(0,0,0,.94), 0 0 10px rgba(255, 211, 108, .42);
     text-transform: uppercase;
-    box-shadow: none;
+    box-shadow: none; */
   }
+ .quick-action-rail{
+  position:absolute;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  width:auto;
+  padding:0;
+  z-index:50;
+}
+
+.quick-action,
+.quick-action-rail > button{
+  min-width:92px;
+  height:38px;
+  padding:0 18px;
+
+  border:1px solid rgba(190,120,35,.95);
+  background:
+    linear-gradient(135deg,
+      rgba(255,185,70,.18),
+      rgba(60,25,8,.68) 45%,
+      rgba(10,8,5,.82)
+    );
+
+  color:#ffe3a1;
+  font:900 13px/1 var(--mono);
+  text-transform:uppercase;
+  text-decoration:none;
+  text-align:center;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  text-shadow:
+    0 2px 1px #000,
+    0 0 8px rgba(255,190,90,.55);
+
+  box-shadow:
+    inset 0 0 14px rgba(255,170,55,.22),
+    0 0 8px rgba(255,110,25,.18);
+
+  cursor:pointer;
+}
+
+.quick-action:hover,
+.quick-action-rail > button:hover{
+  border-color:#ffd27a;
+  color:#fff2c2;
+  box-shadow:
+    inset 0 0 18px rgba(255,190,75,.32),
+    0 0 14px rgba(255,130,30,.32);
+}
+
+ 
   .floating {
     box-shadow: 0 14px 34px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.04);
   }
@@ -3049,12 +3108,6 @@ body:before {
       <div class="scene-bg"></div>
       <div class="scene-effects" aria-hidden="true">
         <span class="magic-sigil"></span>
-        <!-- <span class="floating-book book-one"></span>
-        <span class="floating-book book-two"></span>
-        <span class="floating-book book-three"></span>
-        <span class="flying-page page-one"></span>
-        <span class="flying-page page-two"></span>
-        <span class="flying-page page-three"></span> -->
         <span class="magic-dust dust-one"></span>
         <span class="magic-dust dust-two"></span>
         <span class="magic-dust dust-three"></span>
