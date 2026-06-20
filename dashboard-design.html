@@ -16,10 +16,33 @@
 <style>
 .quick-action,
 .quick-action-rail > button{
-    width: 80px;
-    height: 24px;
-    padding: 0 6px;
-    font-size: 8px !important;
+
+  /* ขนาดปุ่ม */
+  width: 90px;          /* ลดจาก 120-150px เหลือ 90px */
+  min-width: unset;     /* ยกเลิก min-width เดิม */
+  height: 26px;
+  padding: 0 8px;
+
+  /* ตัวอักษร */
+  font-size: 9px !important;
+  font-weight: 900;
+  letter-spacing: .3px;
+
+  /* สี */
+  color:#ffe3a1;
+  border:1px solid rgba(190,120,35,.95);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,185,70,.18),
+      rgba(60,25,8,.68) 45%,
+      rgba(10,8,5,.82)
+    );
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
  
  .brand-mark{
