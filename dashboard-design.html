@@ -1232,25 +1232,61 @@ button { cursor: pointer; }
 .music-wave {
   display: flex;
   align-items: end;
-  gap: 4px;
-  height: 16px;
+  gap: 3px;
+  height: 28px;
+  width: 112px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 14% 95%, rgba(255, 44, 70, .3), transparent 32%),
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+  box-shadow: inset 0 0 0 1px rgba(255, 210, 104, .12);
 }
 .music-wave i {
-  width: 4px;
+  width: 5px;
   height: 7px;
   display: block;
-  border-radius: 999px;
-  background: linear-gradient(180deg, var(--amber), var(--cyan));
-  opacity: .78;
+  border-radius: 8px 8px 2px 2px;
+  background:
+    linear-gradient(180deg, #ffe878 0%, #ff6170 45%, #29f2ff 100%);
+  opacity: .46;
+  transform-origin: bottom;
+  box-shadow:
+    0 0 8px rgba(255, 42, 58, .26),
+    0 0 10px rgba(39, 240, 255, .16);
+  transition: height .22s ease, opacity .22s ease, filter .22s ease;
 }
 .music-wave i:nth-child(2) { height: 14px; }
 .music-wave i:nth-child(3) { height: 9px; }
-.music-wave i:nth-child(4) { height: 16px; }
-.music-wave i:nth-child(5) { height: 11px; }
-.music-wave i:nth-child(6) { height: 15px; }
+.music-wave i:nth-child(4) { height: 19px; }
+.music-wave i:nth-child(5) { height: 12px; }
+.music-wave i:nth-child(6) { height: 22px; }
 .music-wave i:nth-child(7) { height: 8px; }
+.music-wave i:nth-child(8) { height: 18px; }
+.music-wave i:nth-child(9) { height: 11px; }
+.music-wave i:nth-child(10) { height: 24px; }
+.music-wave i:nth-child(11) { height: 13px; }
+.music-wave i:nth-child(12) { height: 20px; }
+.music-wave i:nth-child(13) { height: 10px; }
+.music-wave i:nth-child(14) { height: 16px; }
+.music-player.is-playing .music-wave i {
+  opacity: .96;
+  filter: saturate(1.25) brightness(1.14);
+  animation: musicBars .72s ease-in-out infinite alternate;
+}
+.music-player.is-playing .music-wave i:nth-child(2n) { animation-duration: .54s; }
+.music-player.is-playing .music-wave i:nth-child(3n) { animation-duration: .86s; }
+.music-player.is-playing .music-wave i:nth-child(4n) { animation-delay: -.22s; }
+.music-player.is-playing .music-wave i:nth-child(5n) { animation-delay: -.36s; }
 .music-player:not(.is-playing) .music-wave i {
-  opacity: .36;
+  opacity: .34;
+  box-shadow: none;
+}
+@keyframes musicBars {
+  0% { transform: scaleY(.42); }
+  35% { transform: scaleY(1.15); }
+  70% { transform: scaleY(.72); }
+  100% { transform: scaleY(1.38); }
 }
 .team-chat { right: 24px; bottom: 24px; width: 260px; }
 .line-link { right: 34px; bottom: 118px; width: 260px; border-color: rgba(32, 240, 139, .42); }
@@ -3193,7 +3229,7 @@ body:before {
               <input id="musicUrlInput" type="url" placeholder="Paste YouTube / .mp3 URL">
               <button id="musicLoadBtn" type="button">LOAD</button>
             </div>
-            <div class="music-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="music-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
           </div>
         </div>
         <audio id="musicAudio" preload="metadata"></audio>
