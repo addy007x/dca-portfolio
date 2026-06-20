@@ -2271,35 +2271,33 @@ body:before {
   justify-content: center;
   gap: 8px;
   width: min(720px, calc(100% - 32px));
-  min-height: 46px;
-  padding: 6px 10px;
+  min-height: 36px;
+  padding: 4px 8px;
   transform: translateX(-50%);
-  border: 1px solid rgba(239, 184, 70, .22);
-  background:
-    linear-gradient(90deg, rgba(4, 2, 1, .86), rgba(40, 19, 4, .82), rgba(4, 2, 1, .86));
-  box-shadow: 0 12px 28px rgba(0, 0, 0, .42), inset 0 0 0 1px rgba(255, 221, 143, .05);
-  backdrop-filter: blur(5px);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 .quick-action,
 .quick-action-rail > button {
   flex: 1 1 0;
   min-width: 0;
-  height: 32px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0 10px;
-  border: 1px solid rgba(239, 184, 70, .88);
-  background:
-    linear-gradient(180deg, rgba(84, 45, 9, .82), rgba(31, 15, 3, .9));
+  border: 0;
+  background: transparent;
   color: #ffe7a4;
   font: 900 11px/1 var(--mono);
   letter-spacing: .02em;
   text-transform: uppercase;
   text-decoration: none;
   white-space: nowrap;
-  text-shadow: 0 0 8px rgba(255, 211, 108, .34);
-  box-shadow: inset 0 0 0 1px rgba(255, 239, 184, .08), 0 0 12px rgba(239, 184, 70, .14);
+  text-shadow: 0 1px 0 rgba(0,0,0,.9), 0 0 10px rgba(255, 211, 108, .44);
+  box-shadow: none;
 }
 .quick-action span,
 .quick-action-rail > button {
@@ -2310,8 +2308,9 @@ body:before {
 .quick-action:hover,
 .quick-action-rail > button:hover {
   color: #fff8da;
-  border-color: #ffd36c;
-  background: linear-gradient(180deg, rgba(119, 68, 16, .92), rgba(45, 21, 4, .96));
+  background: transparent;
+  text-shadow: 0 1px 0 rgba(0,0,0,.95), 0 0 14px rgba(255, 52, 54, .5), 0 0 18px rgba(255, 211, 108, .38);
+  transform: translateY(-1px);
 }
 .quick-action:focus-visible,
 .quick-action-rail > button:focus-visible {
@@ -2794,21 +2793,21 @@ body:before {
     top: 7px;
     gap: 6px;
     width: min(650px, calc(100% - 18px));
-    min-height: 42px;
-    padding: 5px 8px;
+    min-height: 32px;
+    padding: 2px 8px;
   }
   .quick-action,
   .quick-action-rail > button {
-    min-width: 15px;
-    height: 10px;
+    min-width: 72px;
+    height: 26px;
     padding: 0 10px;
-    border-color: rgba(239, 184, 70, .88);
-    background: linear-gradient(180deg, rgba(84, 45, 9, .82), rgba(31, 15, 3, .9));
+    border: 0;
+    background: transparent;
     color: #ffe7a4;
     font: 800 10px/1 var(--mono);
-    text-shadow: none;
+    text-shadow: 0 1px 0 rgba(0,0,0,.94), 0 0 10px rgba(255, 211, 108, .42);
     text-transform: uppercase;
-    box-shadow: inset 0 0 0 1px rgba(255, 231, 164, .08), 0 0 14px rgba(239, 184, 70, .12);
+    box-shadow: none;
   }
   .floating {
     box-shadow: 0 14px 34px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.04);
