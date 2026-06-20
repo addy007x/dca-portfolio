@@ -773,7 +773,7 @@ button { cursor: pointer; }
   left: 50%;
   top: 14px;
   z-index: 7;
-  display: none;
+  display: none !important;
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
@@ -782,7 +782,7 @@ button { cursor: pointer; }
   pointer-events: auto;
 }
 .panel-dock.has-hidden-panels {
-  display: flex;
+  display: none !important;
 }
 .panel-dock button {
   min-height: 26px;
@@ -4522,6 +4522,7 @@ body:before {
       if (!panelDock) return;
       panelDock.innerHTML = "";
       panelDock.classList.remove("has-hidden-panels");
+      return;
       panels.forEach(panel => {
         const button = document.createElement("button");
         const hidden = panel.classList.contains("is-hidden-panel");
