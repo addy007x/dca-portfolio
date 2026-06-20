@@ -15,35 +15,25 @@
  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;1,600;1,700;1,800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
 .quick-action,
-.quick-action-rail > button{
+.quick-action-rail > button {
+    width: 78px !important;
+    min-width: 78px !important;
+    max-width: 78px !important;
 
-  /* ขนาดปุ่ม */
-  width: 1px;          /* ลดจาก 120-150px เหลือ 90px */
-  min-width: unset;     /* ยกเลิก min-width เดิม */
-  height: 1px;
-  padding: 0 5px;
+    height: 24px !important;
+    padding: 0 !important;
 
-  /* ตัวอักษร */
-  font-size: 9px !important;
-  font-weight: 900;
-  letter-spacing: .3px;
+    font-size: 9px !important;
+    font-weight: 900 !important;
 
-  /* สี */
-  color:#ffe3a1;
-  border:1px solid rgba(190,120,35,.95);
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255,185,70,.18),
-      rgba(60,25,8,.68) 45%,
-      rgba(10,8,5,.82)
-    );
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
+    flex: 0 0 78px !important;
 }
+ .quick-action-rail{
+    gap: 6px !important;
+    width: auto !important;
+    display: flex;
+}
+ 
  
  .brand-mark{
     border: none !important;
