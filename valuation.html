@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Valuation Lab - SiamFolio</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#120305">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060608;
+  --panel: rgba(8, 9, 13, .82);
+  --panel-2: rgba(19, 12, 13, .9);
+  --line: rgba(234, 35, 45, .46);
+  --line-soft: rgba(234, 35, 45, .2);
+  --red: #ef1c28;
+  --red-2: #9b0710;
+  --gold: #f5cf76;
+  --text: #f4f1ed;
+  --muted: #aaa0a0;
+  --green: #36f58d;
+  --cyan: #28d7ff;
+  --bad: #ff5264;
+  --mono: "JetBrains Mono", monospace;
+  --display: "Barlow Condensed", "IBM Plex Sans Thai", sans-serif;
+  --thai: "IBM Plex Sans Thai", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--thai);
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.8), rgba(0,0,0,.25), rgba(0,0,0,.82)),
+    radial-gradient(circle at 50% 12%, rgba(230, 18, 32, .2), transparent 38%),
+    url("assets/manga-dashboard-library.png") center / cover fixed no-repeat,
+    var(--bg);
+  overflow-x: hidden;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 4px),
+    radial-gradient(circle at 50% 50%, transparent 45%, rgba(0,0,0,.64));
+  mix-blend-mode: screen;
+  opacity: .32;
+}
+a { color: inherit; text-decoration: none; }
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+.shell {
+  min-height: 100vh;
+  padding: 14px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+}
+.topbar {
+  border: 1px solid var(--line);
+  background: linear-gradient(90deg, rgba(7,8,11,.92), rgba(14,8,10,.86));
+  box-shadow: 0 0 22px rgba(239,28,40,.18), inset 0 0 0 1px rgba(255,255,255,.03);
+  min-height: 78px;
+  display: grid;
+  grid-template-columns: minmax(220px, 360px) 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  position: relative;
+  overflow: hidden;
+}
+.topbar::after, .panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, transparent 0 28%, rgba(255,255,255,.06) 30%, transparent 34% 100%);
+  transform: translateX(-70%);
+  animation: shine 7s ease-in-out infinite;
+}
+@keyframes shine {
+  0%, 55% { transform: translateX(-75%); }
+  72%, 100% { transform: translateX(120%); }
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.brand img {
+  width: 54px;
+  height: 54px;
+  object-fit: cover;
+  border: 1px solid rgba(239,28,40,.72);
+  box-shadow: 0 0 18px rgba(239,28,40,.48);
+}
+.brand h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(26px, 3vw, 40px);
+  line-height: .9;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  font-style: italic;
+}
+.brand p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+.nav {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.nav a {
+  min-width: 106px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(239,28,40,.48);
+  background: rgba(0,0,0,.52);
+  color: #f8f1e4;
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 800;
+  font-style: italic;
+  text-transform: uppercase;
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+.nav a.active {
+  background: linear-gradient(135deg, #c61220, #5b0208);
+  box-shadow: 0 0 18px rgba(239,28,40,.42);
+}
+.clock {
+  font-family: var(--mono);
+  font-weight: 800;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(315px, 380px) minmax(440px, 1fr) minmax(300px, 360px);
+  gap: 12px;
+}
+.panel {
+  position: relative;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(10, 11, 16, .9), rgba(4, 4, 7, .84)),
+    radial-gradient(circle at 0 0, rgba(239,28,40,.14), transparent 34%);
+  box-shadow: 0 0 24px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.025);
+  overflow: hidden;
+}
+.panel-pad { padding: 18px; }
+.section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(239,28,40,.28);
+  padding-bottom: 10px;
+}
+.section-title h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 26px;
+  line-height: 1;
+  text-transform: uppercase;
+  font-style: italic;
+}
+.section-title span {
+  color: var(--gold);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.field { display: grid; gap: 6px; }
+.field.full { grid-column: 1 / -1; }
+.field label {
+  color: #d7cbc3;
+  font-size: 12px;
+  font-weight: 800;
+}
+input, select {
+  min-width: 0;
+  width: 100%;
+  height: 42px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.5);
+  color: var(--text);
+  padding: 0 12px;
+  outline: 0;
+}
+input:focus, select:focus {
+  border-color: rgba(239,28,40,.74);
+  box-shadow: 0 0 0 3px rgba(239,28,40,.16);
+}
+.button-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.btn {
+  min-height: 44px;
+  border: 1px solid rgba(255,255,255,.15);
+  color: #fff;
+  background: rgba(0,0,0,.46);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.btn.primary {
+  border-color: rgba(239,28,40,.76);
+  background: linear-gradient(135deg, #ec1827, #68030a);
+  box-shadow: 0 0 20px rgba(239,28,40,.25);
+}
+.btn.gold {
+  color: #1a0908;
+  border-color: rgba(245,207,118,.72);
+  background: linear-gradient(135deg, #ffdf84, #b67b20);
+}
+.btn.ghost:hover, .btn.primary:hover, .btn.gold:hover {
+  filter: brightness(1.12);
+}
+.hint {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.hero-panel {
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 12px;
+}
+.ticker-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 18px;
+  min-height: 154px;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.88), rgba(0,0,0,.4)),
+    url("assets/portfolio-earn-panel-bg.png") center / cover no-repeat;
+  border-bottom: 1px solid var(--line);
+}
+.ticker-card h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(52px, 7vw, 92px);
+  line-height: .82;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.ticker-card p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+.price-box {
+  min-width: 150px;
+  align-self: start;
+  border: 1px solid rgba(245,207,118,.24);
+  padding: 12px;
+  background: rgba(0,0,0,.62);
+  text-align: right;
+}
+.price-box b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 22px;
+}
+.price-box small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 18px;
+}
+.metric {
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(0,0,0,.46);
+  padding: 12px;
+  min-height: 92px;
+}
+.metric span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.metric b {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--display);
+  font-size: 28px;
+  line-height: .95;
+}
+.metric.good b { color: var(--green); }
+.metric.bad b { color: var(--bad); }
+.summary {
+  margin: 0 18px 18px;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 1fr 210px;
+  gap: 18px;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(239,28,40,.18), rgba(0,0,0,.58)),
+    rgba(0,0,0,.45);
+  border: 1px solid rgba(239,28,40,.36);
+}
+.gauge {
+  height: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.68);
+  margin: 12px 0 8px;
+}
+.gauge span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ef1c28, #f5cf76, #36f58d);
+  transition: width .35s ease;
+}
+.decision {
+  text-align: right;
+}
+.decision b {
+  display: block;
+  font-family: var(--display);
+  font-size: 44px;
+  line-height: .9;
+  text-transform: uppercase;
+}
+.decision small { color: var(--muted); }
+.formula-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.formula {
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(0,0,0,.42);
+}
+.formula h3 {
+  margin: 0 0 10px;
+  font-family: var(--display);
+  text-transform: uppercase;
+  font-style: italic;
+}
+.formula b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 18px;
+}
+.formula p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.watchlist {
+  display: grid;
+  gap: 10px;
+  max-height: calc(100vh - 168px);
+  overflow: auto;
+  padding-right: 4px;
+}
+.watch-row {
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(0,0,0,.46);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.watch-row strong {
+  display: block;
+  font-family: var(--display);
+  font-size: 22px;
+  text-transform: uppercase;
+}
+.watch-row span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.tag {
+  border: 1px solid rgba(255,255,255,.14);
+  padding: 5px 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 900;
+}
+.tag.good { color: var(--green); border-color: rgba(54,245,141,.4); }
+.tag.bad { color: var(--bad); border-color: rgba(255,82,100,.4); }
+.tag.neutral { color: var(--gold); border-color: rgba(245,207,118,.4); }
+.watch-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: end;
+}
+.icon-btn {
+  width: 32px;
+  height: 30px;
+  border: 1px solid rgba(239,28,40,.42);
+  background: rgba(0,0,0,.45);
+  color: var(--text);
+}
+.empty {
+  border: 1px dashed rgba(255,255,255,.18);
+  color: var(--muted);
+  padding: 18px;
+  text-align: center;
+}
+.note {
+  padding: 14px 18px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.positive { color: var(--green) !important; }
+.negative { color: var(--bad) !important; }
+.neutral-text { color: var(--gold) !important; }
+@media (max-width: 1180px) {
+  .grid { grid-template-columns: 1fr; }
+  .watchlist { max-height: none; }
+  .topbar { grid-template-columns: 1fr; }
+  .nav { justify-content: flex-start; overflow-x: auto; }
+}
+@media (max-width: 720px) {
+  .shell { padding: 8px; }
+  .field-grid, .button-row, .result-grid, .summary, .formula-list { grid-template-columns: 1fr; }
+  .ticker-card { grid-template-columns: 1fr; }
+  .price-box { text-align: left; }
+  .nav a { min-width: 92px; }
+}
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="topbar">
+    <a class="brand" href="./dashboard-design.html" aria-label="Back to dashboard">
+      <img src="assets/blood-compass-emblem.png" alt="">
+      <div>
+        <h1>Valuation Lab</h1>
+        <p>Thai & US stock intrinsic value scanner</p>
+      </div>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="./dashboard-design.html">Dashboard</a>
+      <a class="active" href="./valuation.html">Valuation</a>
+      <a href="./index.html#dashboard">Portfolio</a>
+      <a href="./pos/">POS</a>
+    </nav>
+    <div class="clock" id="clock">--:--:--</div>
+  </header>
+
+  <section class="grid">
+    <aside class="panel panel-pad">
+      <div class="section-title">
+        <h2>Input</h2>
+        <span>assumptions</span>
+      </div>
+      <form id="valuationForm">
+        <div class="field-grid">
+          <div class="field">
+            <label for="ticker">Ticker</label>
+            <input id="ticker" value="NVDA" autocomplete="off" placeholder="AAPL / PTT.BK">
+          </div>
+          <div class="field">
+            <label for="market">Market</label>
+            <select id="market">
+              <option value="US">US stock</option>
+              <option value="TH">Thai stock</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="currency">Currency</label>
+            <select id="currency">
+              <option value="USD">USD</option>
+              <option value="THB">THB</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="price">ราคาปัจจุบัน</label>
+            <input id="price" type="number" step="0.01" value="120">
+          </div>
+          <div class="field">
+            <label for="eps">EPS ต่อหุ้น</label>
+            <input id="eps" type="number" step="0.01" value="4.5">
+          </div>
+          <div class="field">
+            <label for="book">Book value/share</label>
+            <input id="book" type="number" step="0.01" value="22">
+          </div>
+          <div class="field">
+            <label for="fcf">FCF ต่อหุ้น</label>
+            <input id="fcf" type="number" step="0.01" value="5.2">
+          </div>
+          <div class="field">
+            <label for="dividend">Dividend/share</label>
+            <input id="dividend" type="number" step="0.01" value="0.2">
+          </div>
+          <div class="field">
+            <label for="growth">Growth ต่อปี %</label>
+            <input id="growth" type="number" step="0.1" value="12">
+          </div>
+          <div class="field">
+            <label for="terminalGrowth">Terminal growth %</label>
+            <input id="terminalGrowth" type="number" step="0.1" value="3">
+          </div>
+          <div class="field">
+            <label for="discount">Discount rate %</label>
+            <input id="discount" type="number" step="0.1" value="10">
+          </div>
+          <div class="field">
+            <label for="years">ปีที่คำนวณ DCF</label>
+            <input id="years" type="number" step="1" min="1" max="20" value="10">
+          </div>
+          <div class="field full">
+            <label for="margin">Margin of safety ที่ต้องการ %</label>
+            <input id="margin" type="number" step="1" value="25">
+          </div>
+        </div>
+        <div class="button-row">
+          <button class="btn primary" type="submit">Calculate</button>
+          <button class="btn gold" id="fetchPriceBtn" type="button">Fetch Price</button>
+        </div>
+        <div class="button-row">
+          <button class="btn ghost" id="saveBtn" type="button">Save Watchlist</button>
+          <button class="btn ghost" id="resetBtn" type="button">Reset Sample</button>
+        </div>
+      </form>
+      <p class="hint">ข้อมูลราคาดึงจาก Worker เดิมของ SiamFolio ผ่าน Yahoo Finance แบบ best-effort ส่วนงบการเงิน/EPS/FCF ให้ใส่เองเพื่อกันข้อมูลผิดพลาด ระบบนี้เป็นเครื่องมือช่วยคิด ไม่ใช่คำแนะนำการลงทุน</p>
+    </aside>
+
+    <section class="panel hero-panel">
+      <div class="ticker-card">
+        <div>
+          <h2 id="resultTicker">NVDA</h2>
+          <p id="resultSubtitle">Intrinsic value estimate</p>
+        </div>
+        <div class="price-box">
+          <small>Market price</small>
+          <b id="marketPrice">$120.00</b>
+          <small id="priceSource">manual</small>
+        </div>
+      </div>
+      <div class="result-grid">
+        <div class="metric">
+          <span>Fair Value</span>
+          <b id="fairValue">$0.00</b>
+        </div>
+        <div class="metric">
+          <span>Buy Zone</span>
+          <b id="buyZone">$0.00</b>
+        </div>
+        <div class="metric" id="upsideMetric">
+          <span>Upside</span>
+          <b id="upside">0.00%</b>
+        </div>
+        <div class="metric" id="mosMetric">
+          <span>Safety Gap</span>
+          <b id="mos">0.00%</b>
+        </div>
+      </div>
+      <div class="summary">
+        <div>
+          <div class="section-title" style="margin:0 0 8px;padding-bottom:8px">
+            <h2 id="verdictTitle">WAIT</h2>
+            <span id="valuationMode">blend model</span>
+          </div>
+          <div class="gauge"><span id="gaugeFill"></span></div>
+          <p class="hint" id="verdictText">ใส่สมมติฐานแล้วกด Calculate เพื่อประเมินมูลค่าที่แท้จริง</p>
+        </div>
+        <div class="decision">
+          <small>Signal</small>
+          <b id="signal">-</b>
+        </div>
+      </div>
+      <div class="panel-pad" style="padding-top:0">
+        <div class="formula-list">
+          <article class="formula">
+            <h3>DCF</h3>
+            <b id="dcfValue">$0.00</b>
+            <p>คิดจาก FCF ต่อหุ้น เติบโตตามสมมติฐาน แล้วต่อด้วย terminal value</p>
+          </article>
+          <article class="formula">
+            <h3>Graham</h3>
+            <b id="grahamValue">$0.00</b>
+            <p>เหมาะกับหุ้นที่มีกำไรและมูลค่าทางบัญชีชัดเจน สูตร sqrt(22.5 x EPS x BVPS)</p>
+          </article>
+          <article class="formula">
+            <h3>Dividend</h3>
+            <b id="dividendValue">$0.00</b>
+            <p>เหมาะกับหุ้นปันผล ถ้าไม่มี dividend ระบบจะลดน้ำหนักสูตรนี้อัตโนมัติ</p>
+          </article>
+        </div>
+      </div>
+      <div class="note">อ่านผลแบบเร็ว: ราคาอยู่ต่ำกว่า Buy Zone = น่าสนใจตามสมมติฐาน, อยู่ใกล้ Fair Value = รอ, สูงกว่า Fair Value มาก = แพง ระวังสมมติฐานเติบโตสูงเกินจริง</div>
+    </section>
+
+    <aside class="panel panel-pad">
+      <div class="section-title">
+        <h2>Watchlist</h2>
+        <span id="watchCount">0 saved</span>
+      </div>
+      <div class="watchlist" id="watchlist"></div>
+    </aside>
+  </section>
+</main>
+<script src="auth-config.js"></script>
+<script>
+(() => {
+  const API_BASE = window.AUTH_CONFIG?.apiUrl || "https://siamfolio-api.kingbooms5678.workers.dev";
+  const KEY = "siamfolio.valuation.watchlist";
+  const $ = (id) => document.getElementById(id);
+  const fields = ["ticker","market","currency","price","eps","book","fcf","dividend","growth","terminalGrowth","discount","years","margin"];
+  const state = { last: null, source: "manual" };
+  const samples = {
+    US: { ticker: "NVDA", market: "US", currency: "USD", price: 120, eps: 4.5, book: 22, fcf: 5.2, dividend: 0.2, growth: 12, terminalGrowth: 3, discount: 10, years: 10, margin: 25 },
+    TH: { ticker: "PTT.BK", market: "TH", currency: "THB", price: 34, eps: 3.4, book: 38, fcf: 4.1, dividend: 2, growth: 3, terminalGrowth: 2, discount: 9, years: 10, margin: 25 },
+  };
+
+  function num(id) { return Number($(id)?.value || 0); }
+  function text(id) { return String($(id)?.value || "").trim(); }
+  function fmt(value, currency = text("currency")) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return "-";
+    const symbol = currency === "THB" ? "฿" : "$";
+    return symbol + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function pct(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return "0.00%";
+    return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+  }
+  function safeRate(value, fallback) {
+    const n = Number(value) / 100;
+    return Number.isFinite(n) ? n : fallback;
+  }
+  function collect() {
+    const data = {};
+    for (const id of fields) data[id] = ["ticker","market","currency"].includes(id) ? text(id) : num(id);
+    data.ticker = data.ticker.toUpperCase();
+    return data;
+  }
+  function applyData(data) {
+    for (const id of fields) if ($(id) && data[id] !== undefined) $(id).value = data[id];
+    state.source = data.source || "manual";
+    calculate();
+  }
+  function dcfValue({ fcf, growth, terminalGrowth, discount, years }) {
+    const g = safeRate(growth, 0);
+    const tg = Math.min(safeRate(terminalGrowth, 0.02), Math.max(0, safeRate(discount, 0.1) - 0.01));
+    const r = Math.max(safeRate(discount, 0.1), tg + 0.01);
+    const n = Math.max(1, Math.min(20, Math.round(Number(years) || 10)));
+    let pv = 0;
+    let cash = Number(fcf) || 0;
+    for (let year = 1; year <= n; year++) {
+      cash *= (1 + g);
+      pv += cash / Math.pow(1 + r, year);
+    }
+    const terminal = cash * (1 + tg) / (r - tg);
+    return pv + terminal / Math.pow(1 + r, n);
+  }
+  function grahamValue({ eps, book }) {
+    const e = Number(eps) || 0;
+    const b = Number(book) || 0;
+    return e > 0 && b > 0 ? Math.sqrt(22.5 * e * b) : 0;
+  }
+  function dividendValue({ dividend, growth, discount }) {
+    const d = Number(dividend) || 0;
+    const g = safeRate(growth, 0);
+    const r = Math.max(safeRate(discount, 0.1), g + 0.01);
+    return d > 0 ? (d * (1 + g)) / (r - g) : 0;
+  }
+  function blend(values) {
+    const weights = [
+      { value: values.dcf, weight: 0.55 },
+      { value: values.graham, weight: 0.3 },
+      { value: values.dividend, weight: 0.15 },
+    ].filter(x => Number.isFinite(x.value) && x.value > 0);
+    const totalWeight = weights.reduce((sum, x) => sum + x.weight, 0);
+    if (!totalWeight) return 0;
+    return weights.reduce((sum, x) => sum + x.value * (x.weight / totalWeight), 0);
+  }
+  function calculate() {
+    const data = collect();
+    const values = {
+      dcf: dcfValue(data),
+      graham: grahamValue(data),
+      dividend: dividendValue(data),
+    };
+    const fair = blend(values);
+    const price = Number(data.price) || 0;
+    const marginRate = Math.max(0, Math.min(80, Number(data.margin) || 0)) / 100;
+    const buyZone = fair * (1 - marginRate);
+    const upside = price > 0 ? ((fair / price) - 1) * 100 : 0;
+    const mos = fair > 0 ? ((fair - price) / fair) * 100 : 0;
+    const progress = fair > 0 ? Math.max(0, Math.min(100, (price / fair) * 100)) : 0;
+    let verdict = "WAIT";
+    let signal = "HOLD";
+    let detail = "ราคาอยู่ใกล้มูลค่ายุติธรรม ควรรอส่วนเผื่อความปลอดภัยมากกว่านี้";
+    if (price > 0 && fair > 0 && price <= buyZone) {
+      verdict = "UNDERVALUED";
+      signal = "BUY ZONE";
+      detail = "ราคาต่ำกว่าโซนซื้อที่รวม Margin of Safety แล้ว น่าสนใจตามสมมติฐานชุดนี้";
+    } else if (price > fair && fair > 0) {
+      verdict = "EXPENSIVE";
+      signal = "RISK";
+      detail = "ราคาสูงกว่ามูลค่ายุติธรรม ระวังจ่ายแพงหรือสมมติฐานเติบโตสูงเกินไป";
+    }
+    state.last = { ...data, ...values, fair, buyZone, upside, mos, source: state.source, savedAt: Date.now() };
+    $("resultTicker").textContent = data.ticker || "TICKER";
+    $("resultSubtitle").textContent = `${data.market} stock intrinsic value estimate`;
+    $("marketPrice").textContent = fmt(price, data.currency);
+    $("priceSource").textContent = state.source;
+    $("fairValue").textContent = fmt(fair, data.currency);
+    $("buyZone").textContent = fmt(buyZone, data.currency);
+    $("upside").textContent = pct(upside);
+    $("mos").textContent = pct(mos);
+    $("dcfValue").textContent = fmt(values.dcf, data.currency);
+    $("grahamValue").textContent = fmt(values.graham, data.currency);
+    $("dividendValue").textContent = values.dividend > 0 ? fmt(values.dividend, data.currency) : "N/A";
+    $("verdictTitle").textContent = verdict;
+    $("signal").textContent = signal;
+    $("verdictText").textContent = detail;
+    $("gaugeFill").style.width = `${progress}%`;
+    $("upsideMetric").className = `metric ${upside >= 0 ? "good" : "bad"}`;
+    $("mosMetric").className = `metric ${mos >= 0 ? "good" : "bad"}`;
+  }
+  async function fetchPrice() {
+    const raw = text("ticker").toUpperCase();
+    if (!raw) return;
+    const symbol = $("market").value === "TH" && !raw.includes(".") ? `${raw}.BK` : raw;
+    $("fetchPriceBtn").textContent = "Fetching...";
+    $("fetchPriceBtn").disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/prices/stocks?symbols=${encodeURIComponent(symbol)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const info = data[symbol] || data[raw];
+      if (!info || typeof info.price !== "number") throw new Error("No quote");
+      $("ticker").value = symbol;
+      $("price").value = Number(info.price).toFixed(2);
+      if (info.currency) $("currency").value = String(info.currency).toUpperCase() === "THB" ? "THB" : "USD";
+      state.source = `${info.source || "quote"} ${info.currency || ""}`.trim();
+      calculate();
+    } catch (e) {
+      alert("ดึงราคาไม่สำเร็จ: " + e.message + "\\nใส่ราคาด้วยมือได้เลยครับ");
+    } finally {
+      $("fetchPriceBtn").textContent = "Fetch Price";
+      $("fetchPriceBtn").disabled = false;
+    }
+  }
+  function loadWatch() {
+    try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; }
+  }
+  function saveWatch(items) {
+    localStorage.setItem(KEY, JSON.stringify(items.slice(0, 30)));
+    renderWatch();
+  }
+  function saveCurrent() {
+    calculate();
+    if (!state.last?.ticker) return;
+    const items = loadWatch().filter(x => x.ticker !== state.last.ticker);
+    items.unshift(state.last);
+    saveWatch(items);
+  }
+  function renderWatch() {
+    const items = loadWatch();
+    $("watchCount").textContent = `${items.length} saved`;
+    if (!items.length) {
+      $("watchlist").innerHTML = '<div class="empty">ยังไม่มี watchlist<br>คำนวณแล้วกด Save Watchlist</div>';
+      return;
+    }
+    $("watchlist").innerHTML = items.map((item, index) => {
+      const good = Number(item.upside) >= 15;
+      const bad = Number(item.upside) < 0;
+      const cls = good ? "good" : bad ? "bad" : "neutral";
+      const label = good ? "BUY ZONE" : bad ? "EXPENSIVE" : "WAIT";
+      return `
+        <article class="watch-row">
+          <div>
+            <strong>${escapeHtml(item.ticker)}</strong>
+            <span>${fmt(item.price, item.currency)} price / ${fmt(item.fair, item.currency)} fair</span>
+          </div>
+          <div>
+            <span class="tag ${cls}">${label}</span>
+            <div class="watch-actions">
+              <button class="icon-btn" data-load="${index}" type="button" title="Load">↗</button>
+              <button class="icon-btn" data-delete="${index}" type="button" title="Delete">×</button>
+            </div>
+          </div>
+        </article>`;
+    }).join("");
+    document.querySelectorAll("[data-load]").forEach(btn => btn.addEventListener("click", () => applyData(loadWatch()[Number(btn.dataset.load)])));
+    document.querySelectorAll("[data-delete]").forEach(btn => btn.addEventListener("click", () => {
+      const items = loadWatch();
+      items.splice(Number(btn.dataset.delete), 1);
+      saveWatch(items);
+    }));
+  }
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  }
+  function tickClock() {
+    $("clock").textContent = new Date().toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "medium" });
+  }
+  $("valuationForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    state.source = state.source || "manual";
+    calculate();
+  });
+  $("fetchPriceBtn").addEventListener("click", fetchPrice);
+  $("saveBtn").addEventListener("click", saveCurrent);
+  $("resetBtn").addEventListener("click", () => applyData(samples[$("market").value] || samples.US));
+  $("market").addEventListener("change", () => applyData(samples[$("market").value] || samples.US));
+  setInterval(tickClock, 1000);
+  tickClock();
+  applyData(samples.US);
+  renderWatch();
+})();
+</script>
+</body>
+</html>
