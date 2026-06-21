@@ -489,6 +489,131 @@ async function handleStocks(url, env) {
   return json(out);
 }
 
+function rawNumber(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (value && typeof value.raw === "number" && Number.isFinite(value.raw)) return value.raw;
+  return null;
+}
+
+function normalizeDividendYield(value) {
+  const n = rawNumber(value);
+  if (n === null || n < 0) return null;
+  // Yahoo quoteSummary usually returns 0.0123 for 1.23%, while quote often
+  // returns 1.23. Treat very small values as fractions and larger values as %.
+  return n <= 0.25 ? n * 100 : n;
+}
+
+function pickDividendInfo(sym, quote = {}, summary = {}) {
+  const summaryDetail = summary?.quoteSummary?.result?.[0]?.summaryDetail || {};
+  const quotePrice = rawNumber(quote.regularMarketPrice) || rawNumber(summaryDetail.regularMarketPrice);
+  let dividendRate =
+    rawNumber(quote.trailingAnnualDividendRate) ??
+    rawNumber(quote.dividendRate) ??
+    rawNumber(summaryDetail.trailingAnnualDividendRate) ??
+    rawNumber(summaryDetail.dividendRate);
+  let dividendYield =
+    normalizeDividendYield(quote.trailingAnnualDividendYield) ??
+    normalizeDividendYield(summaryDetail.trailingAnnualDividendYield) ??
+    normalizeDividendYield(quote.dividendYield) ??
+    normalizeDividendYield(summaryDetail.dividendYield);
+
+  if ((dividendRate === null || dividendRate === 0) && quotePrice && dividendYield) {
+    dividendRate = quotePrice * (dividendYield / 100);
+  }
+  if ((dividendYield === null || dividendYield === 0) && quotePrice && dividendRate) {
+    dividendYield = (dividendRate / quotePrice) * 100;
+  }
+
+  if (!dividendRate && !dividendYield) return [sym, null];
+  return [sym, {
+    dividendRate: dividendRate || 0,
+    dividendYield: dividendYield || 0,
+    currency: quote.currency || summaryDetail.currency || "",
+    source: "yahoo-dividend",
+  }];
+}
+
+function pickDividendHistoryInfo(sym, chart = {}) {
+  const result = chart?.chart?.result?.[0];
+  const meta = result?.meta || {};
+  const dividends = Object.values(result?.events?.dividends || {})
+    .map(item => ({ amount: Number(item?.amount), date: Number(item?.date) }))
+    .filter(item => Number.isFinite(item.amount) && item.amount > 0 && Number.isFinite(item.date))
+    .sort((a, b) => b.date - a.date);
+  if (!dividends.length) return [sym, null];
+
+  const nowSec = Number(meta.regularMarketTime) || Math.floor(Date.now() / 1000);
+  const oneYearAgo = nowSec - 370 * 24 * 60 * 60;
+  let recent = dividends.filter(item => item.date <= nowSec && item.date >= oneYearAgo);
+  if (!recent.length) recent = dividends.slice(0, Math.min(4, dividends.length));
+
+  const dividendRate = recent.reduce((sum, item) => sum + item.amount, 0);
+  const price = rawNumber(meta.regularMarketPrice) || rawNumber(meta.previousClose);
+  const dividendYield = price && dividendRate ? (dividendRate / price) * 100 : 0;
+  return [sym, {
+    dividendRate,
+    dividendYield,
+    currency: meta.currency || "",
+    source: "yahoo-dividend-history",
+    payments: recent.length,
+  }];
+}
+
+async function handleStockDividends(url, env) {
+  const symbols = (url.searchParams.get("symbols") || "").split(",").filter(Boolean);
+  if (symbols.length === 0) return json({});
+  const cacheKey = `yfdiv:${symbols.slice().sort().join(",")}`;
+  const cached = await cacheGet(env, cacheKey);
+  if (cached) return json(cached);
+
+  const quoteMap = {};
+  try {
+    const r = await fetch(
+      `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(","))}`,
+      { headers: { "User-Agent": "Mozilla/5.0 SiamFolio/1.0", "Accept": "application/json" } }
+    );
+    if (r.ok) {
+      const data = await r.json();
+      for (const item of data?.quoteResponse?.result || []) {
+        if (item?.symbol) quoteMap[item.symbol.toUpperCase()] = item;
+      }
+    }
+  } catch (_) {}
+
+  const results = await Promise.all(symbols.map(async (sym) => {
+    const quote = quoteMap[sym.toUpperCase()] || {};
+    let picked = pickDividendInfo(sym, quote, {});
+    if (picked[1]) return picked;
+    try {
+      const r = await fetch(
+        `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(sym)}?modules=summaryDetail`,
+        { headers: { "User-Agent": "Mozilla/5.0 SiamFolio/1.0", "Accept": "application/json" } }
+      );
+      if (r.ok) {
+        const summary = await r.json();
+        picked = pickDividendInfo(sym, quote, summary);
+        if (picked[1]) return picked;
+      }
+    } catch (_) {}
+    try {
+      const r = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1mo&range=2y&events=div`,
+        { headers: { "User-Agent": "Mozilla/5.0 SiamFolio/1.0", "Accept": "application/json" } }
+      );
+      if (!r.ok) return [sym, null];
+      const chart = await r.json();
+      return pickDividendHistoryInfo(sym, chart);
+    } catch (_) {
+      return [sym, null];
+    }
+  }));
+
+  const out = {};
+  for (const [sym, info] of results) if (info) out[sym] = info;
+  await cacheSet(env, cacheKey, out, 60 * 60);
+  return json(out);
+}
+
 async function handleFX(url, env) {
   const from = url.searchParams.get("from") || "USD";
   const to = url.searchParams.get("to") || "THB";
@@ -2209,6 +2334,7 @@ async function handleRequest(req, env, ctx) {
 
   if (path === "/api/prices/crypto") return handleCrypto(url, env);
   if (path === "/api/prices/stocks") return handleStocks(url, env);
+  if (path === "/api/fundamentals/dividends") return handleStockDividends(url, env);
   if (path === "/api/prices/fx") return handleFX(url, env);
   if (path === "/api/health") return json({ ok: true, version: "2.0", time: new Date().toISOString() });
   if (path === "/api/line/status" && req.method === "GET") return json(await lineStatus(env));

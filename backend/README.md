@@ -101,6 +101,7 @@ After setup, the app will:
 GET  /api/health                                   → { ok, version, time }
 GET  /api/prices/crypto?symbols=BTC,ETH            → { BTC: { price, chg1d }, ... }
 GET  /api/prices/stocks?symbols=NVDA,PTT.BK        → { NVDA: { price, chg1d }, ... }
+GET  /api/fundamentals/dividends?symbols=NVDA      → { NVDA: { dividendRate, dividendYield }, ... }
 GET  /api/prices/fx?from=USD&to=THB                → { rate, date, base, quote }
 
 # Authenticated (X-Api-Key header)

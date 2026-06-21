@@ -606,7 +606,7 @@ input:focus, select:focus {
           <div class="field">
             <label for="dividend">ปันผล/หุ้นต่อปี (กรอกเอง)</label>
             <input id="dividend" type="number" step="0.01" value="0.2">
-            <small class="input-note warn" id="dividendSourceNote">ใช้คำนวณ % ปันผลจากค่าที่กรอกเอง ไม่ใช่ข้อมูลสดจากเว็บ</small>
+            <small class="input-note warn" id="dividendSourceNote">กดดึงราคาเพื่อดึงปันผลจากเน็ต หรือกรอกเองได้</small>
           </div>
           <div class="field">
             <label for="growth">Growth ต่อปี %</label>
@@ -638,7 +638,7 @@ input:focus, select:focus {
           <button class="btn ghost" id="resetBtn" type="button">รีเซ็ตตัวอย่าง</button>
         </div>
       </form>
-      <p class="hint">ข้อมูลราคาดึงจาก Worker เดิมของ SiamFolio ผ่าน Yahoo Finance แบบ best-effort ส่วนงบการเงิน/EPS/FCF/ปันผลต่อหุ้น ให้ใส่เองเพื่อกันข้อมูลผิดพลาด ระบบนี้เป็นเครื่องมือช่วยคิด ไม่ใช่คำแนะนำการลงทุน</p>
+      <p class="hint">ข้อมูลราคาและปันผลดึงจาก Worker เดิมของ SiamFolio ผ่าน Yahoo Finance แบบ best-effort ส่วนงบการเงิน/EPS/FCF ให้ใส่เองเพื่อกันข้อมูลผิดพลาด ระบบนี้เป็นเครื่องมือช่วยคิด ไม่ใช่คำแนะนำการลงทุน</p>
     </aside>
 
     <section class="panel hero-panel">
@@ -765,7 +765,7 @@ input:focus, select:focus {
   const KEY = "siamfolio.valuation.watchlist";
   const $ = (id) => document.getElementById(id);
   const fields = ["ticker","market","currency","price","eps","book","fcf","dividend","growth","terminalGrowth","discount","years","margin"];
-  const state = { last: null, source: "manual", dividendSource: "ใช้คำนวณ % ปันผลจากค่าที่กรอกเอง ไม่ใช่ข้อมูลสดจากเว็บ" };
+  const state = { last: null, source: "manual", dividendSource: "กดดึงราคาเพื่อดึงปันผลจากเน็ต หรือกรอกเองได้", onlineDividendYield: null };
   const samples = {
     US: { ticker: "NVDA", market: "US", currency: "USD", price: 120, eps: 4.5, book: 22, fcf: 5.2, dividend: 0.2, growth: 12, terminalGrowth: 3, discount: 10, years: 10, margin: 25 },
     TH: { ticker: "PTT.BK", market: "TH", currency: "THB", price: 34, eps: 3.4, book: 38, fcf: 4.1, dividend: 2, growth: 3, terminalGrowth: 2, discount: 9, years: 10, margin: 25 },
@@ -801,7 +801,7 @@ input:focus, select:focus {
     const affordableShares = lot > 1 ? Math.floor(rawShares / lot) * lot : rawShares;
     const budgetCost = affordableShares * price;
     const budgetIncome = affordableShares * annualDividend;
-    const yieldPct = price > 0 && hasDividend ? (annualDividend / price) * 100 : NaN;
+    const yieldPct = Number.isFinite(state.onlineDividendYield) ? state.onlineDividendYield : (price > 0 && hasDividend ? (annualDividend / price) * 100 : NaN);
     $("heldDividend").textContent = hasDividend ? fmt(heldIncome, data.currency) : "ใส่ปันผลก่อน";
     $("heldDividendNote").textContent = hasDividend ? `${plainNumber(heldShares)} shares x ${fmt(annualDividend, data.currency)}` : "กรอกปันผล/หุ้นต่อปี";
     $("affordableShares").textContent = `${plainNumber(affordableShares)} หุ้น`;
@@ -825,6 +825,8 @@ input:focus, select:focus {
   function applyData(data) {
     for (const id of fields) if ($(id) && data[id] !== undefined) $(id).value = data[id];
     state.source = data.source || "manual";
+    state.onlineDividendYield = null;
+    state.dividendSource = "กดดึงราคาเพื่อดึงปันผลจากเน็ต หรือกรอกเองได้";
     calculate();
   }
   function dcfValue({ fcf, growth, terminalGrowth, discount, years }) {
@@ -924,7 +926,29 @@ input:focus, select:focus {
       $("price").value = Number(info.price).toFixed(2);
       if (info.currency) $("currency").value = String(info.currency).toUpperCase() === "THB" ? "THB" : "USD";
       state.source = `${info.source || "quote"} ${info.currency || ""}`.trim();
-      state.dividendSource = "ราคาอัปเดตแล้ว แต่ปันผล/หุ้นยังเป็นค่าที่กรอกเอง";
+      state.onlineDividendYield = null;
+      state.dividendSource = "ราคาอัปเดตแล้ว กำลังตรวจปันผลจากเน็ต...";
+      try {
+        const divRes = await fetch(`${API_BASE}/api/fundamentals/dividends?symbols=${encodeURIComponent(symbol)}`);
+        if (divRes.ok) {
+          const divData = await divRes.json();
+          const divInfo = divData[symbol] || divData[raw];
+          if (divInfo && Number(divInfo.dividendRate) > 0) {
+            $("dividend").value = Number(divInfo.dividendRate).toFixed(4);
+            const onlineYield = Number(divInfo.dividendYield);
+            state.onlineDividendYield = onlineYield > 0 ? onlineYield : null;
+            state.dividendSource = onlineYield > 0
+              ? `ดึงปันผลจากเน็ตแล้ว: ${onlineYield.toFixed(2)}% ต่อปี`
+              : "ดึงปันผลต่อหุ้นจากเน็ตแล้ว คำนวณ % จากราคาปัจจุบัน";
+          } else {
+            state.dividendSource = "เว็บไม่ส่งข้อมูลปันผลของตัวนี้ ใช้ค่าที่กรอกเอง";
+          }
+        } else {
+          state.dividendSource = "ดึงข้อมูลปันผลไม่สำเร็จ ใช้ค่าที่กรอกเอง";
+        }
+      } catch (_) {
+        state.dividendSource = "ดึงข้อมูลปันผลไม่สำเร็จ ใช้ค่าที่กรอกเอง";
+      }
       calculate();
     } catch (e) {
       alert("ดึงราคาไม่สำเร็จ: " + e.message + "\\nใส่ราคาด้วยมือได้เลยครับ");
@@ -996,8 +1020,14 @@ input:focus, select:focus {
   $("saveBtn").addEventListener("click", saveCurrent);
   $("resetBtn").addEventListener("click", () => applyData(samples[$("market").value] || samples.US));
   fields.filter(id => id !== "market").forEach(id => $(id)?.addEventListener("input", () => {
-    if (id === "ticker") state.dividendSource = "เปลี่ยน ticker แล้ว อย่าลืมตรวจปันผล/หุ้นต่อปี";
-    if (id === "dividend") state.dividendSource = "คำนวณจากปันผล/หุ้นต่อปีที่กรอกเอง";
+    if (id === "ticker") {
+      state.onlineDividendYield = null;
+      state.dividendSource = "เปลี่ยน ticker แล้ว กดดึงราคาเพื่ออัปเดตปันผลจากเน็ต";
+    }
+    if (id === "dividend") {
+      state.onlineDividendYield = null;
+      state.dividendSource = "คำนวณจากปันผล/หุ้นต่อปีที่กรอกเอง";
+    }
     calculate();
   }));
   ["heldShares", "investmentBudget", "lotSize"].forEach(id => $(id)?.addEventListener("input", calculate));
