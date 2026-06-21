@@ -901,7 +901,7 @@ input:focus, select:focus {
     const raw = text("ticker").toUpperCase();
     if (!raw) return;
     const symbol = $("market").value === "TH" && !raw.includes(".") ? `${raw}.BK` : raw;
-    $("fetchPriceBtn").textContent = "Fetching...";
+    $("fetchPriceBtn").textContent = "กำลังดึง...";
     $("fetchPriceBtn").disabled = true;
     try {
       const res = await fetch(`${API_BASE}/api/prices/stocks?symbols=${encodeURIComponent(symbol)}`);
@@ -917,7 +917,7 @@ input:focus, select:focus {
     } catch (e) {
       alert("ดึงราคาไม่สำเร็จ: " + e.message + "\\nใส่ราคาด้วยมือได้เลยครับ");
     } finally {
-      $("fetchPriceBtn").textContent = "Fetch Price";
+      $("fetchPriceBtn").textContent = "ดึงราคา";
       $("fetchPriceBtn").disabled = false;
     }
   }
