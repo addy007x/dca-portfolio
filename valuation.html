@@ -202,6 +202,14 @@ button { cursor: pointer; }
   font-size: 12px;
   font-weight: 800;
 }
+.input-note {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.input-note.warn {
+  color: var(--gold);
+}
 input, select {
   min-width: 0;
   width: 100%;
@@ -596,8 +604,9 @@ input:focus, select:focus {
             <input id="fcf" type="number" step="0.01" value="5.2">
           </div>
           <div class="field">
-            <label for="dividend">Dividend/share</label>
+            <label for="dividend">ปันผล/หุ้นต่อปี (กรอกเอง)</label>
             <input id="dividend" type="number" step="0.01" value="0.2">
+            <small class="input-note warn" id="dividendSourceNote">ใช้คำนวณ % ปันผลจากค่าที่กรอกเอง ไม่ใช่ข้อมูลสดจากเว็บ</small>
           </div>
           <div class="field">
             <label for="growth">Growth ต่อปี %</label>
@@ -629,7 +638,7 @@ input:focus, select:focus {
           <button class="btn ghost" id="resetBtn" type="button">รีเซ็ตตัวอย่าง</button>
         </div>
       </form>
-      <p class="hint">ข้อมูลราคาดึงจาก Worker เดิมของ SiamFolio ผ่าน Yahoo Finance แบบ best-effort ส่วนงบการเงิน/EPS/FCF ให้ใส่เองเพื่อกันข้อมูลผิดพลาด ระบบนี้เป็นเครื่องมือช่วยคิด ไม่ใช่คำแนะนำการลงทุน</p>
+      <p class="hint">ข้อมูลราคาดึงจาก Worker เดิมของ SiamFolio ผ่าน Yahoo Finance แบบ best-effort ส่วนงบการเงิน/EPS/FCF/ปันผลต่อหุ้น ให้ใส่เองเพื่อกันข้อมูลผิดพลาด ระบบนี้เป็นเครื่องมือช่วยคิด ไม่ใช่คำแนะนำการลงทุน</p>
     </aside>
 
     <section class="panel hero-panel">
@@ -756,7 +765,7 @@ input:focus, select:focus {
   const KEY = "siamfolio.valuation.watchlist";
   const $ = (id) => document.getElementById(id);
   const fields = ["ticker","market","currency","price","eps","book","fcf","dividend","growth","terminalGrowth","discount","years","margin"];
-  const state = { last: null, source: "manual" };
+  const state = { last: null, source: "manual", dividendSource: "ใช้คำนวณ % ปันผลจากค่าที่กรอกเอง ไม่ใช่ข้อมูลสดจากเว็บ" };
   const samples = {
     US: { ticker: "NVDA", market: "US", currency: "USD", price: 120, eps: 4.5, book: 22, fcf: 5.2, dividend: 0.2, growth: 12, terminalGrowth: 3, discount: 10, years: 10, margin: 25 },
     TH: { ticker: "PTT.BK", market: "TH", currency: "THB", price: 34, eps: 3.4, book: 38, fcf: 4.1, dividend: 2, growth: 3, terminalGrowth: 2, discount: 9, years: 10, margin: 25 },
@@ -783,6 +792,7 @@ input:focus, select:focus {
   function updateDividendPlanner(data) {
     const price = Number(data.price) || 0;
     const annualDividend = Number(data.dividend) || 0;
+    const hasDividend = annualDividend > 0;
     const heldShares = Math.max(0, num("heldShares"));
     const budget = Math.max(0, num("investmentBudget"));
     const lot = Math.max(1, Math.floor(num("lotSize") || 1));
@@ -791,15 +801,16 @@ input:focus, select:focus {
     const affordableShares = lot > 1 ? Math.floor(rawShares / lot) * lot : rawShares;
     const budgetCost = affordableShares * price;
     const budgetIncome = affordableShares * annualDividend;
-    const yieldPct = price > 0 ? (annualDividend / price) * 100 : 0;
-    $("heldDividend").textContent = fmt(heldIncome, data.currency);
-    $("heldDividendNote").textContent = `${plainNumber(heldShares)} shares x ${fmt(annualDividend, data.currency)}`;
+    const yieldPct = price > 0 && hasDividend ? (annualDividend / price) * 100 : NaN;
+    $("heldDividend").textContent = hasDividend ? fmt(heldIncome, data.currency) : "ใส่ปันผลก่อน";
+    $("heldDividendNote").textContent = hasDividend ? `${plainNumber(heldShares)} shares x ${fmt(annualDividend, data.currency)}` : "กรอกปันผล/หุ้นต่อปี";
     $("affordableShares").textContent = `${plainNumber(affordableShares)} หุ้น`;
     $("budgetCost").textContent = `ใช้เงินประมาณ ${fmt(budgetCost, data.currency)}`;
-    $("budgetDividend").textContent = fmt(budgetIncome, data.currency);
-    $("budgetDividendNote").textContent = `${plainNumber(affordableShares)} shares x ${fmt(annualDividend, data.currency)}`;
-    $("dividendYield").textContent = pct(yieldPct);
-    $("monthlyDividend").textContent = `เฉลี่ย ${fmt(budgetIncome / 12, data.currency)} / เดือน`;
+    $("budgetDividend").textContent = hasDividend ? fmt(budgetIncome, data.currency) : "ใส่ปันผลก่อน";
+    $("budgetDividendNote").textContent = hasDividend ? `${plainNumber(affordableShares)} shares x ${fmt(annualDividend, data.currency)}` : "ยังไม่คำนวณ";
+    $("dividendYield").textContent = hasDividend && price > 0 ? pct(yieldPct) : "N/A";
+    $("monthlyDividend").textContent = hasDividend ? `เฉลี่ย ${fmt(budgetIncome / 12, data.currency)} / เดือน` : "ราคาดึงสด แต่ปันผลต้องกรอกเอง";
+    if ($("dividendSourceNote")) $("dividendSourceNote").textContent = state.dividendSource;
   }
   function safeRate(value, fallback) {
     const n = Number(value) / 100;
@@ -913,6 +924,7 @@ input:focus, select:focus {
       $("price").value = Number(info.price).toFixed(2);
       if (info.currency) $("currency").value = String(info.currency).toUpperCase() === "THB" ? "THB" : "USD";
       state.source = `${info.source || "quote"} ${info.currency || ""}`.trim();
+      state.dividendSource = "ราคาอัปเดตแล้ว แต่ปันผล/หุ้นยังเป็นค่าที่กรอกเอง";
       calculate();
     } catch (e) {
       alert("ดึงราคาไม่สำเร็จ: " + e.message + "\\nใส่ราคาด้วยมือได้เลยครับ");
@@ -983,7 +995,11 @@ input:focus, select:focus {
   $("fetchPriceBtn").addEventListener("click", fetchPrice);
   $("saveBtn").addEventListener("click", saveCurrent);
   $("resetBtn").addEventListener("click", () => applyData(samples[$("market").value] || samples.US));
-  fields.filter(id => id !== "market").forEach(id => $(id)?.addEventListener("input", calculate));
+  fields.filter(id => id !== "market").forEach(id => $(id)?.addEventListener("input", () => {
+    if (id === "ticker") state.dividendSource = "เปลี่ยน ticker แล้ว อย่าลืมตรวจปันผล/หุ้นต่อปี";
+    if (id === "dividend") state.dividendSource = "คำนวณจากปันผล/หุ้นต่อปีที่กรอกเอง";
+    calculate();
+  }));
   ["heldShares", "investmentBudget", "lotSize"].forEach(id => $(id)?.addEventListener("input", calculate));
   $("market").addEventListener("change", () => {
     $("lotSize").value = $("market").value === "TH" ? 100 : 1;
