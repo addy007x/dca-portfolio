@@ -387,6 +387,74 @@ input:focus, select:focus {
   font-size: 12px;
   line-height: 1.5;
 }
+.dividend-planner {
+  margin-top: 12px;
+  border: 1px solid rgba(245,207,118,.28);
+  background:
+    linear-gradient(135deg, rgba(245,207,118,.12), rgba(239,28,40,.08)),
+    rgba(0,0,0,.48);
+  padding: 14px;
+}
+.planner-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(245,207,118,.22);
+  padding-bottom: 10px;
+}
+.planner-head h3 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 28px;
+  line-height: .9;
+  text-transform: uppercase;
+  font-style: italic;
+}
+.planner-head span {
+  color: var(--gold);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.planner-inputs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.planner-output {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.planner-stat {
+  min-height: 86px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(0,0,0,.5);
+  padding: 12px;
+}
+.planner-stat span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.planner-stat b {
+  display: block;
+  margin-top: 7px;
+  font-family: var(--mono);
+  font-size: 19px;
+  color: var(--gold);
+}
+.planner-stat small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
 .watchlist {
   display: grid;
   gap: 10px;
@@ -459,7 +527,7 @@ input:focus, select:focus {
 }
 @media (max-width: 720px) {
   .shell { padding: 8px; }
-  .field-grid, .button-row, .result-grid, .summary, .formula-list { grid-template-columns: 1fr; }
+  .field-grid, .button-row, .result-grid, .summary, .formula-list, .planner-inputs, .planner-output { grid-template-columns: 1fr; }
   .ticker-card { grid-template-columns: 1fr; }
   .price-box { text-align: left; }
   .nav a { min-width: 92px; }
@@ -626,6 +694,48 @@ input:focus, select:focus {
             <p>เหมาะกับหุ้นปันผล ถ้าไม่มี dividend ระบบจะลดน้ำหนักสูตรนี้อัตโนมัติ</p>
           </article>
         </div>
+        <section class="dividend-planner" aria-label="Dividend income calculator">
+          <div class="planner-head">
+            <h3>Dividend Income</h3>
+            <span>shares / budget</span>
+          </div>
+          <div class="planner-inputs">
+            <div class="field">
+              <label for="heldShares">จำนวนหุ้นที่ถือ</label>
+              <input id="heldShares" type="number" step="0.000001" min="0" value="100">
+            </div>
+            <div class="field">
+              <label for="investmentBudget">เงินที่จะซื้อเพิ่ม</label>
+              <input id="investmentBudget" type="number" step="0.01" min="0" value="10000">
+            </div>
+            <div class="field">
+              <label for="lotSize">Lot size</label>
+              <input id="lotSize" type="number" step="1" min="1" value="1">
+            </div>
+          </div>
+          <div class="planner-output">
+            <div class="planner-stat">
+              <span>ปันผลจากหุ้นที่ถือ</span>
+              <b id="heldDividend">-</b>
+              <small id="heldDividendNote">ต่อปีโดยประมาณ</small>
+            </div>
+            <div class="planner-stat">
+              <span>เงินนี้ซื้อได้</span>
+              <b id="affordableShares">-</b>
+              <small id="budgetCost">ตามราคาปัจจุบัน</small>
+            </div>
+            <div class="planner-stat">
+              <span>ปันผลจากเงินลงทุน</span>
+              <b id="budgetDividend">-</b>
+              <small id="budgetDividendNote">ต่อปีโดยประมาณ</small>
+            </div>
+            <div class="planner-stat">
+              <span>Dividend Yield</span>
+              <b id="dividendYield">-</b>
+              <small id="monthlyDividend">เฉลี่ยต่อเดือน</small>
+            </div>
+          </div>
+        </section>
       </div>
       <div class="note">อ่านผลแบบเร็ว: ราคาอยู่ต่ำกว่า Buy Zone = น่าสนใจตามสมมติฐาน, อยู่ใกล้ Fair Value = รอ, สูงกว่า Fair Value มาก = แพง ระวังสมมติฐานเติบโตสูงเกินจริง</div>
     </section>
@@ -664,6 +774,32 @@ input:focus, select:focus {
     const n = Number(value);
     if (!Number.isFinite(n)) return "0.00%";
     return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+  }
+  function plainNumber(value, digits = 6) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return "-";
+    return n.toLocaleString("en-US", { maximumFractionDigits: digits });
+  }
+  function updateDividendPlanner(data) {
+    const price = Number(data.price) || 0;
+    const annualDividend = Number(data.dividend) || 0;
+    const heldShares = Math.max(0, num("heldShares"));
+    const budget = Math.max(0, num("investmentBudget"));
+    const lot = Math.max(1, Math.floor(num("lotSize") || 1));
+    const heldIncome = heldShares * annualDividend;
+    const rawShares = price > 0 ? budget / price : 0;
+    const affordableShares = lot > 1 ? Math.floor(rawShares / lot) * lot : rawShares;
+    const budgetCost = affordableShares * price;
+    const budgetIncome = affordableShares * annualDividend;
+    const yieldPct = price > 0 ? (annualDividend / price) * 100 : 0;
+    $("heldDividend").textContent = fmt(heldIncome, data.currency);
+    $("heldDividendNote").textContent = `${plainNumber(heldShares)} shares x ${fmt(annualDividend, data.currency)}`;
+    $("affordableShares").textContent = `${plainNumber(affordableShares)} หุ้น`;
+    $("budgetCost").textContent = `ใช้เงินประมาณ ${fmt(budgetCost, data.currency)}`;
+    $("budgetDividend").textContent = fmt(budgetIncome, data.currency);
+    $("budgetDividendNote").textContent = `${plainNumber(affordableShares)} shares x ${fmt(annualDividend, data.currency)}`;
+    $("dividendYield").textContent = pct(yieldPct);
+    $("monthlyDividend").textContent = `เฉลี่ย ${fmt(budgetIncome / 12, data.currency)} / เดือน`;
   }
   function safeRate(value, fallback) {
     const n = Number(value) / 100;
@@ -759,6 +895,7 @@ input:focus, select:focus {
     $("gaugeFill").style.width = `${progress}%`;
     $("upsideMetric").className = `metric ${upside >= 0 ? "good" : "bad"}`;
     $("mosMetric").className = `metric ${mos >= 0 ? "good" : "bad"}`;
+    updateDividendPlanner(data);
   }
   async function fetchPrice() {
     const raw = text("ticker").toUpperCase();
@@ -846,7 +983,12 @@ input:focus, select:focus {
   $("fetchPriceBtn").addEventListener("click", fetchPrice);
   $("saveBtn").addEventListener("click", saveCurrent);
   $("resetBtn").addEventListener("click", () => applyData(samples[$("market").value] || samples.US));
-  $("market").addEventListener("change", () => applyData(samples[$("market").value] || samples.US));
+  fields.filter(id => id !== "market").forEach(id => $(id)?.addEventListener("input", calculate));
+  ["heldShares", "investmentBudget", "lotSize"].forEach(id => $(id)?.addEventListener("input", calculate));
+  $("market").addEventListener("change", () => {
+    $("lotSize").value = $("market").value === "TH" ? 100 : 1;
+    applyData(samples[$("market").value] || samples.US);
+  });
   setInterval(tickClock, 1000);
   tickClock();
   applyData(samples.US);
