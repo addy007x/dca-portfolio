@@ -1826,8 +1826,77 @@ function flexList(title, rows, emptyText, color) {
   };
 }
 
+function flexMiniMetric(label, value, color = "#211C18") {
+  return {
+    type: "box",
+    layout: "vertical",
+    spacing: "xs",
+    paddingAll: "10px",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#EFE4D4",
+    borderWidth: "1px",
+    cornerRadius: "12px",
+    flex: 1,
+    contents: [
+      flexText(label, { size: "xxs", color: "#8C7D6B", weight: "bold" }),
+      flexText(value, { size: "md", color, weight: "bold", wrap: true }),
+    ],
+  };
+}
+
+function flexHoldingRow(row, index) {
+  const positive = row.plTHB >= 0;
+  const accent = positive ? "#23A96B" : "#D94E4E";
+  return {
+    type: "box",
+    layout: "horizontal",
+    spacing: "sm",
+    paddingAll: "10px",
+    backgroundColor: index % 2 === 0 ? "#FFFDF8" : "#FBF5EA",
+    borderColor: "#EFE4D4",
+    borderWidth: "1px",
+    cornerRadius: "12px",
+    contents: [
+      {
+        type: "box",
+        layout: "vertical",
+        flex: 5,
+        contents: [
+          flexText(row.ticker, { size: "sm", color: "#211C18", weight: "bold" }),
+          flexText(row.name || `${row.ticker} holding`, {
+            size: "xxs",
+            color: "#8C7D6B",
+            wrap: true,
+            margin: "xs",
+          }),
+        ],
+      },
+      {
+        type: "box",
+        layout: "vertical",
+        flex: 4,
+        contents: [
+          flexText(fmtTHB(row.valueTHB), {
+            size: "sm",
+            color: "#211C18",
+            weight: "bold",
+            align: "end",
+          }),
+          flexText(`${fmtSignedTHB(row.plTHB)} · ${fmtPctValue(row.plPct)}`, {
+            size: "xxs",
+            color: accent,
+            weight: "bold",
+            align: "end",
+            margin: "xs",
+          }),
+        ],
+      },
+    ],
+  };
+}
+
 function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
-  const { rows, totalValue, totalPL, totalPct, gains, losses } = portfolioStats(snapshot);
+  const { rows, totalValue, totalPL, totalPct } = portfolioStats(snapshot);
   if (!rows.length) return formatPortfolioSummary(snapshot, "summary");
 
   const positive = totalPL >= 0;
@@ -1835,6 +1904,7 @@ function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
   const ownerName = String(profileLabel || "SiamFolio").trim() || "SiamFolio";
   const ownerTitle = ownerName.toLocaleUpperCase("en-US");
   const goal = portfolioGoalStats(snapshot, totalValue);
+  const allHoldings = rows.slice().sort((a, b) => b.valueTHB - a.valueTHB);
   const altText = `${ownerName} Portfolio ${fmtTHB(totalValue)} ${fmtSignedTHB(totalPL)} (${fmtPctValue(totalPct)})`;
 
   return {
@@ -1842,14 +1912,15 @@ function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
     altText,
     contents: {
       type: "bubble",
+      size: "mega",
       header: {
         type: "box",
         layout: "vertical",
-        paddingAll: "18px",
+        paddingAll: "20px",
         backgroundColor: "#191512",
         contents: [
           flexText("INVESTMENT PORTFOLIO", { size: "xs", color: "#E6C56A", weight: "bold" }),
-          flexText(ownerTitle, { size: "xl", color: "#FFFFFF", weight: "bold", margin: "sm", wrap: true }),
+          flexText(ownerTitle, { size: "xxl", color: "#FFFFFF", weight: "bold", margin: "sm", wrap: true }),
           flexText(new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }), {
             size: "xs",
             color: "#C9B8A5",
@@ -1862,8 +1933,22 @@ function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
         layout: "vertical",
         spacing: "md",
         paddingAll: "18px",
+        backgroundColor: "#FBF7EF",
         contents: [
-          flexMetric("มูลค่าพอร์ตปัจจุบัน", fmtTHB(totalValue), "#211C18"),
+          {
+            type: "box",
+            layout: "vertical",
+            spacing: "xs",
+            contents: [
+              flexText("มูลค่าพอร์ตปัจจุบัน", { size: "xs", color: "#8C7D6B", weight: "bold" }),
+              flexText(fmtTHB(totalValue), {
+                size: "3xl",
+                color: "#211C18",
+                weight: "bold",
+                wrap: true,
+              }),
+            ],
+          },
           {
             type: "box",
             layout: "vertical",
@@ -1886,8 +1971,8 @@ function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
             layout: "horizontal",
             spacing: "md",
             contents: [
-              flexMetric("สินทรัพย์", `${rows.length} ตัว`, "#211C18"),
-              flexMetric("สถานะ", positive ? "กำไร" : "ติดลบ", accent),
+              flexMiniMetric("สินทรัพย์", `${rows.length} ตัว`, "#211C18"),
+              flexMiniMetric("สถานะ", positive ? "กำไร" : "ติดลบ", accent),
             ],
           },
           {
@@ -1907,7 +1992,7 @@ function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
                 weight: "bold",
               }),
               flexText(fmtTHB(goal.target), {
-                size: "xl",
+                size: "xxl",
                 color: "#FFFFFF",
                 weight: "bold",
                 wrap: true,
@@ -1927,7 +2012,7 @@ function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
                     flex: 1,
                     contents: [
                       flexText("Portfolio", { size: "xs", color: "#C9B8A5", weight: "bold" }),
-                      flexText(fmtTHB(goal.invested), { size: "lg", color: "#FFFFFF", weight: "bold", wrap: true }),
+                      flexText(fmtTHB(goal.invested), { size: "md", color: "#FFFFFF", weight: "bold", wrap: true }),
                     ],
                   },
                   {
@@ -1940,12 +2025,12 @@ function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
                     flex: 1,
                     contents: [
                       flexText("Remaining", { size: "xs", color: "#C9B8A5", weight: "bold" }),
-                      flexText(fmtTHB(goal.remaining), { size: "lg", color: "#E6C56A", weight: "bold", wrap: true }),
+                      flexText(fmtTHB(goal.remaining), { size: "md", color: "#E6C56A", weight: "bold", wrap: true }),
                     ],
                   },
                 ],
               },
-              flexText(`${goal.pct.toFixed(2)}% to target`, {
+              flexText(`${goal.pct.toFixed(2)}% ถึงเป้าหมาย`, {
                 size: "xs",
                 color: "#C9B8A5",
                 weight: "bold",
@@ -1971,8 +2056,16 @@ function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
             ],
           },
           { type: "separator", margin: "lg", color: "#E8DDCF" },
-          flexList("บวกเด่น", gains, "ยังไม่มีสินทรัพย์ที่เป็นบวก", "#26A269"),
-          flexList("ติดลบ", losses, "ยังไม่มีสินทรัพย์ที่ติดลบ", "#D94E4E"),
+          {
+            type: "box",
+            layout: "vertical",
+            spacing: "sm",
+            margin: "lg",
+            contents: [
+              flexText(`HOLDINGS ทั้งหมด ${allHoldings.length} ตัว`, { size: "sm", color: "#211C18", weight: "bold" }),
+              ...allHoldings.map(flexHoldingRow),
+            ],
+          },
         ],
       },
       footer: {
@@ -1987,10 +2080,10 @@ function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
             action: {
               type: "uri",
               label: "เปิด Dashboard",
-              uri: "https://addy007x.github.io/dca-portfolio/",
+              uri: "https://addy007x.github.io/dca-portfolio/dashboard-design.html",
             },
           },
-          flexText("พิมพ์ บวก / ลบ / คำสั่ง เพื่อดูเพิ่ม", {
+          flexText("พิมพ์ คำสั่ง เพื่อดูเมนูทั้งหมด", {
             size: "xs",
             color: "#8C7D6B",
             align: "center",

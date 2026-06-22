@@ -433,10 +433,7 @@ function LocalDatabasePanel({ priceStatus }) {
     try {
       await window.pushCloudPortfolio?.();
     } catch (_) {}
-    setMsg("กำลังกลับไปหน้า dashboard-design.html ใน 5 วินาที...");
-    setTimeout(() => {
-      location.assign(new URL("dashboard-design.html", location.href).href);
-    }, 5000);
+    location.assign(new URL("dashboard-design.html", location.href).href);
   };
 
   return (
