@@ -3,41 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Valuation Lab - SiamFolio</title>
+<title>Technical Scanner - SiamFolio</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
-<meta name="theme-color" content="#120305">
+<meta name="theme-color" content="#0b0504">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:ital,wght@0,500;0,700;0,800;1,700;1,800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #060608;
-  --panel: rgba(8, 9, 13, .82);
-  --panel-2: rgba(19, 12, 13, .9);
-  --line: rgba(234, 35, 45, .46);
-  --line-soft: rgba(234, 35, 45, .2);
-  --red: #ef1c28;
-  --red-2: #9b0710;
-  --gold: #f5cf76;
-  --text: #f4f1ed;
-  --muted: #aaa0a0;
-  --green: #36f58d;
-  --cyan: #28d7ff;
-  --bad: #ff5264;
+  --bg: #070504;
+  --panel: rgba(8, 8, 10, .84);
+  --panel-strong: rgba(12, 8, 8, .92);
+  --line: rgba(211, 41, 34, .54);
+  --line-soft: rgba(211, 41, 34, .22);
+  --gold: #f4c66e;
+  --gold-2: #9d6723;
+  --red: #f0353f;
+  --red-dark: #5e0508;
+  --green: #38f28f;
+  --cyan: #41d8ff;
+  --text: #f7f0e8;
+  --muted: #aaa19a;
   --mono: "JetBrains Mono", monospace;
   --display: "Barlow Condensed", "IBM Plex Sans Thai", sans-serif;
   --thai: "IBM Plex Sans Thai", sans-serif;
-  --decor-magic: url("assets/valuation-decor-magic.png");
-  --decor-texture: url("assets/valuation-decor-texture.png");
-  --decor-dragon: url("assets/valuation-decor-dragon.png");
-  --decor-library: url("assets/valuation-decor-library.png");
-  --decor-hero: url("assets/valuation-decor-hero.png");
-  --decor-effects: url("assets/valuation-decor-effects.png");
-  --decor-frames: url("assets/valuation-decor-frames.png");
-  --decor-icons: url("assets/valuation-decor-icons.png");
-  --decor-badges: url("assets/valuation-decor-badges.png");
 }
 * { box-sizing: border-box; }
 html, body { min-height: 100%; }
@@ -46,8 +37,8 @@ body {
   color: var(--text);
   font-family: var(--thai);
   background:
-    linear-gradient(90deg, rgba(0,0,0,.8), rgba(0,0,0,.25), rgba(0,0,0,.82)),
-    radial-gradient(circle at 50% 12%, rgba(230, 18, 32, .2), transparent 38%),
+    linear-gradient(90deg, rgba(0,0,0,.88), rgba(0,0,0,.34), rgba(0,0,0,.88)),
+    radial-gradient(circle at 52% 12%, rgba(235, 49, 43, .18), transparent 32%),
     url("assets/manga-dashboard-library.png") center / cover fixed no-repeat,
     var(--bg);
   overflow: hidden;
@@ -58,1294 +49,1205 @@ body::before {
   inset: 0;
   pointer-events: none;
   background:
-    repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 4px),
-    radial-gradient(circle at 50% 50%, transparent 45%, rgba(0,0,0,.64));
+    repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 4px),
+    radial-gradient(circle at 50% 50%, transparent 45%, rgba(0,0,0,.56));
   mix-blend-mode: screen;
-  opacity: .32;
+  opacity: .25;
 }
-a { color: inherit; text-decoration: none; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
-.shell {
+a { color: inherit; text-decoration: none; }
+.app {
   height: 100vh;
   padding: 8px;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: 58px minmax(0, 1fr) 28px;
   gap: 8px;
 }
-.topbar {
+.topbar,
+.ticker,
+.panel,
+.market-tape {
   border: 1px solid var(--line);
   background:
-    linear-gradient(90deg, rgba(7,8,11,.94), rgba(14,8,10,.88));
-  box-shadow: 0 0 22px rgba(239,28,40,.18), inset 0 0 0 1px rgba(255,255,255,.03);
-  min-height: 54px;
-  display: grid;
-  grid-template-columns: minmax(300px, 430px) 1fr auto;
-  align-items: center;
-  gap: 14px;
-  padding: 6px 12px;
+    linear-gradient(180deg, rgba(12, 10, 12, .9), rgba(3, 3, 5, .85)),
+    radial-gradient(circle at 0 0, rgba(244, 198, 110, .1), transparent 24%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.025), 0 0 22px rgba(0,0,0,.38);
+}
+.topbar {
   position: relative;
   overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
 }
-.topbar::before {
+.topbar::before,
+.panel::before,
+.ticker::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    var(--decor-magic) center / cover no-repeat,
-    radial-gradient(circle at 86% 50%, rgba(245,207,118,.22), transparent 19%),
-    linear-gradient(100deg, transparent 0 35%, rgba(245,207,118,.08), transparent 58% 100%);
-  background-blend-mode: screen, normal, normal;
-  opacity: .22;
+    url("assets/valuation-decor-magic.png") center / cover no-repeat,
+    linear-gradient(110deg, transparent, rgba(244,198,110,.08), transparent);
   mix-blend-mode: screen;
+  opacity: .14;
 }
-.topbar::after, .panel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(120deg, transparent 0 28%, rgba(255,255,255,.06) 30%, transparent 34% 100%);
-  transform: translateX(-70%);
-  animation: shine 7s ease-in-out infinite;
-  z-index: 2;
-}
-@keyframes shine {
-  0%, 55% { transform: translateX(-75%); }
-  72%, 100% { transform: translateX(120%); }
+.brand,
+.nav,
+.clock,
+.panel > *,
+.ticker > * {
+  position: relative;
+  z-index: 1;
 }
 .brand {
-  position: relative;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  gap: 0;
-  min-width: 0;
-}
-.brand img {
-  display: none;
+  display: grid;
+  gap: 1px;
 }
 .brand h1 {
   margin: 0;
+  color: var(--gold);
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(24px, 2.3vw, 30px);
-  line-height: .95;
+  font-size: 25px;
+  line-height: .88;
   letter-spacing: .055em;
   text-transform: uppercase;
-  color: var(--gold);
-  text-shadow: 0 0 12px rgba(245,207,118,.36), 0 1px 0 #000;
-  white-space: nowrap;
+  text-shadow: 0 0 14px rgba(244,198,110,.28);
 }
 .brand p {
-  margin: 2px 0 0;
+  margin: 0;
   color: var(--muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
 }
 .nav {
-  position: relative;
-  z-index: 3;
   display: flex;
-  gap: 8px;
   align-items: center;
   justify-content: center;
+  gap: 7px;
   flex-wrap: wrap;
 }
-.nav a {
-  min-width: 106px;
-  height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(239,28,40,.48);
-  background: rgba(0,0,0,.52);
-  color: #f8f1e4;
+.nav button {
+  min-width: 98px;
+  height: 34px;
+  border: 1px solid rgba(244,198,110,.36);
+  color: #f9ead0;
+  background: rgba(0,0,0,.36);
   font-family: var(--display);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   font-style: italic;
   text-transform: uppercase;
-  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  clip-path: polygon(9px 0, 100% 0, calc(100% - 9px) 100%, 0 100%);
 }
-.nav a.active {
-  background: linear-gradient(135deg, #c61220, #5b0208);
-  box-shadow: 0 0 18px rgba(239,28,40,.42);
+.nav button.active {
+  border-color: rgba(244,198,110,.75);
+  background: linear-gradient(135deg, #8d100e, #250304);
+  box-shadow: 0 0 16px rgba(240,53,63,.28);
 }
 .clock {
-  position: relative;
-  z-index: 3;
   font-family: var(--mono);
-  font-weight: 800;
   color: var(--gold);
+  font-weight: 800;
   white-space: nowrap;
-  font-size: 15px;
+  font-size: 14px;
 }
-.grid {
+.layout {
   min-height: 0;
-  height: 100%;
   display: grid;
-  grid-template-columns: minmax(300px, 360px) minmax(520px, 1fr) minmax(280px, 330px);
+  grid-template-columns: 300px minmax(560px, 1fr) 300px;
   gap: 8px;
 }
 .panel {
   position: relative;
-  border: 1px solid var(--line);
-  background:
-    linear-gradient(180deg, rgba(10, 11, 16, .9), rgba(4, 4, 7, .84)),
-    radial-gradient(circle at 0 0, rgba(239,28,40,.14), transparent 34%);
-  box-shadow: 0 0 24px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.025);
   overflow: hidden;
+  min-height: 0;
 }
-.panel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    var(--decor-frames) center / cover no-repeat,
-    radial-gradient(circle at 14% 16%, rgba(245,207,118,.12), transparent 14%),
-    radial-gradient(circle at 86% 80%, rgba(239,28,40,.14), transparent 20%),
-    linear-gradient(135deg, rgba(245,207,118,.04), transparent 32% 68%, rgba(239,28,40,.07));
-  background-blend-mode: screen, normal, normal, normal;
-  mix-blend-mode: screen;
-  opacity: .1;
-}
-.panel > * {
-  position: relative;
-  z-index: 1;
-}
-.panel-pad { padding: 12px; }
-.input-panel {
-  background:
-    linear-gradient(180deg, rgba(10,11,16,.92), rgba(5,4,7,.88)),
-    radial-gradient(circle at 0 0, rgba(245,207,118,.12), transparent 30%);
-}
-.input-panel::before {
-  background:
-    var(--decor-texture) center / cover no-repeat,
-    radial-gradient(circle at 18% 16%, rgba(245,207,118,.18), transparent 14%);
-  opacity: .14;
-}
-.rail-card {
-  background:
-    linear-gradient(180deg, rgba(10,11,16,.9), rgba(5,4,7,.88)),
-    radial-gradient(circle at 100% 0, rgba(245,207,118,.11), transparent 32%);
-}
-.rail-card::before {
-  background:
-    var(--decor-badges) center / cover no-repeat,
-    radial-gradient(circle at 82% 20%, rgba(245,207,118,.16), transparent 14%);
-  opacity: .11;
-}
-.formula,
-.planner-stat,
-.stock-mini,
-.recent-row,
-.watch-row {
-  position: relative;
-  overflow: hidden;
-}
-.formula::before,
-.planner-stat::before,
-.stock-mini::before,
-.recent-row::before,
-.watch-row::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, rgba(245,207,118,.11), transparent 26%),
-    var(--decor-icons) center / cover no-repeat;
-  mix-blend-mode: screen;
-  opacity: .08;
-}
-.formula > *,
-.planner-stat > *,
-.stock-mini > *,
-.recent-row > *,
-.watch-row > * {
-  position: relative;
-  z-index: 1;
-}
+.panel-pad { padding: 11px; }
 .section-title {
   display: flex;
-  align-items: baseline;
   justify-content: space-between;
+  align-items: baseline;
   gap: 10px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid rgba(239,28,40,.28);
-  padding-bottom: 8px;
+  padding-bottom: 7px;
+  margin-bottom: 9px;
+  border-bottom: 1px solid rgba(240,53,63,.28);
 }
 .section-title h2 {
   margin: 0;
   font-family: var(--display);
-  font-size: 22px;
-  line-height: 1;
-  text-transform: uppercase;
+  font-size: 20px;
+  line-height: .95;
+  font-weight: 800;
   font-style: italic;
+  text-transform: uppercase;
 }
 .section-title span {
   color: var(--gold);
   font-family: var(--mono);
   font-size: 11px;
-  text-transform: uppercase;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.field-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-.field { display: grid; gap: 4px; }
-.field.full { grid-column: 1 / -1; }
-.field label {
-  color: #d7cbc3;
-  font-size: 11px;
-  font-weight: 800;
-}
-.input-note {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.45;
-}
-.input-note.warn {
-  color: var(--gold);
-}
-input, select {
-  min-width: 0;
-  width: 100%;
-  height: 34px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(0,0,0,.5);
-  color: var(--text);
-  padding: 0 10px;
-  outline: 0;
-}
-input:focus, select:focus {
-  border-color: rgba(239,28,40,.74);
-  box-shadow: 0 0 0 3px rgba(239,28,40,.16);
-}
-.button-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 10px;
-}
-.btn {
-  min-height: 34px;
-  border: 1px solid rgba(255,255,255,.15);
-  color: #fff;
-  background: rgba(0,0,0,.46);
   font-weight: 900;
   text-transform: uppercase;
 }
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.tabs button,
+.chip {
+  min-height: 30px;
+  border: 1px solid rgba(244,198,110,.3);
+  color: #eadbc2;
+  background: rgba(0,0,0,.35);
+  font-family: var(--display);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.tabs button.active,
+.chip.active {
+  color: #180605;
+  background: linear-gradient(135deg, #f7d681, #b77820);
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.field.full { grid-column: 1 / -1; }
+.field { display: grid; gap: 4px; }
+.field label {
+  color: #d2c8bf;
+  font-size: 11px;
+  font-weight: 800;
+}
+input, select {
+  width: 100%;
+  min-width: 0;
+  height: 33px;
+  border: 1px solid rgba(255,255,255,.13);
+  background: rgba(0,0,0,.55);
+  color: var(--text);
+  padding: 0 10px;
+  outline: none;
+}
+input:focus, select:focus {
+  border-color: rgba(244,198,110,.75);
+  box-shadow: 0 0 0 3px rgba(244,198,110,.12);
+}
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 9px;
+}
+.btn {
+  height: 34px;
+  border: 1px solid rgba(255,255,255,.13);
+  color: var(--text);
+  background: rgba(0,0,0,.45);
+  font-weight: 900;
+}
 .btn.primary {
-  border-color: rgba(239,28,40,.76);
-  background: linear-gradient(135deg, #ec1827, #68030a);
-  box-shadow: 0 0 20px rgba(239,28,40,.25);
+  border-color: rgba(240,53,63,.78);
+  background: linear-gradient(135deg, #e32932, #6b0508);
 }
 .btn.gold {
-  color: #1a0908;
-  border-color: rgba(245,207,118,.72);
-  background: linear-gradient(135deg, #ffdf84, #b67b20);
+  color: #1b0806;
+  border-color: rgba(244,198,110,.8);
+  background: linear-gradient(135deg, #ffdd88, #b87921);
 }
-.btn.ghost:hover, .btn.primary:hover, .btn.gold:hover {
-  filter: brightness(1.12);
-}
-.hint {
-  margin: 8px 0 0;
+.note {
   color: var(--muted);
   font-size: 11px;
   line-height: 1.45;
+  margin: 8px 0 0;
 }
-.hero-panel {
-  background:
-    linear-gradient(180deg, rgba(10,11,16,.88), rgba(5,4,7,.9)),
-    radial-gradient(circle at 60% 10%, rgba(245,207,118,.14), transparent 28%);
-  min-height: 100%;
+.center {
+  min-height: 0;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: 104px minmax(300px, 1fr) 194px;
   gap: 8px;
 }
-.hero-panel::before {
-  background:
-    var(--decor-hero) center / cover no-repeat,
-    radial-gradient(circle at 56% 20%, rgba(245,207,118,.16), transparent 18%),
-    linear-gradient(135deg, rgba(239,28,40,.09), transparent 42% 68%, rgba(245,207,118,.06));
-  opacity: .11;
-}
-.ticker-card {
+.ticker {
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  padding: 13px 14px;
-  min-height: 104px;
-  background:
-    linear-gradient(90deg, rgba(0,0,0,.88), rgba(32,5,8,.72)),
-    radial-gradient(circle at 78% 20%, rgba(245,207,118,.13), transparent 22%);
-  border-bottom: 1px solid var(--line);
+  grid-template-columns: minmax(0, 1fr) repeat(4, minmax(110px, 150px));
+  gap: 8px;
+  align-items: stretch;
+  padding: 10px;
 }
-.ticker-card::before {
-  display: none;
+.asset-name {
+  min-width: 0;
+  display: grid;
+  align-content: center;
 }
-.ticker-card > * {
-  position: relative;
-  z-index: 1;
-}
-.ticker-card h2 {
+.asset-name h2 {
   margin: 0;
   font-family: var(--display);
-  font-size: clamp(40px, 4.6vw, 62px);
-  line-height: .86;
-  letter-spacing: .02em;
+  font-size: 44px;
+  line-height: .84;
+  letter-spacing: .03em;
   text-transform: uppercase;
 }
-.ticker-card p {
-  margin: 4px 0 0;
+.asset-name p {
+  margin: 5px 0 0;
   color: var(--muted);
-  font-weight: 700;
   font-size: 12px;
+  font-weight: 700;
 }
-.price-box {
-  min-width: 124px;
-  align-self: start;
-  border: 1px solid rgba(245,207,118,.24);
-  padding: 9px 10px;
-  background: rgba(0,0,0,.62);
-  text-align: right;
+.tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 5px;
 }
-.price-box b {
-  display: block;
+.tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 2px 7px;
+  border: 1px solid rgba(244,198,110,.34);
+  color: var(--gold);
+  background: rgba(0,0,0,.4);
   font-family: var(--mono);
-  font-size: 18px;
-}
-.price-box small {
-  color: var(--muted);
-  font-size: 11px;
-}
-.result-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  padding: 0 14px;
+  font-size: 10px;
+  font-weight: 900;
 }
 .metric {
-  border: 1px solid rgba(255,255,255,.1);
-  background:
-    radial-gradient(circle at 0 50%, rgba(245,207,118,.1), transparent 34%),
-    rgba(0,0,0,.5);
-  padding: 10px;
-  min-height: 72px;
+  border-left: 1px solid rgba(244,198,110,.22);
+  background: rgba(0,0,0,.28);
+  padding: 9px;
+  display: grid;
+  align-content: center;
 }
 .metric span {
-  display: block;
   color: var(--muted);
   font-size: 11px;
   font-weight: 800;
 }
 .metric b {
   display: block;
-  margin-top: 5px;
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 17px;
+}
+.metric .big {
   font-family: var(--display);
-  font-size: 22px;
-  line-height: .95;
+  font-size: 25px;
+  line-height: .92;
 }
-.metric.good b { color: var(--green); }
-.metric.bad b { color: var(--bad); }
-.summary {
-  margin: 0 14px 8px;
-  padding: 11px 12px;
+.good { color: var(--green) !important; }
+.bad { color: #ff5a67 !important; }
+.gold { color: var(--gold) !important; }
+.chart-panel {
+  padding: 10px;
   display: grid;
-  grid-template-columns: 1fr 148px;
-  gap: 12px;
-  align-items: center;
-  background:
-    linear-gradient(135deg, rgba(239,28,40,.18), rgba(0,0,0,.58)),
-    rgba(0,0,0,.45);
-  border: 1px solid rgba(239,28,40,.36);
-}
-.gauge {
-  height: 12px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.68);
-  margin: 8px 0 6px;
-}
-.gauge span {
-  display: block;
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #ef1c28, #f5cf76, #36f58d);
-  transition: width .35s ease;
-}
-.decision {
-  text-align: right;
-}
-.decision b {
-  display: block;
-  font-family: var(--display);
-  font-size: 30px;
-  line-height: .9;
-  text-transform: uppercase;
-}
-.decision b.bad,
-.metric b.bad {
-  color: var(--bad);
-  text-shadow: 0 0 18px rgba(255,82,100,.4);
-}
-.decision b.good,
-.metric b.good {
-  color: var(--green);
-  text-shadow: 0 0 18px rgba(54,245,141,.24);
-}
-.decision small { color: var(--muted); }
-.formula-list {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 8px;
 }
-.formula {
-  padding: 10px;
-  border: 1px solid rgba(255,255,255,.1);
-  background: rgba(0,0,0,.42);
+.chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
-.formula h3 {
-  margin: 0 0 6px;
+.chart-head h2 {
+  margin: 0;
+  color: var(--gold);
   font-family: var(--display);
-  text-transform: uppercase;
+  font-size: 22px;
   font-style: italic;
+  text-transform: uppercase;
 }
-.formula b {
-  display: block;
+.chart-controls {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.chart-controls button {
+  min-width: 42px;
+  height: 27px;
+  border: 1px solid rgba(244,198,110,.25);
+  background: rgba(0,0,0,.38);
+  color: #e6dccf;
   font-family: var(--mono);
-  font-size: 16px;
+  font-size: 10px;
+  font-weight: 900;
 }
-.formula p {
-  margin: 5px 0 0;
+.chart-controls button.active {
+  color: #1a0707;
+  background: var(--gold);
+}
+.canvas-wrap {
+  min-height: 0;
+  position: relative;
+  border: 1px solid rgba(255,255,255,.08);
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,.62)),
+    radial-gradient(circle at 74% 28%, rgba(240,53,63,.16), transparent 22%);
+  overflow: hidden;
+}
+#priceChart {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.level-list {
+  position: absolute;
+  right: 10px;
+  top: 42px;
+  bottom: 16px;
+  width: 116px;
+  display: grid;
+  align-content: space-between;
+  pointer-events: none;
+}
+.level-pill {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 7px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.62);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 900;
+}
+.level-pill.res { color: #ff5a67; }
+.level-pill.sup { color: var(--green); }
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+.compact-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+  line-height: 1.06;
+}
+.compact-table td {
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.compact-table small {
+  display: none !important;
+}
+.compact-table td:last-child {
+  text-align: right;
+  font-family: var(--mono);
+  font-weight: 800;
+}
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.tool {
+  min-height: 34px;
+  border: 1px solid rgba(244,198,110,.2);
+  display: grid;
+  place-items: center;
+  color: #e9dcc6;
+  background: rgba(0,0,0,.34);
+  font-size: 11px;
+  font-weight: 800;
+}
+.right {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(180px, .72fr) minmax(250px, 1fr);
+  gap: 8px;
+}
+.list {
+  display: grid;
+  gap: 7px;
+  max-height: 100%;
+  overflow: auto;
+  padding-right: 3px;
+}
+.watch-row,
+.market-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,.09);
+  background:
+    linear-gradient(90deg, rgba(244,198,110,.08), transparent 34%),
+    rgba(0,0,0,.45);
+}
+.watch-row strong,
+.market-row strong {
+  display: block;
+  font-family: var(--display);
+  font-size: 17px;
+  line-height: .94;
+  text-transform: uppercase;
+}
+.watch-row small,
+.market-row small {
+  display: block;
   color: var(--muted);
   font-size: 11px;
-  line-height: 1.35;
 }
-.dividend-planner {
-  margin-top: 8px;
-  border: 1px solid rgba(245,207,118,.28);
-  background:
-    linear-gradient(135deg, rgba(245,207,118,.12), rgba(239,28,40,.08)),
-    rgba(0,0,0,.48);
-  padding: 10px;
-}
-.planner-head {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid rgba(245,207,118,.22);
-  padding-bottom: 7px;
-}
-.planner-head h3 {
-  margin: 0;
-  font-family: var(--display);
-  font-size: 22px;
-  line-height: .9;
-  text-transform: uppercase;
-  font-style: italic;
-}
-.planner-head span {
-  color: var(--gold);
+.price-mini {
+  text-align: right;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
-  text-transform: uppercase;
 }
-.planner-inputs {
+.remove {
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(240,53,63,.38);
+  background: rgba(0,0,0,.4);
+  color: #fff;
+  margin-left: 5px;
+}
+.dividend-panel {
+  min-height: 0;
+  overflow: auto;
+}
+.planner-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.planner-output {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
-.planner-stat {
-  min-height: 64px;
-  border: 1px solid rgba(255,255,255,.1);
-  background: rgba(0,0,0,.5);
+.planner-card {
+  min-height: 62px;
+  border: 1px solid rgba(244,198,110,.18);
+  background:
+    linear-gradient(135deg, rgba(244,198,110,.1), rgba(240,53,63,.05)),
+    rgba(0,0,0,.45);
   padding: 9px;
 }
-.planner-stat span {
+.planner-card span {
   display: block;
   color: var(--muted);
   font-size: 11px;
   font-weight: 800;
 }
-.planner-stat b {
+.planner-card b {
   display: block;
   margin-top: 4px;
+  color: var(--gold);
   font-family: var(--mono);
   font-size: 15px;
+}
+.market-tape {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 0 10px;
+  font-family: var(--display);
+  font-size: 14px;
+  font-style: italic;
+  white-space: nowrap;
+}
+.market-tape b {
   color: var(--gold);
 }
-.planner-stat small {
-  display: block;
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 11px;
-}
-.watchlist {
-  display: grid;
-  gap: 7px;
-  max-height: calc(100vh - 132px);
-  overflow: auto;
-  padding-right: 4px;
-}
-.watch-row {
-  border: 1px solid rgba(255,255,255,.1);
-  background: rgba(0,0,0,.46);
-  padding: 8px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
-  align-items: center;
-}
-.watch-row strong {
-  display: block;
-  font-family: var(--display);
-  font-size: 18px;
-  text-transform: uppercase;
-}
-.watch-row span {
-  color: var(--muted);
-  font-size: 12px;
-}
-.tag {
-  border: 1px solid rgba(255,255,255,.14);
-  padding: 5px 8px;
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 900;
-}
-.tag.good { color: var(--green); border-color: rgba(54,245,141,.4); }
-.tag.bad { color: var(--bad); border-color: rgba(255,82,100,.4); }
-.tag.neutral { color: var(--gold); border-color: rgba(245,207,118,.4); }
-.watch-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: end;
-}
-.icon-btn {
-  width: 32px;
-  height: 30px;
-  border: 1px solid rgba(239,28,40,.42);
-  background: rgba(0,0,0,.45);
-  color: var(--text);
-}
 .empty {
-  border: 1px dashed rgba(255,255,255,.18);
   color: var(--muted);
   padding: 12px;
   text-align: center;
+  border: 1px dashed rgba(255,255,255,.16);
 }
-.right-rail {
-  min-width: 0;
-  display: grid;
-  gap: 8px;
-  align-content: start;
-  min-height: 0;
-  overflow: hidden;
+.info-grid .panel-pad {
+  padding: 9px 10px;
 }
-.rail-card {
-  min-height: 0;
+.info-grid .section-title {
+  margin-bottom: 6px;
+  padding-bottom: 6px;
 }
-.rail-card .section-title {
-  margin-bottom: 10px;
+.info-grid .section-title h2 {
+  font-size: 18px;
 }
-.rail-card .section-title h2 {
-  font-size: 22px;
-}
-.watch-panel {
-  min-height: 216px;
-}
-.stock-stack,
-.recent-stack {
-  display: grid;
-  gap: 6px;
-}
-.stock-mini,
-.recent-row {
-  display: grid;
-  grid-template-columns: 30px 1fr auto;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(255,255,255,.09);
-  background: linear-gradient(90deg, rgba(255,255,255,.045), rgba(0,0,0,.38));
-  padding: 7px;
-}
-.stock-mini img {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  object-fit: cover;
-  background: rgba(255,255,255,.08);
-}
-.stock-mini strong,
-.recent-row strong {
-  display: block;
-  font-family: var(--display);
-  font-size: 16px;
-  line-height: .9;
-  text-transform: uppercase;
-}
-.stock-mini small,
-.recent-row small {
-  display: block;
-  color: var(--muted);
-  font-size: 11px;
-}
-.stock-mini .price-mini,
-.recent-row .price-mini {
-  text-align: right;
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 900;
-}
-.mini-change {
-  display: block;
-  margin-top: 2px;
-  font-size: 11px;
-}
-.mini-change.good { color: var(--green); }
-.mini-change.bad { color: var(--bad); }
-.right-action {
-  width: 100%;
-  height: 32px;
-  margin-top: 7px;
-  border: 1px solid rgba(245,207,118,.35);
-  color: var(--gold);
-  background: linear-gradient(135deg, rgba(245,207,118,.1), rgba(0,0,0,.48));
-  font-family: var(--display);
-  font-weight: 900;
-  text-transform: uppercase;
-}
-.note {
-  display: none;
-}
-.positive { color: var(--green) !important; }
-.negative { color: var(--bad) !important; }
-.neutral-text { color: var(--gold) !important; }
 @media (max-width: 1180px) {
   body { overflow: auto; }
-  .shell { height: auto; min-height: 100vh; }
-  .grid { grid-template-columns: 1fr; }
-  .watchlist { max-height: none; }
+  .app { height: auto; min-height: 100vh; grid-template-rows: auto auto auto; }
+  .layout { grid-template-columns: 1fr; }
+  .center { grid-template-rows: auto 420px auto; }
+  .right { grid-template-rows: auto auto; }
   .topbar { grid-template-columns: 1fr; }
-  .nav { justify-content: flex-start; overflow-x: auto; }
+  .nav { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; }
 }
 @media (max-width: 720px) {
-  .shell { padding: 8px; }
-  .field-grid, .button-row, .result-grid, .summary, .formula-list, .planner-inputs, .planner-output { grid-template-columns: 1fr; }
-  .ticker-card { grid-template-columns: 1fr; }
-  .price-box { text-align: left; }
-  .nav a { min-width: 92px; }
-  .section-title span { font-size: 10px; }
-  .topbar { padding: 10px; }
-  .brand { gap: 9px; align-items: flex-start; }
-  .brand img { width: 44px; height: 44px; }
-  .brand h1 {
-    max-width: 250px;
-    font-size: 24px;
-    line-height: .92;
-    letter-spacing: .035em;
-    white-space: normal;
-  }
-  .brand p { font-size: 11px; }
+  .app { padding: 6px; }
+  .field-grid, .action-grid, .ticker, .info-grid, .planner-grid { grid-template-columns: 1fr; }
+  .center { grid-template-rows: auto 360px auto; }
+  .brand h1 { font-size: 22px; }
+  .nav button { min-width: 82px; }
 }
 </style>
 </head>
 <body>
-<main class="shell">
+<main class="app">
   <header class="topbar">
-    <a class="brand" href="./dashboard-design.html" aria-label="Back to dashboard">
-      <img src="assets/blood-compass-emblem.png" alt="">
-      <div>
-        <h1>Stock Valuation</h1>
-        <p>Thai & US stock intrinsic value scanner</p>
-      </div>
+    <a class="brand" href="./dashboard-design.html">
+      <h1>Stock Scanner</h1>
+      <p>Thai & US Stock • Crypto • Technical Analysis • Dividend</p>
     </a>
-    <nav class="nav" aria-label="Main">
-      <!-- <a href="./dashboard-design.html">Dashboard</a> -->
-      <!-- <a class="active" href="./valuation.html">Valuation</a>
-      <a href="./index.html#dashboard">Portfolio</a>
-      <a href="./pos/">POS</a> -->
+    <nav class="nav" aria-label="Scanner tabs">
+      <button class="active" type="button">ภาพรวม</button>
+      <button type="button">หุ้น</button>
+      <button type="button">คริปโต</button>
+      <button type="button">ปันผล</button>
+      <button type="button">สแกนหุ้น</button>
+      <button type="button">ข่าวสาร</button>
     </nav>
     <div class="clock" id="clock">--:--:--</div>
   </header>
 
-  <section class="grid">
-    <aside class="panel panel-pad input-panel">
+  <section class="layout">
+    <aside class="panel panel-pad">
       <div class="section-title">
-        <h2>Input</h2>
-        <span>assumptions</span>
+        <h2>ค้นหาสินทรัพย์</h2>
+        <span>input</span>
       </div>
-      <form id="valuationForm">
+      <div class="tabs">
+        <button data-preset="TH" type="button">หุ้นไทย</button>
+        <button class="active" data-preset="US" type="button">หุ้นต่างประเทศ</button>
+        <button data-preset="CRYPTO" type="button">คริปโต</button>
+      </div>
+      <form id="scannerForm">
         <div class="field-grid">
-          <div class="field">
-            <label for="ticker">Ticker</label>
-            <input id="ticker" value="NVDA" autocomplete="off" placeholder="AAPL / PTT.BK">
+          <div class="field full">
+            <label for="ticker">สัญลักษณ์</label>
+            <input id="ticker" value="NVDA" autocomplete="off" placeholder="PTT.BK / NVDA / BTC">
           </div>
-          <div class="field">
-            <label for="market">Market</label>
+          <div class="field full">
+            <label for="market">ตลาด</label>
             <select id="market">
-              <option value="US">US stock</option>
-              <option value="TH">Thai stock</option>
+              <option value="TH">SET (Thai Stock)</option>
+              <option value="US" selected>NASDAQ / US Stock</option>
+              <option value="CRYPTO">Crypto</option>
             </select>
           </div>
           <div class="field">
-            <label for="currency">Currency</label>
+            <label for="currency">สกุลเงิน</label>
             <select id="currency">
-              <option value="USD">USD</option>
               <option value="THB">THB</option>
+              <option value="USD" selected>USD</option>
             </select>
           </div>
           <div class="field">
             <label for="price">ราคาปัจจุบัน</label>
-            <input id="price" type="number" step="0.01" value="120">
+            <input id="price" type="number" step="0.0001" value="120">
           </div>
           <div class="field">
-            <label for="eps">EPS ต่อหุ้น</label>
-            <input id="eps" type="number" step="0.01" value="4.5">
+            <label for="timeframe">ช่วงเวลา</label>
+            <select id="timeframe">
+              <option value="1D">1D</option>
+              <option value="1W">1W</option>
+              <option value="1M" selected>1M</option>
+              <option value="3M">3M</option>
+              <option value="6M">6M</option>
+              <option value="1Y">1Y</option>
+            </select>
           </div>
           <div class="field">
-            <label for="book">Book value/share</label>
-            <input id="book" type="number" step="0.01" value="22">
+            <label for="chartType">ประเภทกราฟ</label>
+            <select id="chartType">
+              <option value="candles">Candlestick</option>
+              <option value="line">Line</option>
+            </select>
           </div>
           <div class="field">
-            <label for="fcf">FCF ต่อหุ้น</label>
-            <input id="fcf" type="number" step="0.01" value="5.2">
+            <label for="dividend">ปันผลต่อหุ้น/ปี</label>
+            <input id="dividend" type="number" step="0.0001" value="0.2">
           </div>
           <div class="field">
-            <label for="dividend">ปันผล/หุ้นต่อปี (กรอกเอง)</label>
-            <input id="dividend" type="number" step="0.01" value="0.2">
-            <small class="input-note warn" id="dividendSourceNote">กดดึงราคาเพื่อดึงปันผลจากเน็ต หรือกรอกเองได้</small>
+            <label for="shares">จำนวนหุ้นที่ถือ</label>
+            <input id="shares" type="number" step="0.0001" value="100">
           </div>
           <div class="field">
-            <label for="growth">Growth ต่อปี %</label>
-            <input id="growth" type="number" step="0.1" value="12">
+            <label for="budget">เงินลงทุน</label>
+            <input id="budget" type="number" step="0.01" value="10000">
           </div>
           <div class="field">
-            <label for="terminalGrowth">Terminal growth %</label>
-            <input id="terminalGrowth" type="number" step="0.1" value="3">
-          </div>
-          <div class="field">
-            <label for="discount">Discount rate %</label>
-            <input id="discount" type="number" step="0.1" value="10">
-          </div>
-          <div class="field">
-            <label for="years">ปีที่คำนวณ DCF</label>
-            <input id="years" type="number" step="1" min="1" max="20" value="10">
-          </div>
-          <div class="field full">
-            <label for="margin">Margin of safety ที่ต้องการ %</label>
-            <input id="margin" type="number" step="1" value="25">
+            <label for="lotSize">Lot size</label>
+            <input id="lotSize" type="number" step="1" value="1">
           </div>
         </div>
-        <div class="button-row">
-          <button class="btn primary" type="submit">คำนวณ</button>
+        <div class="action-grid">
+          <button class="btn primary" type="submit">วิเคราะห์</button>
           <button class="btn gold" id="fetchPriceBtn" type="button">ดึงราคา</button>
         </div>
-        <div class="button-row">
-          <button class="btn ghost" id="saveBtn" type="button">บันทึกรายการ</button>
-          <button class="btn ghost" id="resetBtn" type="button">รีเซ็ตตัวอย่าง</button>
+        <div class="action-grid">
+          <button class="btn" id="saveBtn" type="button">เพิ่ม Watchlist</button>
+          <button class="btn" id="resetBtn" type="button">รีเซ็ตตัวอย่าง</button>
         </div>
       </form>
-      <p class="hint">ข้อมูลราคาและปันผลดึงจาก Worker เดิมของ SiamFolio ผ่าน Yahoo Finance แบบ best-effort ส่วนงบการเงิน/EPS/FCF ให้ใส่เองเพื่อกันข้อมูลผิดพลาด ระบบนี้เป็นเครื่องมือช่วยคิด ไม่ใช่คำแนะนำการลงทุน</p>
+      <p class="note">ระบบนี้ใช้ราคา live จาก Worker เดิมเมื่อกดดึงราคา และคำนวณแนวรับแนวต้านจากกรอบราคา/ความผันผวนเพื่อช่วยวางแผน ไม่ใช่คำแนะนำการลงทุน</p>
     </aside>
 
-    <section class="panel hero-panel">
-      <div class="ticker-card">
-        <div>
-          <h2 id="resultTicker">NVDA</h2>
-          <p id="resultSubtitle">Intrinsic value estimate</p>
+    <section class="center">
+      <section class="ticker">
+        <div class="asset-name">
+          <h2 id="assetSymbol">NVDA</h2>
+          <p id="assetName">NVIDIA Corporation</p>
+          <div class="tags">
+            <span class="tag" id="assetMarket">US Stock</span>
+            <span class="tag" id="assetSource">manual</span>
+          </div>
         </div>
-        <div class="price-box">
-          <small>Market price</small>
-          <b id="marketPrice">$120.00</b>
-          <small id="priceSource">manual</small>
-        </div>
-      </div>
-      <div class="result-grid">
         <div class="metric">
-          <span>Fair Value</span>
-          <b id="fairValue">$0.00</b>
+          <span>Market Price</span>
+          <b class="big" id="marketPrice">$120.00</b>
+          <span id="marketChange" class="bad">-1.11%</span>
         </div>
-        <div class="metric" id="upsideMetric">
-          <span>Upside / Downside</span>
-          <b id="upside">0.00%</b>
+        <div class="metric">
+          <span>Entry Zone</span>
+          <b id="entryZone">$111.20 - $116.80</b>
         </div>
-        <div class="metric" id="mosMetric">
-          <span>Safety Gap</span>
-          <b id="mos">0.00%</b>
+        <div class="metric">
+          <span>Stop / Risk</span>
+          <b id="stopLoss" class="bad">$104.50</b>
         </div>
-        <div class="metric" id="signalMetric">
+        <div class="metric">
           <span>Signal</span>
-          <b id="signalCard">WAIT</b>
+          <b id="mainSignal" class="gold">รอรับ</b>
         </div>
-      </div>
-      <span id="buyZone" hidden>$0.00</span>
-      <div class="summary">
-        <div>
-          <div class="section-title" style="margin:0 0 8px;padding-bottom:8px">
-            <h2 id="verdictTitle">WAIT</h2>
-            <span id="valuationMode">blend model</span>
+      </section>
+
+      <section class="panel chart-panel">
+        <div class="chart-head">
+          <h2>กราฟราคา & แนวรับแนวต้าน</h2>
+          <div class="chart-controls">
+            <button data-tf="1D">1D</button>
+            <button data-tf="1W">1W</button>
+            <button class="active" data-tf="1M">1M</button>
+            <button data-tf="3M">3M</button>
+            <button data-tf="6M">6M</button>
+            <button data-tf="1Y">1Y</button>
           </div>
-          <div class="gauge"><span id="gaugeFill"></span></div>
-          <p class="hint" id="verdictText">ใส่สมมติฐานแล้วกด Calculate เพื่อประเมินมูลค่าที่แท้จริง</p>
         </div>
-        <div class="decision">
-          <small>Signal</small>
-          <b id="signal"> </b>
+        <div class="canvas-wrap">
+          <canvas id="priceChart"></canvas>
+          <div class="level-list" id="levelList"></div>
         </div>
-      </div>
-      <div class="panel-pad" style="padding-top:0">
-        <div class="formula-list">
-          <article class="formula">
-            <h3>DCF</h3>
-            <b id="dcfValue">$0.00</b>
-            <p>คิดจาก FCF ต่อหุ้น เติบโตตามสมมติฐาน แล้วต่อด้วย terminal value</p>
-          </article>
-          <article class="formula">
-            <h3>Graham</h3>
-            <b id="grahamValue">$0.00</b>
-            <p>เหมาะกับหุ้นที่มีกำไรและมูลค่าทางบัญชีชัดเจน สูตร sqrt(22.5 x EPS x BVPS)</p>
-          </article>
-          <article class="formula">
-            <h3>Dividend</h3>
-            <b id="dividendValue">$0.00</b>
-            <p>เหมาะกับหุ้นปันผล ถ้าไม่มี dividend ระบบจะลดน้ำหนักสูตรนี้อัตโนมัติ</p>
-          </article>
-        </div>
-        <section class="dividend-planner" aria-label="Dividend income calculator">
-          <div class="planner-head">
-            <h3>Dividend Income</h3>
-            <span>shares / budget</span>
+      </section>
+
+      <section class="info-grid">
+        <article class="panel panel-pad">
+          <div class="section-title">
+            <h2>สรุปแนวรับแนวต้าน</h2>
+            <span>levels</span>
           </div>
-          <div class="planner-inputs">
-            <div class="field">
-              <label for="heldShares">จำนวนหุ้นที่ถือ</label>
-              <input id="heldShares" type="number" step="0.000001" min="0" value="100">
-            </div>
-            <div class="field">
-              <label for="investmentBudget">เงินที่จะซื้อเพิ่ม</label>
-              <input id="investmentBudget" type="number" step="0.01" min="0" value="10000">
-            </div>
-            <div class="field">
-              <label for="lotSize">Lot size</label>
-              <input id="lotSize" type="number" step="1" min="1" value="1">
-            </div>
+          <table class="compact-table" id="levelTable"></table>
+        </article>
+        <article class="panel panel-pad">
+          <div class="section-title">
+            <h2>สัญญาณเทคนิค</h2>
+            <span id="signalSummary">watch</span>
           </div>
-          <div class="planner-output">
-            <div class="planner-stat">
-              <span>ปันผลจากหุ้นที่ถือ</span>
-              <b id="heldDividend">-</b>
-              <small id="heldDividendNote">ต่อปีโดยประมาณ</small>
-            </div>
-            <div class="planner-stat">
-              <span>เงินนี้ซื้อได้</span>
-              <b id="affordableShares">-</b>
-              <small id="budgetCost">ตามราคาปัจจุบัน</small>
-            </div>
-            <div class="planner-stat">
-              <span>ปันผลจากเงินลงทุน</span>
-              <b id="budgetDividend">-</b>
-              <small id="budgetDividendNote">ต่อปีโดยประมาณ</small>
-            </div>
-            <div class="planner-stat">
-              <span>Dividend Yield</span>
-              <b id="dividendYield">-</b>
-              <small id="monthlyDividend">เฉลี่ยต่อเดือน</small>
-            </div>
+          <table class="compact-table" id="indicatorTable"></table>
+        </article>
+        <article class="panel panel-pad">
+          <div class="section-title">
+            <h2>เครื่องมือวิเคราะห์</h2>
+            <span>tools</span>
           </div>
-        </section>
-      </div>
-      <div class="note">อ่านผลแบบเร็ว: ราคาอยู่ต่ำกว่า Buy Zone = น่าสนใจตามสมมติฐาน, อยู่ใกล้ Fair Value = รอ, สูงกว่า Fair Value มาก = แพง ระวังสมมติฐานเติบโตสูงเกินจริง</div>
+          <div class="tool-grid">
+            <div class="tool">MA 20 / 50 / 200</div>
+            <div class="tool">RSI</div>
+            <div class="tool">MACD</div>
+            <div class="tool">Volume</div>
+            <div class="tool">Support</div>
+            <div class="tool">Resistance</div>
+          </div>
+        </article>
+      </section>
     </section>
 
-    <aside class="right-rail">
-      <section class="panel panel-pad rail-card watch-panel">
+    <aside class="right">
+      <section class="panel panel-pad">
         <div class="section-title">
           <h2>Watchlist</h2>
           <span id="watchCount">0 saved</span>
         </div>
-        <div class="watchlist" id="watchlist"></div>
+        <div class="list" id="watchlist"></div>
       </section>
-      <section class="panel panel-pad rail-card">
+      <section class="panel panel-pad dividend-panel">
         <div class="section-title">
-          <h2>Favorite Stocks</h2>
-          <span>live</span>
+          <h2>ปันผล</h2>
+          <span>Dividend Income</span>
         </div>
-        <div class="stock-stack" id="favoriteStocks">
-          <article class="stock-mini">
-            <img src="https://www.google.com/s2/favicons?domain=apple.com&sz=64" alt="">
-            <div><strong>AAPL</strong><small>Apple Inc.</small></div>
-            <div class="price-mini">$195.42<span class="mini-change bad">-0.72%</span></div>
-          </article>
-          <article class="stock-mini">
-            <img src="https://www.google.com/s2/favicons?domain=microsoft.com&sz=64" alt="">
-            <div><strong>MSFT</strong><small>Microsoft Corp.</small></div>
-            <div class="price-mini">$450.30<span class="mini-change good">+0.25%</span></div>
-          </article>
-          <article class="stock-mini">
-            <img src="https://www.google.com/s2/favicons?domain=tesla.com&sz=64" alt="">
-            <div><strong>TSLA</strong><small>Tesla, Inc.</small></div>
-            <div class="price-mini">$178.41<span class="mini-change bad">-1.35%</span></div>
-          </article>
-          <article class="stock-mini">
-            <img src="https://www.google.com/s2/favicons?domain=amd.com&sz=64" alt="">
-            <div><strong>AMD</strong><small>AMD Inc.</small></div>
-            <div class="price-mini">$156.21<span class="mini-change good">+2.14%</span></div>
-          </article>
+        <div class="planner-grid">
+          <div class="planner-card">
+            <span>เงินปันผลต่อหุ้น</span>
+            <b id="divPerShare">$0.00</b>
+          </div>
+          <div class="planner-card">
+            <span>Dividend Yield</span>
+            <b id="divYield">0.00%</b>
+          </div>
+          <div class="planner-card">
+            <span>ถืออยู่ จะได้/ปี</span>
+            <b id="divHeld">$0.00</b>
+          </div>
+          <div class="planner-card">
+            <span>เงินนี้ซื้อได้</span>
+            <b id="buyableShares">0 หุ้น</b>
+          </div>
+          <div class="planner-card">
+            <span>คาดปันผล/ปี</span>
+            <b id="divBudget">$0.00</b>
+          </div>
+          <div class="planner-card">
+            <span>เฉลี่ย/เดือน</span>
+            <b id="divMonthly">$0.00</b>
+          </div>
         </div>
-        <button class="right-action" type="button" id="showAllFavs">View all</button>
-      </section>
-      <section class="panel panel-pad rail-card">
-        <div class="section-title">
-          <h2>Recent Searches</h2>
-          <span>history</span>
-        </div>
-        <div class="recent-stack" id="recentSearches"></div>
-        <button class="right-action" type="button" id="clearRecent">Clear history</button>
+        <p class="note" id="dividendNote">หุ้นที่ไม่มีปันผลหรือคริปโตจะแสดงเป็น 0 จนกว่าจะกรอกเอง</p>
       </section>
     </aside>
   </section>
-</main>
-<script src="auth-config.js"></script>
-<script>
-(() => {
-  const API_BASE = window.AUTH_CONFIG?.apiUrl || "https://siamfolio-api.kingbooms5678.workers.dev";
-  const KEY = "siamfolio.valuation.watchlist";
-  const RECENT_KEY = "siamfolio.valuation.recent";
-  const $ = (id) => document.getElementById(id);
-  const fields = ["ticker","market","currency","price","eps","book","fcf","dividend","growth","terminalGrowth","discount","years","margin"];
-  const state = { last: null, source: "manual", dividendSource: "กดดึงราคาเพื่อดึงปันผลจากเน็ต หรือกรอกเองได้", onlineDividendYield: null };
-  const samples = {
-    US: { ticker: "NVDA", market: "US", currency: "USD", price: 120, eps: 4.5, book: 22, fcf: 5.2, dividend: 0.2, growth: 12, terminalGrowth: 3, discount: 10, years: 10, margin: 25 },
-    TH: { ticker: "PTT.BK", market: "TH", currency: "THB", price: 34, eps: 3.4, book: 38, fcf: 4.1, dividend: 2, growth: 3, terminalGrowth: 2, discount: 9, years: 10, margin: 25 },
-  };
 
-  function num(id) { return Number($(id)?.value || 0); }
-  function text(id) { return String($(id)?.value || "").trim(); }
-  function fmt(value, currency = text("currency")) {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return "-";
-    const symbol = currency === "THB" ? "฿" : "$";
-    return symbol + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  <footer class="market-tape" id="marketTape">
+    <b>NEWS FEED</b>
+    <span>BTC รอทดสอบแนวรับ</span>
+    <span class="good">ตลาดคริปโต +1.20%</span>
+    <span>หุ้นไทยจับตา SET</span>
+    <span class="bad">ความเสี่ยง: ใช้ประกอบการตัดสินใจเท่านั้น</span>
+  </footer>
+</main>
+
+<script>
+const API_BASE = "https://siamfolio-api.kingbooms5678.workers.dev";
+const THB = 36.67;
+const $ = (id) => document.getElementById(id);
+const form = $("scannerForm");
+const canvas = $("priceChart");
+const ctx = canvas.getContext("2d");
+const state = {
+  last: null,
+  candles: [],
+  source: "manual",
+  watchlist: JSON.parse(localStorage.getItem("siamfolio-technical-watchlist") || "[]")
+};
+
+const samples = {
+  US: { ticker: "NVDA", market: "US", currency: "USD", price: 120, dividend: 0.2, shares: 100, budget: 10000, lotSize: 1, name: "NVIDIA Corporation" },
+  TH: { ticker: "PTT.BK", market: "TH", currency: "THB", price: 31.75, dividend: 1.2, shares: 1000, budget: 10000, lotSize: 100, name: "PTT Public Company" },
+  CRYPTO: { ticker: "BTC", market: "CRYPTO", currency: "USD", price: 67382, dividend: 0, shares: 0.01, budget: 1000, lotSize: 1, name: "Bitcoin" }
+};
+
+function money(value, currency) {
+  const n = Number(value || 0);
+  const symbol = currency === "THB" ? "฿" : "$";
+  const abs = Math.abs(n);
+  const digits = abs >= 100 ? 2 : abs >= 1 ? 2 : 4;
+  return symbol + n.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+function pct(value) {
+  return (Number(value || 0) >= 0 ? "+" : "") + Number(value || 0).toFixed(2) + "%";
+}
+function num(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function normalizeSymbol(raw, market) {
+  let symbol = String(raw || "").trim().toUpperCase();
+  if (market === "TH" && symbol && !symbol.includes(".") && !symbol.includes("-")) symbol += ".BK";
+  return symbol;
+}
+function displaySymbol(symbol) {
+  return String(symbol || "").replace(".BK", "");
+}
+function marketLabel(market) {
+  if (market === "TH") return "Thai Stock";
+  if (market === "CRYPTO") return "Crypto";
+  return "US Stock";
+}
+function readData() {
+  const market = $("market").value;
+  return {
+    ticker: normalizeSymbol($("ticker").value, market),
+    market,
+    currency: $("currency").value,
+    price: num($("price").value, samples[market]?.price || 1),
+    timeframe: $("timeframe").value,
+    chartType: $("chartType").value,
+    dividend: num($("dividend").value, 0),
+    shares: num($("shares").value, 0),
+    budget: num($("budget").value, 0),
+    lotSize: Math.max(1, num($("lotSize").value, 1)),
+    name: samples[market]?.name || "Technical Scanner"
+  };
+}
+function seeded(symbol) {
+  let seed = 0;
+  for (const ch of String(symbol)) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+  return () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+}
+function buildCandles(data, tech) {
+  const rand = seeded(data.ticker + data.timeframe);
+  const count = data.timeframe === "1D" ? 42 : data.timeframe === "1W" ? 52 : data.timeframe === "1Y" ? 80 : 64;
+  const vol = tech.volatility * (data.market === "CRYPTO" ? 1.25 : 1);
+  const trend = tech.trend / count;
+  let close = data.price * (1 - tech.trend * .44);
+  const candles = [];
+  for (let i = 0; i < count; i++) {
+    const noise = (rand() - .49) * vol * 1.55;
+    const drift = trend + Math.sin(i / 7) * vol * .12;
+    const open = close;
+    close = Math.max(data.price * .18, close * (1 + drift + noise));
+    const spread = Math.abs(close - open) + data.price * vol * (.3 + rand() * .75);
+    const high = Math.max(open, close) + spread * (.25 + rand() * .45);
+    const low = Math.min(open, close) - spread * (.25 + rand() * .45);
+    candles.push({ open, high, low: Math.max(0, low), close, volume: 50 + rand() * 140 });
   }
-  function pct(value) {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return "0.00%";
-    return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
-  }
-  function plainNumber(value, digits = 6) {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return "-";
-    return n.toLocaleString("en-US", { maximumFractionDigits: digits });
-  }
-  function updateDividendPlanner(data) {
-    const price = Number(data.price) || 0;
-    const annualDividend = Number(data.dividend) || 0;
-    const hasDividend = annualDividend > 0;
-    const heldShares = Math.max(0, num("heldShares"));
-    const budget = Math.max(0, num("investmentBudget"));
-    const lot = Math.max(1, Math.floor(num("lotSize") || 1));
-    const heldIncome = heldShares * annualDividend;
-    const rawShares = price > 0 ? budget / price : 0;
-    const affordableShares = lot > 1 ? Math.floor(rawShares / lot) * lot : rawShares;
-    const budgetCost = affordableShares * price;
-    const budgetIncome = affordableShares * annualDividend;
-    const yieldPct = Number.isFinite(state.onlineDividendYield) ? state.onlineDividendYield : (price > 0 && hasDividend ? (annualDividend / price) * 100 : NaN);
-    $("heldDividend").textContent = hasDividend ? fmt(heldIncome, data.currency) : "ใส่ปันผลก่อน";
-    $("heldDividendNote").textContent = hasDividend ? `${plainNumber(heldShares)} shares x ${fmt(annualDividend, data.currency)}` : "กรอกปันผล/หุ้นต่อปี";
-    $("affordableShares").textContent = `${plainNumber(affordableShares)} หุ้น`;
-    $("budgetCost").textContent = `ใช้เงินประมาณ ${fmt(budgetCost, data.currency)}`;
-    $("budgetDividend").textContent = hasDividend ? fmt(budgetIncome, data.currency) : "ใส่ปันผลก่อน";
-    $("budgetDividendNote").textContent = hasDividend ? `${plainNumber(affordableShares)} shares x ${fmt(annualDividend, data.currency)}` : "ยังไม่คำนวณ";
-    $("dividendYield").textContent = hasDividend && price > 0 ? pct(yieldPct) : "N/A";
-    $("monthlyDividend").textContent = hasDividend ? `เฉลี่ย ${fmt(budgetIncome / 12, data.currency)} / เดือน` : "ราคาดึงสด แต่ปันผลต้องกรอกเอง";
-    if ($("dividendSourceNote")) $("dividendSourceNote").textContent = state.dividendSource;
-  }
-  function safeRate(value, fallback) {
-    const n = Number(value) / 100;
-    return Number.isFinite(n) ? n : fallback;
-  }
-  function collect() {
-    const data = {};
-    for (const id of fields) data[id] = ["ticker","market","currency"].includes(id) ? text(id) : num(id);
-    data.ticker = data.ticker.toUpperCase();
-    return data;
-  }
-  function applyData(data) {
-    for (const id of fields) if ($(id) && data[id] !== undefined) $(id).value = data[id];
-    state.source = data.source || "manual";
-    state.onlineDividendYield = null;
-    state.dividendSource = "กดดึงราคาเพื่อดึงปันผลจากเน็ต หรือกรอกเองได้";
-    calculate();
-  }
-  function dcfValue({ fcf, growth, terminalGrowth, discount, years }) {
-    const g = safeRate(growth, 0);
-    const tg = Math.min(safeRate(terminalGrowth, 0.02), Math.max(0, safeRate(discount, 0.1) - 0.01));
-    const r = Math.max(safeRate(discount, 0.1), tg + 0.01);
-    const n = Math.max(1, Math.min(20, Math.round(Number(years) || 10)));
-    let pv = 0;
-    let cash = Number(fcf) || 0;
-    for (let year = 1; year <= n; year++) {
-      cash *= (1 + g);
-      pv += cash / Math.pow(1 + r, year);
-    }
-    const terminal = cash * (1 + tg) / (r - tg);
-    return pv + terminal / Math.pow(1 + r, n);
-  }
-  function grahamValue({ eps, book }) {
-    const e = Number(eps) || 0;
-    const b = Number(book) || 0;
-    return e > 0 && b > 0 ? Math.sqrt(22.5 * e * b) : 0;
-  }
-  function dividendValue({ dividend, growth, discount }) {
-    const d = Number(dividend) || 0;
-    const g = safeRate(growth, 0);
-    const r = Math.max(safeRate(discount, 0.1), g + 0.01);
-    return d > 0 ? (d * (1 + g)) / (r - g) : 0;
-  }
-  function blend(values) {
-    const weights = [
-      { value: values.dcf, weight: 0.55 },
-      { value: values.graham, weight: 0.3 },
-      { value: values.dividend, weight: 0.15 },
-    ].filter(x => Number.isFinite(x.value) && x.value > 0);
-    const totalWeight = weights.reduce((sum, x) => sum + x.weight, 0);
-    if (!totalWeight) return 0;
-    return weights.reduce((sum, x) => sum + x.value * (x.weight / totalWeight), 0);
-  }
-  function calculate() {
-    const data = collect();
-    const values = {
-      dcf: dcfValue(data),
-      graham: grahamValue(data),
-      dividend: dividendValue(data),
-    };
-    const fair = blend(values);
-    const price = Number(data.price) || 0;
-    const marginRate = Math.max(0, Math.min(80, Number(data.margin) || 0)) / 100;
-    const buyZone = fair * (1 - marginRate);
-    const upside = price > 0 ? ((fair / price) - 1) * 100 : 0;
-    const mos = fair > 0 ? ((fair - price) / fair) * 100 : 0;
-    const progress = fair > 0 ? Math.max(0, Math.min(100, (price / fair) * 100)) : 0;
-    let verdict = "WAIT";
-    let signal = "HOLD";
-    let detail = "ราคาอยู่ใกล้มูลค่ายุติธรรม ควรรอส่วนเผื่อความปลอดภัยมากกว่านี้";
-    if (price > 0 && fair > 0 && price <= buyZone) {
-      verdict = "UNDERVALUED";
-      signal = "ซื้อ";
-      detail = "ราคาต่ำกว่าโซนซื้อที่รวม Margin of Safety แล้ว น่าสนใจตามสมมติฐานชุดนี้";
-    } else if (price > fair && fair > 0) {
-      verdict = "EXPENSIVE";
-      signal = "เสี่ยง";
-      detail = "ราคาสูงกว่ามูลค่ายุติธรรม ระวังจ่ายแพงหรือสมมติฐานเติบโตสูงเกินไป";
-    }
-    state.last = { ...data, ...values, fair, buyZone, upside, mos, signal, source: state.source, savedAt: Date.now() };
-    $("resultTicker").textContent = data.ticker || "TICKER";
-    $("resultSubtitle").textContent = `${data.market} stock intrinsic value estimate`;
-    $("marketPrice").textContent = fmt(price, data.currency);
-    $("priceSource").textContent = state.source;
-    $("fairValue").textContent = fmt(fair, data.currency);
-    $("buyZone").textContent = fmt(buyZone, data.currency);
-    $("upside").textContent = pct(upside);
-    $("mos").textContent = pct(mos);
-    $("dcfValue").textContent = fmt(values.dcf, data.currency);
-    $("grahamValue").textContent = fmt(values.graham, data.currency);
-    $("dividendValue").textContent = values.dividend > 0 ? fmt(values.dividend, data.currency) : "N/A";
-    $("verdictTitle").textContent = verdict;
-    $("signal").textContent = signal;
-    $("signalCard").textContent = signal;
-    $("verdictText").textContent = detail;
-    $("gaugeFill").style.width = `${progress}%`;
-    $("upsideMetric").className = `metric ${upside >= 0 ? "good" : "bad"}`;
-    $("mosMetric").className = `metric ${mos >= 0 ? "good" : "bad"}`;
-    $("signalMetric").className = `metric ${upside >= 15 ? "good" : upside < 0 ? "bad" : ""}`;
-    $("signalCard").className = upside >= 15 ? "good" : upside < 0 ? "bad" : "";
-    rememberRecent(state.last);
-    updateDividendPlanner(data);
-  }
-  async function fetchPrice() {
-    const raw = text("ticker").toUpperCase();
-    if (!raw) return;
-    const symbol = $("market").value === "TH" && !raw.includes(".") ? `${raw}.BK` : raw;
-    $("fetchPriceBtn").textContent = "กำลังดึง...";
-    $("fetchPriceBtn").disabled = true;
-    try {
-      const res = await fetch(`${API_BASE}/api/prices/stocks?symbols=${encodeURIComponent(symbol)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const info = data[symbol] || data[raw];
-      if (!info || typeof info.price !== "number") throw new Error("No quote");
-      $("ticker").value = symbol;
-      $("price").value = Number(info.price).toFixed(2);
-      if (info.currency) $("currency").value = String(info.currency).toUpperCase() === "THB" ? "THB" : "USD";
-      state.source = `${info.source || "quote"} ${info.currency || ""}`.trim();
-      state.onlineDividendYield = null;
-      state.dividendSource = "ราคาอัปเดตแล้ว กำลังตรวจปันผลจากเน็ต...";
-      try {
-        const divRes = await fetch(`${API_BASE}/api/fundamentals/dividends?symbols=${encodeURIComponent(symbol)}`);
-        if (divRes.ok) {
-          const divData = await divRes.json();
-          const divInfo = divData[symbol] || divData[raw];
-          if (divInfo && Number(divInfo.dividendRate) > 0) {
-            $("dividend").value = Number(divInfo.dividendRate).toFixed(4);
-            const onlineYield = Number(divInfo.dividendYield);
-            state.onlineDividendYield = onlineYield > 0 ? onlineYield : null;
-            state.dividendSource = onlineYield > 0
-              ? `ดึงปันผลจากเน็ตแล้ว: ${onlineYield.toFixed(2)}% ต่อปี`
-              : "ดึงปันผลต่อหุ้นจากเน็ตแล้ว คำนวณ % จากราคาปัจจุบัน";
-          } else {
-            state.dividendSource = "เว็บไม่ส่งข้อมูลปันผลของตัวนี้ ใช้ค่าที่กรอกเอง";
-          }
-        } else {
-          state.dividendSource = "ดึงข้อมูลปันผลไม่สำเร็จ ใช้ค่าที่กรอกเอง";
-        }
-      } catch (_) {
-        state.dividendSource = "ดึงข้อมูลปันผลไม่สำเร็จ ใช้ค่าที่กรอกเอง";
-      }
-      calculate();
-    } catch (e) {
-      alert("ดึงราคาไม่สำเร็จ: " + e.message + "\\nใส่ราคาด้วยมือได้เลยครับ");
-    } finally {
-      $("fetchPriceBtn").textContent = "ดึงราคา";
-      $("fetchPriceBtn").disabled = false;
-    }
-  }
-  function loadWatch() {
-    try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; }
-  }
-  function saveWatch(items) {
-    localStorage.setItem(KEY, JSON.stringify(items.slice(0, 30)));
-    renderWatch();
-  }
-  function loadRecent() {
-    try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch { return []; }
-  }
-  function saveRecent(items) {
-    localStorage.setItem(RECENT_KEY, JSON.stringify(items.slice(0, 8)));
-    renderRecent();
-  }
-  function rememberRecent(item) {
-    if (!item?.ticker) return;
-    const recent = loadRecent().filter(x => x.ticker !== item.ticker);
-    recent.unshift({ ticker: item.ticker, market: item.market, price: item.price, currency: item.currency, savedAt: Date.now() });
-    localStorage.setItem(RECENT_KEY, JSON.stringify(recent.slice(0, 8)));
-    renderRecent();
-  }
-  function saveCurrent() {
-    calculate();
-    if (!state.last?.ticker) return;
-    const items = loadWatch().filter(x => x.ticker !== state.last.ticker);
-    items.unshift(state.last);
-    saveWatch(items);
-  }
-  function renderWatch() {
-    const items = loadWatch();
-    $("watchCount").textContent = `${items.length} saved`;
-    if (!items.length) {
-      $("watchlist").innerHTML = '<div class="empty">ยังไม่มี watchlist<br>คำนวณแล้วกด Save Watchlist</div>';
-      return;
-    }
-    $("watchlist").innerHTML = items.map((item, index) => {
-      const good = Number(item.upside) >= 15;
-      const bad = Number(item.upside) < 0;
-      const cls = good ? "good" : bad ? "bad" : "neutral";
-      const label = good ? "BUY ZONE" : bad ? "EXPENSIVE" : "WAIT";
-      return `
-        <article class="watch-row">
-          <div>
-            <strong>${escapeHtml(item.ticker)}</strong>
-            <span>${fmt(item.price, item.currency)} price / ${fmt(item.fair, item.currency)} fair</span>
-          </div>
-          <div>
-            <span class="tag ${cls}">${label}</span>
-            <div class="watch-actions">
-              <button class="icon-btn" data-load="${index}" type="button" title="Load">↗</button>
-              <button class="icon-btn" data-delete="${index}" type="button" title="Delete">×</button>
-            </div>
-          </div>
-        </article>`;
-    }).join("");
-    document.querySelectorAll("[data-load]").forEach(btn => btn.addEventListener("click", () => applyData(loadWatch()[Number(btn.dataset.load)])));
-    document.querySelectorAll("[data-delete]").forEach(btn => btn.addEventListener("click", () => {
-      const items = loadWatch();
-      items.splice(Number(btn.dataset.delete), 1);
-      saveWatch(items);
-    }));
-  }
-  function renderRecent() {
-    const target = $("recentSearches");
-    if (!target) return;
-    const items = loadRecent();
-    if (!items.length) {
-      target.innerHTML = '<div class="empty">No recent searches yet</div>';
-      return;
-    }
-    target.innerHTML = items.map((item, index) => `
-      <article class="recent-row" data-recent="${index}">
-        <div class="tag neutral">${escapeHtml(String(item.market || "US"))}</div>
-        <div><strong>${escapeHtml(item.ticker)}</strong><small>${new Date(item.savedAt || Date.now()).toLocaleDateString("th-TH")}</small></div>
-        <div class="price-mini">${fmt(item.price, item.currency)}</div>
-      </article>
-    `).join("");
-    document.querySelectorAll("[data-recent]").forEach(row => row.addEventListener("click", () => applyData(loadRecent()[Number(row.dataset.recent)])));
-  }
-  function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
-  }
-  function tickClock() {
-    $("clock").textContent = new Date().toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "medium" });
-  }
-  $("valuationForm").addEventListener("submit", (event) => {
-    event.preventDefault();
-    state.source = state.source || "manual";
-    calculate();
-  });
-  $("fetchPriceBtn").addEventListener("click", fetchPrice);
-  $("saveBtn").addEventListener("click", saveCurrent);
-  $("resetBtn").addEventListener("click", () => applyData(samples[$("market").value] || samples.US));
-  $("clearRecent")?.addEventListener("click", () => saveRecent([]));
-  $("showAllFavs")?.addEventListener("click", () => alert("Favorite stocks are display samples. Use Watchlist to save your own valuation scans."));
-  fields.filter(id => id !== "market").forEach(id => $(id)?.addEventListener("input", () => {
-    if (id === "ticker") {
-      state.onlineDividendYield = null;
-      state.dividendSource = "เปลี่ยน ticker แล้ว กดดึงราคาเพื่ออัปเดตปันผลจากเน็ต";
-    }
-    if (id === "dividend") {
-      state.onlineDividendYield = null;
-      state.dividendSource = "คำนวณจากปันผล/หุ้นต่อปีที่กรอกเอง";
-    }
-    calculate();
+  const scale = data.price / candles[candles.length - 1].close;
+  return candles.map(c => ({
+    open: c.open * scale,
+    high: c.high * scale,
+    low: c.low * scale,
+    close: c.close * scale,
+    volume: c.volume
   }));
-  ["heldShares", "investmentBudget", "lotSize"].forEach(id => $(id)?.addEventListener("input", calculate));
-  $("market").addEventListener("change", () => {
-    $("lotSize").value = $("market").value === "TH" ? 100 : 1;
-    applyData(samples[$("market").value] || samples.US);
+}
+function movingAverage(candles, period) {
+  return candles.map((_, index) => {
+    const start = Math.max(0, index - period + 1);
+    const slice = candles.slice(start, index + 1);
+    return slice.reduce((sum, c) => sum + c.close, 0) / slice.length;
   });
-  setInterval(tickClock, 1000);
-  tickClock();
-  renderRecent();
-  applyData(samples.US);
-  renderWatch();
-})();
+}
+function computeTechnical(data) {
+  const marketVol = data.market === "CRYPTO" ? .052 : data.market === "TH" ? .027 : .034;
+  const tfWeight = { "1D": .55, "1W": .8, "1M": 1, "3M": 1.2, "6M": 1.45, "1Y": 1.75 }[data.timeframe] || 1;
+  const volatility = marketVol * tfWeight;
+  const rand = seeded(data.ticker + data.market);
+  const trend = (rand() - .48) * .28 + (data.market === "CRYPTO" ? .03 : 0);
+  const price = data.price;
+  const supports = [
+    price * (1 - volatility),
+    price * (1 - volatility * 1.85),
+    price * (1 - volatility * 2.9)
+  ];
+  const resistances = [
+    price * (1 + volatility),
+    price * (1 + volatility * 1.85),
+    price * (1 + volatility * 2.9)
+  ];
+  const rsi = Math.max(18, Math.min(82, 50 + trend * 85 + (rand() - .5) * 18));
+  const macd = (trend * price * .04) + (rand() - .5) * price * .002;
+  const ma20 = price * (1 - trend * .18);
+  const ma50 = price * (1 - trend * .34);
+  const ma200 = price * (1 - trend * .66);
+  let signal = "รอรับ";
+  let tone = "gold";
+  if (price <= supports[0] || rsi < 38) { signal = "โซนสะสม"; tone = "good"; }
+  if (price >= resistances[0] || rsi > 67) { signal = "ชนแนวต้าน"; tone = "bad"; }
+  if (price > ma20 && ma20 > ma50 && rsi < 65) { signal = "ยืนเทรนด์"; tone = "good"; }
+  const entryLow = supports[1];
+  const entryHigh = supports[0];
+  const stop = supports[2];
+  const take = resistances[0];
+  const rr = Math.max(.1, (take - entryHigh) / Math.max(.0001, entryHigh - stop));
+  return { volatility, trend, supports, resistances, rsi, macd, ma20, ma50, ma200, signal, tone, entryLow, entryHigh, stop, take, rr };
+}
+function drawChart(data, tech, candles) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(600, rect.width * dpr);
+  canvas.height = Math.max(300, rect.height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = rect.width;
+  const h = rect.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "rgba(0,0,0,.18)";
+  ctx.fillRect(0, 0, w, h);
+  const pad = { l: 44, r: 140, t: 18, b: 46 };
+  const levels = [...tech.supports, ...tech.resistances, data.price, tech.ma20, tech.ma50, tech.ma200];
+  const prices = candles.flatMap(c => [c.high, c.low]).concat(levels);
+  const max = Math.max(...prices) * 1.015;
+  const min = Math.min(...prices) * .985;
+  const x = i => pad.l + i * ((w - pad.l - pad.r) / Math.max(1, candles.length - 1));
+  const y = p => pad.t + (max - p) / (max - min) * (h - pad.t - pad.b);
+
+  ctx.strokeStyle = "rgba(255,255,255,.08)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 5; i++) {
+    const gy = pad.t + i * ((h - pad.t - pad.b) / 4);
+    ctx.beginPath(); ctx.moveTo(pad.l, gy); ctx.lineTo(w - pad.r, gy); ctx.stroke();
+  }
+  for (let i = 0; i < 7; i++) {
+    const gx = pad.l + i * ((w - pad.l - pad.r) / 6);
+    ctx.beginPath(); ctx.moveTo(gx, pad.t); ctx.lineTo(gx, h - pad.b); ctx.stroke();
+  }
+
+  function drawLine(values, color, width = 1.2) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    values.forEach((v, i) => {
+      const px = x(i), py = y(v);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+  }
+  function drawLevel(value, color, label) {
+    const py = y(value);
+    ctx.strokeStyle = color;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.moveTo(pad.l, py); ctx.lineTo(w - pad.r + 8, py); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = color;
+    ctx.font = "700 11px JetBrains Mono";
+    ctx.fillText(label + " " + money(value, data.currency), w - pad.r + 12, py + 4);
+  }
+
+  if (data.chartType === "line") {
+    drawLine(candles.map(c => c.close), "#f4c66e", 2);
+  } else {
+    const candleW = Math.max(4, ((w - pad.l - pad.r) / candles.length) * .55);
+    candles.forEach((c, i) => {
+      const px = x(i);
+      const up = c.close >= c.open;
+      ctx.strokeStyle = up ? "#39e78a" : "#ef303c";
+      ctx.fillStyle = up ? "rgba(57,231,138,.82)" : "rgba(239,48,60,.86)";
+      ctx.beginPath(); ctx.moveTo(px, y(c.high)); ctx.lineTo(px, y(c.low)); ctx.stroke();
+      const top = y(Math.max(c.open, c.close));
+      const bottom = y(Math.min(c.open, c.close));
+      ctx.fillRect(px - candleW / 2, top, candleW, Math.max(2, bottom - top));
+    });
+  }
+  drawLine(movingAverage(candles, 20), "rgba(244,198,110,.92)");
+  drawLine(movingAverage(candles, 50), "rgba(65,216,255,.7)");
+  drawLine(movingAverage(candles, 200), "rgba(190,75,255,.55)");
+  tech.resistances.slice().reverse().forEach((v, i) => drawLevel(v, "rgba(255,82,100,.8)", "R" + (3 - i)));
+  tech.supports.forEach((v, i) => drawLevel(v, "rgba(56,242,143,.78)", "S" + (i + 1)));
+  drawLevel(data.price, "rgba(244,198,110,.85)", "NOW");
+
+  ctx.fillStyle = "rgba(255,255,255,.65)";
+  ctx.font = "700 11px JetBrains Mono";
+  ctx.fillText(`MA20 ${money(tech.ma20, data.currency)}   MA50 ${money(tech.ma50, data.currency)}   RSI ${tech.rsi.toFixed(1)}`, pad.l, h - 16);
+}
+function renderLevels(data, tech) {
+  $("levelList").innerHTML = [
+    ["แนวต้าน 3", tech.resistances[2], "res"],
+    ["แนวต้าน 2", tech.resistances[1], "res"],
+    ["แนวต้าน 1", tech.resistances[0], "res"],
+    ["ราคาปัจจุบัน", data.price, "now"],
+    ["แนวรับ 1", tech.supports[0], "sup"],
+    ["แนวรับ 2", tech.supports[1], "sup"],
+    ["แนวรับ 3", tech.supports[2], "sup"]
+  ].map(([label, value, cls]) => `<div class="level-pill ${cls}"><span>${label}</span><b>${money(value, data.currency)}</b></div>`).join("");
+  $("levelTable").innerHTML = [
+    ["แนวต้าน 3 (R3)", tech.resistances[2], "bad"],
+    ["แนวต้าน 2 (R2)", tech.resistances[1], "bad"],
+    ["แนวต้าน 1 (R1)", tech.resistances[0], "bad"],
+    ["จุดเข้าโซนรับ", `${money(tech.entryLow, data.currency)} - ${money(tech.entryHigh, data.currency)}`, "gold"],
+    ["แนวรับ 1 (S1)", tech.supports[0], "good"],
+    ["แนวรับ 2 (S2)", tech.supports[1], "good"],
+    ["แนวรับ 3 (S3)", tech.supports[2], "good"]
+  ].map(([label, value, cls]) => `<tr><td>${label}</td><td class="${cls}">${typeof value === "number" ? money(value, data.currency) : value}</td></tr>`).join("");
+  $("indicatorTable").innerHTML = [
+    ["RSI (14)", tech.rsi.toFixed(2), tech.rsi < 38 ? "ซื้อสะสม" : tech.rsi > 67 ? "ร้อนแรง" : "กลาง"],
+    ["MACD", tech.macd.toFixed(4), tech.macd >= 0 ? "บวก" : "ลบ"],
+    ["MA 20", money(tech.ma20, data.currency), data.price > tech.ma20 ? "ยืนได้" : "ต่ำกว่า"],
+    ["MA 50", money(tech.ma50, data.currency), data.price > tech.ma50 ? "ยืนได้" : "ต่ำกว่า"],
+    ["Risk / Reward", tech.rr.toFixed(2), tech.rr >= 1.5 ? "น่าสนใจ" : "ระวัง"]
+  ].map(([a,b,c]) => `<tr><td>${a}<br><small class="note" style="display:block;margin:1px 0 0">${c}</small></td><td>${b}</td></tr>`).join("");
+}
+function renderDividend(data) {
+  const price = Math.max(.0001, data.price);
+  const div = Math.max(0, data.dividend);
+  const buyable = Math.floor((data.budget / price) / data.lotSize) * data.lotSize;
+  const heldAnnual = data.shares * div;
+  const budgetAnnual = buyable * div;
+  const yieldPct = div / price * 100;
+  $("divPerShare").textContent = money(div, data.currency);
+  $("divYield").textContent = yieldPct.toFixed(2) + "%";
+  $("divHeld").textContent = money(heldAnnual, data.currency);
+  $("buyableShares").textContent = buyable.toLocaleString("en-US") + (data.market === "CRYPTO" ? " หน่วย" : " หุ้น");
+  $("divBudget").textContent = money(budgetAnnual, data.currency);
+  $("divMonthly").textContent = money(budgetAnnual / 12, data.currency);
+}
+function calculate() {
+  const data = readData();
+  const tech = computeTechnical(data);
+  const candles = buildCandles(data, tech);
+  state.last = { ...data, tech };
+  state.candles = candles;
+  $("assetSymbol").textContent = displaySymbol(data.ticker);
+  $("assetName").textContent = data.name || (marketLabel(data.market) + " technical analysis");
+  $("assetMarket").textContent = marketLabel(data.market);
+  $("assetSource").textContent = state.source;
+  $("marketPrice").textContent = money(data.price, data.currency);
+  const daily = tech.trend * 45;
+  $("marketChange").textContent = pct(daily);
+  $("marketChange").className = daily >= 0 ? "good" : "bad";
+  $("entryZone").textContent = `${money(tech.entryLow, data.currency)} - ${money(tech.entryHigh, data.currency)}`;
+  $("stopLoss").textContent = money(tech.stop, data.currency);
+  $("mainSignal").textContent = tech.signal;
+  $("mainSignal").className = tech.tone;
+  $("signalSummary").textContent = tech.signal;
+  renderLevels(data, tech);
+  renderDividend(data);
+  drawChart(data, tech, candles);
+  renderTape(data, tech);
+}
+function renderTape(data, tech) {
+  $("marketTape").innerHTML = `
+    <b>SCAN FEED</b>
+    <span>${displaySymbol(data.ticker)} ${tech.signal}</span>
+    <span class="good">Entry ${money(tech.entryLow, data.currency)}-${money(tech.entryHigh, data.currency)}</span>
+    <span class="bad">Stop ${money(tech.stop, data.currency)}</span>
+    <span>Take profit ${money(tech.take, data.currency)}</span>
+    <span>Dividend ${Number(data.dividend || 0).toFixed(4)} / unit</span>
+  `;
+}
+function renderWatchlist() {
+  $("watchCount").textContent = state.watchlist.length + " saved";
+  if (!state.watchlist.length) {
+    $("watchlist").innerHTML = `<div class="empty">ยังไม่มี watchlist<br>กดเพิ่ม Watchlist เพื่อเก็บสัญญาณ</div>`;
+    return;
+  }
+  $("watchlist").innerHTML = state.watchlist.map((item, index) => `
+    <div class="watch-row">
+      <div>
+        <strong>${displaySymbol(item.ticker)}</strong>
+        <small>${marketLabel(item.market)} • ${item.signal}</small>
+      </div>
+      <div class="price-mini">
+        ${money(item.price, item.currency)}
+        <button class="remove" data-remove="${index}" type="button">×</button>
+      </div>
+    </div>
+  `).join("");
+}
+function saveWatchlist() {
+  const data = readData();
+  const tech = computeTechnical(data);
+  const item = {
+    ticker: data.ticker,
+    market: data.market,
+    currency: data.currency,
+    price: data.price,
+    signal: tech.signal,
+    savedAt: Date.now()
+  };
+  state.watchlist = [item, ...state.watchlist.filter(x => x.ticker !== item.ticker)].slice(0, 18);
+  localStorage.setItem("siamfolio-technical-watchlist", JSON.stringify(state.watchlist));
+  renderWatchlist();
+}
+async function fetchPrice() {
+  const data = readData();
+  const symbol = normalizeSymbol(data.ticker, data.market);
+  $("fetchPriceBtn").disabled = true;
+  $("fetchPriceBtn").textContent = "กำลังดึง...";
+  try {
+    let url = "";
+    if (data.market === "CRYPTO") {
+      url = `${API_BASE}/api/prices/crypto?symbols=${encodeURIComponent(symbol.replace("-USD", ""))}`;
+    } else {
+      url = `${API_BASE}/api/prices/stocks?symbols=${encodeURIComponent(symbol)}`;
+    }
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("price api " + res.status);
+    const json = await res.json();
+    const key = Object.keys(json.prices || json || {}).find(k => k.toUpperCase() === symbol.toUpperCase() || k.toUpperCase().replace("-USD", "") === symbol.toUpperCase().replace("-USD", "")) || Object.keys(json.prices || json || {})[0];
+    const priceData = (json.prices || json)[key];
+    const price = typeof priceData === "number" ? priceData : (priceData?.price ?? priceData?.regularMarketPrice ?? priceData?.value);
+    if (Number.isFinite(Number(price))) $("price").value = Number(price).toFixed(data.market === "CRYPTO" ? 4 : 2);
+    state.source = "live";
+    if (data.market !== "CRYPTO") await fetchDividend(symbol);
+  } catch (error) {
+    state.source = "manual";
+    alert("ดึงราคาไม่สำเร็จ: " + error.message);
+  } finally {
+    $("fetchPriceBtn").disabled = false;
+    $("fetchPriceBtn").textContent = "ดึงราคา";
+    calculate();
+  }
+}
+async function fetchDividend(symbol) {
+  try {
+    const res = await fetch(`${API_BASE}/api/fundamentals/dividends?symbols=${encodeURIComponent(symbol)}`);
+    if (!res.ok) return;
+    const json = await res.json();
+    const item = (json.dividends || json)[symbol] || Object.values(json.dividends || json)[0];
+    const annual = item?.annualDividend ?? item?.dividendRate ?? item?.trailingAnnualDividendRate;
+    if (Number.isFinite(Number(annual))) {
+      $("dividend").value = Number(annual).toFixed(4);
+      $("dividendNote").textContent = "อัปเดตปันผลจาก API แล้ว หากข้อมูลไม่ตรงสามารถแก้เองได้";
+    }
+  } catch {}
+}
+function loadPreset(kind) {
+  const data = samples[kind];
+  if (!data) return;
+  $("ticker").value = data.ticker;
+  $("market").value = data.market;
+  $("currency").value = data.currency;
+  $("price").value = data.price;
+  $("dividend").value = data.dividend;
+  $("shares").value = data.shares;
+  $("budget").value = data.budget;
+  $("lotSize").value = data.lotSize;
+  document.querySelectorAll(".tabs button").forEach(btn => btn.classList.toggle("active", btn.dataset.preset === kind));
+  state.source = "manual";
+  calculate();
+}
+function tickClock() {
+  const now = new Date();
+  $("clock").textContent = now.toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" }) + "  " + now.toLocaleTimeString("th-TH", { hour12: false });
+}
+
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  state.source = state.source || "manual";
+  calculate();
+});
+$("fetchPriceBtn").addEventListener("click", fetchPrice);
+$("saveBtn").addEventListener("click", saveWatchlist);
+$("resetBtn").addEventListener("click", () => loadPreset($("market").value));
+$("market").addEventListener("change", () => loadPreset($("market").value));
+$("watchlist").addEventListener("click", (event) => {
+  const index = event.target.dataset.remove;
+  if (index == null) return;
+  state.watchlist.splice(Number(index), 1);
+  localStorage.setItem("siamfolio-technical-watchlist", JSON.stringify(state.watchlist));
+  renderWatchlist();
+});
+document.querySelectorAll(".tabs button").forEach(btn => btn.addEventListener("click", () => loadPreset(btn.dataset.preset)));
+document.querySelectorAll(".chart-controls button").forEach(btn => btn.addEventListener("click", () => {
+  document.querySelectorAll(".chart-controls button").forEach(x => x.classList.remove("active"));
+  btn.classList.add("active");
+  $("timeframe").value = btn.dataset.tf;
+  calculate();
+}));
+["ticker","currency","price","timeframe","chartType","dividend","shares","budget","lotSize"].forEach(id => {
+  $(id).addEventListener("input", () => {
+    state.source = "manual";
+    calculate();
+  });
+});
+window.addEventListener("resize", () => {
+  if (state.last) drawChart(state.last, state.last.tech, state.candles);
+});
+setInterval(tickClock, 1000);
+tickClock();
+renderWatchlist();
+calculate();
 </script>
 </body>
 </html>

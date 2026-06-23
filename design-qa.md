@@ -36,3 +36,22 @@ state: local `valuation.html` loaded through `http://127.0.0.1:5173/valuation.ht
 - Removed the decorative image/icon beside the Stock Valuation title and the image layer behind the stock ticker header for better readability.
 
 final result: passed
+
+## Technical Scanner Conversion - 2026-06-23
+
+implementation screenshot path: `D:\DCA\valuation-technical-shot-3.png`
+desktop viewport: 1600 x 900
+state: local `valuation.html` loaded through `http://127.0.0.1:5173/valuation.html`
+
+**Findings**
+- No blocking P0/P1/P2 issues remain.
+- The page now fits in one desktop viewport with search input, candlestick chart, support/resistance summary, technical indicators, watchlist, and dividend calculator visible together.
+- The old intrinsic-value-only flow was replaced with a technical scanner for Thai stocks, US stocks, and crypto while keeping dividend planning.
+
+**Patches Made**
+- Converted `valuation.html` into a support/resistance and entry-zone scanner.
+- Added market presets for Thai stocks, US stocks, and crypto.
+- Added canvas candlestick rendering with support, resistance, MA20, MA50, MA200, RSI, MACD, entry zone, stop loss, and take-profit outputs.
+- Preserved price fetching through the existing SiamFolio Worker APIs and kept dividend calculations editable.
+
+final result: passed
