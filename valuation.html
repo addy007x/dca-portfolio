@@ -50,7 +50,7 @@ body {
     radial-gradient(circle at 50% 12%, rgba(230, 18, 32, .2), transparent 38%),
     url("assets/manga-dashboard-library.png") center / cover fixed no-repeat,
     var(--bg);
-  overflow-x: hidden;
+  overflow: hidden;
 }
 body::before {
   content: "";
@@ -67,23 +67,23 @@ a { color: inherit; text-decoration: none; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
 .shell {
-  min-height: 100vh;
-  padding: 14px;
+  height: 100vh;
+  padding: 8px;
   display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 12px;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
 }
 .topbar {
   border: 1px solid var(--line);
   background:
     linear-gradient(90deg, rgba(7,8,11,.94), rgba(14,8,10,.88));
   box-shadow: 0 0 22px rgba(239,28,40,.18), inset 0 0 0 1px rgba(255,255,255,.03);
-  min-height: 78px;
+  min-height: 54px;
   display: grid;
-  grid-template-columns: minmax(220px, 360px) 1fr auto;
+  grid-template-columns: minmax(300px, 430px) 1fr auto;
   align-items: center;
   gap: 14px;
-  padding: 10px 14px;
+  padding: 6px 12px;
   position: relative;
   overflow: hidden;
 }
@@ -119,32 +119,27 @@ button { cursor: pointer; }
   z-index: 3;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0;
   min-width: 0;
 }
 .brand img {
-  width: 54px;
-  height: 54px;
-  object-fit: contain;
-  border-radius: 50%;
-  border: 1px solid rgba(245,207,118,.72);
-  background: radial-gradient(circle, rgba(245,207,118,.18), rgba(0,0,0,.78));
-  box-shadow: 0 0 18px rgba(245,207,118,.42), 0 0 30px rgba(239,28,40,.32);
+  display: none;
 }
 .brand h1 {
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(26px, 3vw, 40px);
+  font-size: clamp(24px, 2.3vw, 30px);
   line-height: .95;
   letter-spacing: .055em;
   text-transform: uppercase;
   color: var(--gold);
   text-shadow: 0 0 12px rgba(245,207,118,.36), 0 1px 0 #000;
+  white-space: nowrap;
 }
 .brand p {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
 }
 .nav {
@@ -183,12 +178,14 @@ button { cursor: pointer; }
   font-weight: 800;
   color: var(--gold);
   white-space: nowrap;
+  font-size: 15px;
 }
 .grid {
   min-height: 0;
+  height: 100%;
   display: grid;
-  grid-template-columns: minmax(315px, 380px) minmax(440px, 1fr) minmax(300px, 360px);
-  gap: 12px;
+  grid-template-columns: minmax(300px, 360px) minmax(520px, 1fr) minmax(280px, 330px);
+  gap: 8px;
 }
 .panel {
   position: relative;
@@ -218,7 +215,7 @@ button { cursor: pointer; }
   position: relative;
   z-index: 1;
 }
-.panel-pad { padding: 18px; }
+.panel-pad { padding: 12px; }
 .input-panel {
   background:
     linear-gradient(180deg, rgba(10,11,16,.92), rgba(5,4,7,.88)),
@@ -277,14 +274,14 @@ button { cursor: pointer; }
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   border-bottom: 1px solid rgba(239,28,40,.28);
-  padding-bottom: 10px;
+  padding-bottom: 8px;
 }
 .section-title h2 {
   margin: 0;
   font-family: var(--display);
-  font-size: 26px;
+  font-size: 22px;
   line-height: 1;
   text-transform: uppercase;
   font-style: italic;
@@ -300,13 +297,13 @@ button { cursor: pointer; }
 .field-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
 }
-.field { display: grid; gap: 6px; }
+.field { display: grid; gap: 4px; }
 .field.full { grid-column: 1 / -1; }
 .field label {
   color: #d7cbc3;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 .input-note {
@@ -320,11 +317,11 @@ button { cursor: pointer; }
 input, select {
   min-width: 0;
   width: 100%;
-  height: 42px;
+  height: 34px;
   border: 1px solid rgba(255,255,255,.14);
   background: rgba(0,0,0,.5);
   color: var(--text);
-  padding: 0 12px;
+  padding: 0 10px;
   outline: 0;
 }
 input:focus, select:focus {
@@ -334,11 +331,11 @@ input:focus, select:focus {
 .button-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 8px;
+  margin-top: 10px;
 }
 .btn {
-  min-height: 44px;
+  min-height: 34px;
   border: 1px solid rgba(255,255,255,.15);
   color: #fff;
   background: rgba(0,0,0,.46);
@@ -359,10 +356,10 @@ input:focus, select:focus {
   filter: brightness(1.12);
 }
 .hint {
-  margin: 12px 0 0;
+  margin: 8px 0 0;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 11px;
+  line-height: 1.45;
 }
 .hero-panel {
   background:
@@ -371,7 +368,7 @@ input:focus, select:focus {
   min-height: 100%;
   display: grid;
   grid-template-rows: auto auto 1fr;
-  gap: 12px;
+  gap: 8px;
 }
 .hero-panel::before {
   background:
@@ -385,23 +382,16 @@ input:focus, select:focus {
   overflow: hidden;
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 12px;
-  padding: 18px;
-  min-height: 154px;
+  gap: 10px;
+  padding: 13px 14px;
+  min-height: 104px;
   background:
-    linear-gradient(90deg, rgba(0,0,0,.88), rgba(0,0,0,.38)),
-    url("assets/portfolio-earn-panel-bg.png") center / cover no-repeat;
-  background-blend-mode: normal, normal;
+    linear-gradient(90deg, rgba(0,0,0,.88), rgba(32,5,8,.72)),
+    radial-gradient(circle at 78% 20%, rgba(245,207,118,.13), transparent 22%);
   border-bottom: 1px solid var(--line);
 }
 .ticker-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: var(--decor-dragon) center / cover no-repeat;
-  mix-blend-mode: screen;
-  opacity: .13;
+  display: none;
 }
 .ticker-card > * {
   position: relative;
@@ -410,28 +400,29 @@ input:focus, select:focus {
 .ticker-card h2 {
   margin: 0;
   font-family: var(--display);
-  font-size: clamp(52px, 7vw, 92px);
-  line-height: .82;
+  font-size: clamp(40px, 4.6vw, 62px);
+  line-height: .86;
   letter-spacing: .02em;
   text-transform: uppercase;
 }
 .ticker-card p {
-  margin: 8px 0 0;
+  margin: 4px 0 0;
   color: var(--muted);
   font-weight: 700;
+  font-size: 12px;
 }
 .price-box {
-  min-width: 150px;
+  min-width: 124px;
   align-self: start;
   border: 1px solid rgba(245,207,118,.24);
-  padding: 12px;
+  padding: 9px 10px;
   background: rgba(0,0,0,.62);
   text-align: right;
 }
 .price-box b {
   display: block;
   font-family: var(--mono);
-  font-size: 22px;
+  font-size: 18px;
 }
 .price-box small {
   color: var(--muted);
@@ -440,38 +431,38 @@ input:focus, select:focus {
 .result-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  padding: 0 18px;
+  gap: 8px;
+  padding: 0 14px;
 }
 .metric {
   border: 1px solid rgba(255,255,255,.1);
   background:
     radial-gradient(circle at 0 50%, rgba(245,207,118,.1), transparent 34%),
     rgba(0,0,0,.5);
-  padding: 12px;
-  min-height: 92px;
+  padding: 10px;
+  min-height: 72px;
 }
 .metric span {
   display: block;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 .metric b {
   display: block;
-  margin-top: 8px;
+  margin-top: 5px;
   font-family: var(--display);
-  font-size: 28px;
+  font-size: 22px;
   line-height: .95;
 }
 .metric.good b { color: var(--green); }
 .metric.bad b { color: var(--bad); }
 .summary {
-  margin: 0 18px 18px;
-  padding: 18px;
+  margin: 0 14px 8px;
+  padding: 11px 12px;
   display: grid;
-  grid-template-columns: 1fr 210px;
-  gap: 18px;
+  grid-template-columns: 1fr 148px;
+  gap: 12px;
   align-items: center;
   background:
     linear-gradient(135deg, rgba(239,28,40,.18), rgba(0,0,0,.58)),
@@ -479,11 +470,11 @@ input:focus, select:focus {
   border: 1px solid rgba(239,28,40,.36);
 }
 .gauge {
-  height: 14px;
+  height: 12px;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(0,0,0,.68);
-  margin: 12px 0 8px;
+  margin: 8px 0 6px;
 }
 .gauge span {
   display: block;
@@ -498,7 +489,7 @@ input:focus, select:focus {
 .decision b {
   display: block;
   font-family: var(--display);
-  font-size: 38px;
+  font-size: 30px;
   line-height: .9;
   text-transform: uppercase;
 }
@@ -516,15 +507,15 @@ input:focus, select:focus {
 .formula-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 .formula {
-  padding: 14px;
+  padding: 10px;
   border: 1px solid rgba(255,255,255,.1);
   background: rgba(0,0,0,.42);
 }
 .formula h3 {
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   font-family: var(--display);
   text-transform: uppercase;
   font-style: italic;
@@ -532,35 +523,35 @@ input:focus, select:focus {
 .formula b {
   display: block;
   font-family: var(--mono);
-  font-size: 18px;
+  font-size: 16px;
 }
 .formula p {
-  margin: 8px 0 0;
+  margin: 5px 0 0;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 11px;
+  line-height: 1.35;
 }
 .dividend-planner {
-  margin-top: 12px;
+  margin-top: 8px;
   border: 1px solid rgba(245,207,118,.28);
   background:
     linear-gradient(135deg, rgba(245,207,118,.12), rgba(239,28,40,.08)),
     rgba(0,0,0,.48);
-  padding: 14px;
+  padding: 10px;
 }
 .planner-head {
   display: flex;
   align-items: end;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   border-bottom: 1px solid rgba(245,207,118,.22);
-  padding-bottom: 10px;
+  padding-bottom: 7px;
 }
 .planner-head h3 {
   margin: 0;
   font-family: var(--display);
-  font-size: 28px;
+  font-size: 22px;
   line-height: .9;
   text-transform: uppercase;
   font-style: italic;
@@ -575,50 +566,50 @@ input:focus, select:focus {
 .planner-inputs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 .planner-output {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 .planner-stat {
-  min-height: 86px;
+  min-height: 64px;
   border: 1px solid rgba(255,255,255,.1);
   background: rgba(0,0,0,.5);
-  padding: 12px;
+  padding: 9px;
 }
 .planner-stat span {
   display: block;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 .planner-stat b {
   display: block;
-  margin-top: 7px;
+  margin-top: 4px;
   font-family: var(--mono);
-  font-size: 19px;
+  font-size: 15px;
   color: var(--gold);
 }
 .planner-stat small {
   display: block;
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--muted);
   font-size: 11px;
 }
 .watchlist {
   display: grid;
-  gap: 10px;
-  max-height: calc(100vh - 168px);
+  gap: 7px;
+  max-height: calc(100vh - 132px);
   overflow: auto;
   padding-right: 4px;
 }
 .watch-row {
   border: 1px solid rgba(255,255,255,.1);
   background: rgba(0,0,0,.46);
-  padding: 12px;
+  padding: 8px;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
@@ -627,7 +618,7 @@ input:focus, select:focus {
 .watch-row strong {
   display: block;
   font-family: var(--display);
-  font-size: 22px;
+  font-size: 18px;
   text-transform: uppercase;
 }
 .watch-row span {
@@ -659,14 +650,16 @@ input:focus, select:focus {
 .empty {
   border: 1px dashed rgba(255,255,255,.18);
   color: var(--muted);
-  padding: 18px;
+  padding: 12px;
   text-align: center;
 }
 .right-rail {
   min-width: 0;
   display: grid;
-  gap: 12px;
+  gap: 8px;
   align-content: start;
+  min-height: 0;
+  overflow: hidden;
 }
 .rail-card {
   min-height: 0;
@@ -678,27 +671,27 @@ input:focus, select:focus {
   font-size: 22px;
 }
 .watch-panel {
-  min-height: 286px;
+  min-height: 216px;
 }
 .stock-stack,
 .recent-stack {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 .stock-mini,
 .recent-row {
   display: grid;
-  grid-template-columns: 34px 1fr auto;
+  grid-template-columns: 30px 1fr auto;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   border: 1px solid rgba(255,255,255,.09);
   background: linear-gradient(90deg, rgba(255,255,255,.045), rgba(0,0,0,.38));
-  padding: 8px;
+  padding: 7px;
 }
 .stock-mini img {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   object-fit: cover;
   background: rgba(255,255,255,.08);
 }
@@ -706,7 +699,7 @@ input:focus, select:focus {
 .recent-row strong {
   display: block;
   font-family: var(--display);
-  font-size: 18px;
+  font-size: 16px;
   line-height: .9;
   text-transform: uppercase;
 }
@@ -732,8 +725,8 @@ input:focus, select:focus {
 .mini-change.bad { color: var(--bad); }
 .right-action {
   width: 100%;
-  height: 38px;
-  margin-top: 10px;
+  height: 32px;
+  margin-top: 7px;
   border: 1px solid rgba(245,207,118,.35);
   color: var(--gold);
   background: linear-gradient(135deg, rgba(245,207,118,.1), rgba(0,0,0,.48));
@@ -742,16 +735,14 @@ input:focus, select:focus {
   text-transform: uppercase;
 }
 .note {
-  padding: 14px 18px;
-  border-top: 1px solid rgba(255,255,255,.08);
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
+  display: none;
 }
 .positive { color: var(--green) !important; }
 .negative { color: var(--bad) !important; }
 .neutral-text { color: var(--gold) !important; }
 @media (max-width: 1180px) {
+  body { overflow: auto; }
+  .shell { height: auto; min-height: 100vh; }
   .grid { grid-template-columns: 1fr; }
   .watchlist { max-height: none; }
   .topbar { grid-template-columns: 1fr; }

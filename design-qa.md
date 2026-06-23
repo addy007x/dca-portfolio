@@ -5,6 +5,8 @@ implementation desktop screenshot path: `D:\DCA\valuation-shot-after.png`
 implementation mobile screenshot path: `D:\DCA\valuation-mobile-shot.png`
 latest decorative desktop screenshot path: `D:\DCA\valuation-decor-shot.png`
 latest decorative mobile screenshot path: `D:\DCA\valuation-decor-mobile-shot.png`
+latest compact desktop screenshot path: `D:\DCA\valuation-compact-shot.png`
+latest compact 1366 screenshot path: `D:\DCA\valuation-compact-1366b.png`
 desktop viewport: 1600 x 1000
 mobile viewport: 390 x 844
 state: local `valuation.html` loaded through `http://127.0.0.1:5173/valuation.html`
@@ -30,5 +32,7 @@ state: local `valuation.html` loaded through `http://127.0.0.1:5173/valuation.ht
 - Fixed invalid nested signal markup.
 - Added `assets/valuation-decor-atlas.png` plus cropped decorative derivatives for cleaner panel overlays.
 - Tuned mobile topbar sizing so the Stock Valuation title no longer overflows at 390px width.
+- Compacted the valuation desktop layout so Input, valuation output, watchlist, favorites, recent searches, and dividend calculator fit in one 1366 x 768 viewport.
+- Removed the decorative image/icon beside the Stock Valuation title and the image layer behind the stock ticker header for better readability.
 
 final result: passed
