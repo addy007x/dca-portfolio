@@ -1,36 +1,34 @@
-# Design QA - Compact Manga Dashboard
+# Design QA - Stock Valuation Page
 
-source visual truth path: `C:\Users\NITRO5\Downloads\ChatGPT Image 16 มิ.ย. 2569 09_36_27.png`
-implementation screenshot path: `D:\DCA\.qa-manga-dashboard\dashboard-compact-red-final.png`
-comparison evidence path: `D:\DCA\.qa-manga-dashboard\comparison-red-dashboard-final.png`
-viewport: 1600 x 900 desktop
-state: local `dashboard-design.html` loaded through `http://127.0.0.1:5173/dashboard-design.html`; headless browser has no logged-in portfolio session, so dynamic account values are empty/default.
+source visual truth path: `C:\Users\NITRO5\Downloads\ChatGPT Image 23 มิ.ย. 2569 08_20_40.png`
+implementation desktop screenshot path: `D:\DCA\valuation-shot-after.png`
+implementation mobile screenshot path: `D:\DCA\valuation-mobile-shot.png`
+latest decorative desktop screenshot path: `D:\DCA\valuation-decor-shot.png`
+latest decorative mobile screenshot path: `D:\DCA\valuation-decor-mobile-shot.png`
+desktop viewport: 1600 x 1000
+mobile viewport: 390 x 844
+state: local `valuation.html` loaded through `http://127.0.0.1:5173/valuation.html`
 
 **Findings**
-- No blocking P0/P1/P2 findings remain.
-- [P3] Dynamic portfolio data is absent in the QA capture.
-  Location: left portfolio/holdings and right market cards.
-  Evidence: implementation screenshot shows empty/default data because the headless browser does not have the user's live session.
-  Impact: visual fidelity can be judged for layout/theme, but live data fidelity should be checked in the user's logged-in browser.
-  Fix: verify once in the normal browser session after deploy.
+- No blocking P0/P1/P2 issues remain.
+- [P3] External favicon logos for favorite stocks depend on network access.
+  Impact: the page still works if icons fail, but those small logos may show browser fallbacks offline.
+  Fix: replace with local icon assets later if fully offline operation is required.
 
 **Required Fidelity Surfaces**
-- Fonts and typography: manga-style italic display treatment is applied across nav, headers, wallet, and ticker; profile text was adjusted to a condensed italic font so it no longer clips.
-- Spacing and layout rhythm: desktop layout is compacted into one viewport with a 72px header, fixed footer ticker, dense side columns, and central scene board; no vertical scrolling is visible in the 1600 x 900 capture.
-- Colors and visual tokens: palette is black/red with green market states, matching the source direction; panel borders, active states, and glow accents are red-tinted.
-- Image quality and asset fidelity: central scene uses a cropped raster asset from the supplied visual direction at `assets/manga-dashboard-command-room.png`; no CSS art substitutes are used for the primary scene.
-- Copy and content: app labels remain dashboard-oriented and existing routes/actions are preserved.
+- Structure: page matches the supplied three-column scanner layout with Input, valuation result body, and right-side watch/favorite/recent panels.
+- Visual style: black/red/gold manga-fantasy theme, gold brand title, red valuation signal treatment, and panel borders/glow are applied.
+- Decorative layer: supplied gold/black asset sheet was added as cropped decorative textures, magic circles, icon rows, and frame accents without blocking the primary numbers or form fields.
+- Functional preservation: existing ticker input, price fetch, valuation calculation, watchlist save/load/delete, reset sample, and dividend calculator remain wired.
+- Responsive behavior: mobile collapses into one readable column without horizontal overflow in the checked viewport.
 
 **Patches Made**
-- Added compact one-screen CSS overrides for desktop.
-- Added new command-room background asset cropped from the supplied manga dashboard reference.
-- Reset floating-panel position storage key to avoid old dragged positions breaking the new layout.
-- Tightened profile typography to avoid clipping.
-
-**Implementation Checklist**
-- Capture source and implementation in the same comparison image.
-- Confirm desktop layout fits in one 1600 x 900 viewport.
-- Confirm no obvious overlap among top nav, side panels, center scene, and bottom ticker.
-- Confirm primary dashboard actions remain visible.
+- Reworked the metric cards to show Fair Value, Upside/Downside, Safety Gap, and Signal.
+- Added right rail sections for Favorite Stocks and Recent Searches.
+- Restyled the brand, panels, metric cards, signal state, and rail cards to better match the reference image.
+- Added recent-search persistence in localStorage.
+- Fixed invalid nested signal markup.
+- Added `assets/valuation-decor-atlas.png` plus cropped decorative derivatives for cleaner panel overlays.
+- Tuned mobile topbar sizing so the Stock Valuation title no longer overflows at 390px width.
 
 final result: passed
