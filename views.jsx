@@ -872,6 +872,364 @@ function BenchView({ ccy }) {
   );
 }
 
+const REBALANCE_PROFILES = {
+  balanced: {
+    label: "Balanced",
+    note: "เน้นกระจายความเสี่ยงแบบพอดี ไม่ไล่ผลตอบแทนเกินไป",
+    targets: { us: 40, th: 20, crypto: 25, gold: 15 },
+  },
+  growth: {
+    label: "Growth",
+    note: "เน้นสินทรัพย์เติบโต แต่ยังมีทองช่วยกันสะเทือน",
+    targets: { us: 50, th: 15, crypto: 25, gold: 10 },
+  },
+  defensive: {
+    label: "Defensive",
+    note: "ลดความผันผวน เพิ่มทองและหุ้นไทยให้มากขึ้น",
+    targets: { us: 35, th: 25, crypto: 10, gold: 30 },
+  },
+  momentum: {
+    label: "Momentum",
+    note: "รับความเสี่ยงสูงขึ้นเพื่อจับเทรนด์แรง",
+    targets: { us: 35, th: 10, crypto: 40, gold: 15 },
+  },
+};
+
+const REBALANCE_META = {
+  us: { label: "US Stocks", anchor: "VOO", color: "var(--c-us)" },
+  th: { label: "Thai Stocks", anchor: "PTT", color: "var(--c-th)" },
+  crypto: { label: "Crypto", anchor: "BTC", color: "var(--c-crypto)" },
+  gold: { label: "Gold", anchor: "XAUT", color: "var(--c-gold)" },
+};
+
+function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
+  const store = window.useStore();
+  const holdings = store.holdings || [];
+  const FX = store.fx || 35.8;
+  const settings = store.settings || {};
+  const ccySym = ccy === "THB" ? "฿" : "$";
+  const [profile, setProfile] = React.useState(settings.rebalanceProfile || "balanced");
+  const [tolerance, setTolerance] = React.useState(Number(settings.rebalanceTolerance ?? 5));
+
+  React.useEffect(() => {
+    const nextProfile = settings.rebalanceProfile || "balanced";
+    const nextTol = Number(settings.rebalanceTolerance ?? 5);
+    if (nextProfile !== profile || nextTol !== Number(tolerance)) {
+      window.updateSettings?.({
+        rebalanceProfile: profile,
+        rebalanceTolerance: Number(tolerance),
+      });
+    }
+  }, [profile, settings.rebalanceProfile, settings.rebalanceTolerance, tolerance]);
+
+  const nextDCA = React.useMemo(() => {
+    return (store.dca || [])
+      .filter(d => !d.paused && d.nextDate)
+      .sort((a, b) => a.nextDate.localeCompare(b.nextDate))[0] || null;
+  }, [store.dca]);
+
+  const plan = React.useMemo(() => {
+    const byClass = {};
+    let totalTHB = 0;
+    holdings.forEach(h => {
+      const valueTHB = h.qty * h.price * (h.ccy === "THB" ? 1 : FX);
+      totalTHB += valueTHB;
+      byClass[h.classKey] = (byClass[h.classKey] || 0) + valueTHB;
+    });
+
+    const targetSet = REBALANCE_PROFILES[profile]?.targets || REBALANCE_PROFILES.balanced.targets;
+    const rows = Object.entries(targetSet).map(([classKey, targetPct]) => {
+      const meta = REBALANCE_META[classKey];
+      const currentTHB = byClass[classKey] || 0;
+      const currentPct = totalTHB > 0 ? (currentTHB / totalTHB) * 100 : 0;
+      const driftPct = currentPct - targetPct;
+      const deltaTHB = totalTHB * (targetPct - currentPct) / 100;
+      const action = Math.abs(driftPct) <= tolerance ? "hold" : deltaTHB > 0 ? "buy" : "sell";
+      const classHoldings = holdings
+        .filter(h => h.classKey === classKey)
+        .map(h => ({ ...h, valueTHB: h.qty * h.price * (h.ccy === "THB" ? 1 : FX) }))
+        .sort((a, b) => b.valueTHB - a.valueTHB);
+      const anchorHolding = classHoldings[0] || null;
+      const anchorTicker = anchorHolding?.ticker || meta.anchor;
+      return {
+        classKey,
+        label: meta.label,
+        anchorTicker,
+        color: meta.color,
+        currentTHB,
+        currentPct,
+        targetPct,
+        driftPct,
+        deltaTHB,
+        absDeltaTHB: Math.abs(deltaTHB),
+        action,
+        classHoldings,
+      };
+    }).sort((a, b) => Math.abs(b.driftPct) - Math.abs(a.driftPct));
+
+    const totalBuyTHB = rows.filter(r => r.action === "buy").reduce((s, r) => s + r.absDeltaTHB, 0);
+    const totalSellTHB = rows.filter(r => r.action === "sell").reduce((s, r) => s + r.absDeltaTHB, 0);
+    const activeRows = rows.filter(r => r.action !== "hold");
+    const topAction = rows[0] || null;
+
+    return { byClass, totalTHB, rows, totalBuyTHB, totalSellTHB, activeRows, topAction };
+  }, [FX, holdings, profile, tolerance]);
+
+  const turnoverTHB = Math.max(plan.totalBuyTHB, plan.totalSellTHB);
+  const buyCount = plan.rows.filter(r => r.action === "buy").length;
+  const sellCount = plan.rows.filter(r => r.action === "sell").length;
+  const profileMeta = REBALANCE_PROFILES[profile] || REBALANCE_PROFILES.balanced;
+  const topBuy = plan.rows.find(r => r.action === "buy") || null;
+  const topSell = plan.rows.find(r => r.action === "sell") || null;
+
+  const setProfileAndPersist = (next) => {
+    setProfile(next);
+    window.updateSettings?.({ rebalanceProfile: next });
+  };
+
+  const setToleranceAndPersist = (next) => {
+    setTolerance(next);
+    window.updateSettings?.({ rebalanceTolerance: Number(next) });
+  };
+
+  return (
+    <PageShell
+      title="Rebalance"
+      sub="คำนวณสัดส่วนพอร์ตจริง เทียบ target mix แล้วแนะนำว่าควรซื้อหรือขายตรงไหนก่อน"
+      actions={
+        <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
+          <button className="btn sm" onClick={() => { location.hash = "#portfolio"; }}>
+            <Ico name="wallet" size={13}/> ดูพอร์ต
+          </button>
+          <button className="btn sm accent" onClick={() => onAddDCA?.()}>
+            <Ico name="plus" size={13}/> ตั้ง DCA
+          </button>
+        </div>
+      }
+    >
+      <div className="kpi-grid rebalance-kpis" style={{marginBottom:20}}>
+        <div className="kpi">
+          <div className="label">มูลค่าพอร์ต</div>
+          <div className="value">{ccySym}{ccy === "THB" ? Math.round(plan.totalTHB).toLocaleString() : fmtNum(plan.totalTHB / FX, 2)}</div>
+          <div className="delta" style={{color:"var(--muted)"}}>ยอดถือครองทั้งหมด</div>
+        </div>
+        <div className="kpi">
+          <div className="label">ต้องหมุนเงิน</div>
+          <div className="value" style={{color: turnoverTHB > 0 ? "var(--accent-ink)" : "var(--muted)"}}>
+            {ccySym}{ccy === "THB" ? Math.round(turnoverTHB).toLocaleString() : fmtNum(turnoverTHB / FX, 2)}
+          </div>
+          <div className="delta">ซื้อ {buyCount} หมวด · ขาย {sellCount} หมวด</div>
+        </div>
+        <div className="kpi">
+          <div className="label">สิ่งที่ควรทำก่อนสุด</div>
+          <div className="value" style={{fontSize:18}}>
+            {plan.topAction
+              ? plan.topAction.action === "buy"
+                ? `ซื้อ ${plan.topAction.anchorTicker}`
+                : plan.topAction.action === "sell"
+                  ? `ลด ${plan.topAction.anchorTicker}`
+                  : "ปล่อยไว้ได้"
+              : "ยังไม่ต้อง rebalance"}
+          </div>
+          <div className="delta" style={{color:"var(--muted)"}}>
+            {plan.topAction ? `${plan.topAction.label} drift ${plan.topAction.driftPct >= 0 ? "+" : ""}${plan.topAction.driftPct.toFixed(1)}pts` : "ไม่มีข้อมูลพอ"}
+          </div>
+        </div>
+        <div className="kpi">
+          <div className="label">Active alerts</div>
+          <div className="value" style={{color:"var(--accent-ink)"}}>{(store.rebalanceAlerts || []).length}</div>
+          <div className="delta" style={{color:"var(--muted)"}}>แจ้งเตือนที่ปักหมุดไว้</div>
+        </div>
+      </div>
+
+      <div className="rebalance-grid">
+        <div className="card rebalance-main">
+          <div className="card-head">
+            <div>
+              <div className="card-title">แผน Rebalance ตาม target mix</div>
+              <div className="card-sub">{profileMeta.label} · {profileMeta.note}</div>
+            </div>
+          </div>
+
+          <div className="rebalance-toolbar">
+            <div className="rebalance-profile-tabs">
+              {Object.entries(REBALANCE_PROFILES).map(([key, p]) => (
+                <button key={key}
+                        className={profile === key ? "is-on" : ""}
+                        onClick={() => setProfileAndPersist(key)}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <div className="rebalance-tolerance">
+              <label>
+                <span>Band / threshold</span>
+                <b>{Number(tolerance).toFixed(0)} pts</b>
+              </label>
+              <input
+                type="range"
+                min="2"
+                max="12"
+                step="1"
+                value={tolerance}
+                onChange={e => setToleranceAndPersist(Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          <div className="rebalance-list">
+            {plan.rows.map(row => {
+              const isHold = row.action === "hold";
+              const actionLabel = row.action === "buy" ? "ซื้อเพิ่ม" : row.action === "sell" ? "ลดน้ำหนัก" : "อยู่ใน band";
+              const suggestionText = row.action === "buy"
+                ? `เติม ${fmtCcy(row.absDeltaTHB, ccy)} เข้า ${row.anchorTicker}`
+                : row.action === "sell"
+                  ? `ลด ${fmtCcy(row.absDeltaTHB, ccy)} ออกจาก ${row.anchorTicker}`
+                  : "สัดส่วนใกล้ target แล้ว";
+              return (
+                <div className={`rebalance-item ${row.action}`} key={row.classKey}>
+                  <div className="rebalance-item-head">
+                    <div className="rebalance-item-title">
+                      <span className="rebalance-dot" style={{background: row.color}} />
+                      <div>
+                        <div className="rebalance-item-name">{row.label}</div>
+                        <div className="rebalance-item-sub">แนะนำหลัก: {row.anchorTicker}</div>
+                      </div>
+                    </div>
+                    <div className="rebalance-item-meta">
+                      <div className="rebalance-current">{row.currentPct.toFixed(1)}%</div>
+                      <div className="rebalance-target">target {row.targetPct.toFixed(1)}%</div>
+                    </div>
+                  </div>
+
+                  <div className="rebalance-bar">
+                    <div className="rebalance-fill" style={{width: `${Math.min(row.currentPct, 100)}%`, background: row.color}} />
+                    <span className="rebalance-marker" style={{left: `${Math.min(row.targetPct, 100)}%`}} />
+                  </div>
+
+                  <div className="rebalance-item-foot">
+                    <span className={`rebalance-action ${row.action}`}>{actionLabel}</span>
+                    <span className="rebalance-drift">
+                      {row.driftPct >= 0 ? "+" : ""}{row.driftPct.toFixed(1)} pts
+                    </span>
+                    <span className="rebalance-amount">
+                      {isHold ? "ไม่มี trade เพิ่ม" : suggestionText}
+                    </span>
+                  </div>
+
+                  <div className="rebalance-holdings">
+                    {(row.classHoldings.length > 0 ? row.classHoldings.slice(0, 3) : [{ ticker: row.anchorTicker, placeholder: true }]).map(h => {
+                      const label = h.placeholder
+                        ? h.ticker
+                        : `${h.ticker} · ${ccySym}${ccy === "THB" ? Math.round(h.valueTHB).toLocaleString() : fmtNum(h.valueTHB / FX, 2)}`;
+                      const chip = <span className="rebalance-chip-text">{label}</span>;
+                      return h.placeholder ? (
+                        <span className="rebalance-chip" key={h.ticker}>{chip}</span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="rebalance-chip"
+                          key={h.id}
+                          onClick={() => onOpenAsset?.(h)}
+                        >
+                          {chip}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="rebalance-side">
+          <div className="card rebalance-rule-card">
+            <div className="card-head" style={{marginBottom:12}}>
+              <div>
+                <div className="card-title">กฎที่ใช้</div>
+                <div className="card-sub">กฎง่าย ๆ ที่ช่วยไม่ให้ rebalance ถี่เกินไป</div>
+              </div>
+            </div>
+            <div className="rebalance-rule-list">
+              <div className="rebalance-rule">
+                <span>1</span>
+                <div>
+                  <b>Trim ก่อนเติม</b>
+                  <p>ขายหมวดที่เกิน target ก่อน แล้วค่อยเติมหมวดที่ขาด</p>
+                </div>
+              </div>
+              <div className="rebalance-rule">
+                <span>2</span>
+                <div>
+                  <b>ใช้ DCA เป็นเชื้อเพลิง</b>
+                  <p>ถ้ามีเงินเข้าใหม่ ให้เติมหมวดที่ underweight มากสุดก่อน</p>
+                </div>
+              </div>
+              <div className="rebalance-rule">
+                <span>3</span>
+                <div>
+                  <b>อย่าขยับถี่เกินไป</b>
+                  <p>ตั้ง band ไว้ที่ {Number(tolerance).toFixed(0)} pts แล้วค่อยเช็กซ้ำรอบถัดไป</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card rebalance-alert-card">
+            <div className="card-head" style={{marginBottom:12}}>
+              <div>
+                <div className="card-title">Rebalance alerts</div>
+                <div className="card-sub">รายการเตือนที่ปักหมุดไว้จาก store</div>
+              </div>
+            </div>
+            <div className="rebalance-alert-list">
+              {(store.rebalanceAlerts || []).length === 0 ? (
+                <div className="rebalance-empty">ยังไม่มี alert</div>
+              ) : (
+                (store.rebalanceAlerts || []).map(a => (
+                  <div className="rebalance-alert" key={a.id}>
+                    <div className="rebalance-alert-head">
+                      <div>
+                        <b>{a.ticker}</b>
+                        <span>{a.action === "sell" ? "ควรลด" : "ควรเพิ่ม"} · {a.delta}</span>
+                      </div>
+                      <button type="button" className="rebalance-dismiss" onClick={() => window.dismissAlert?.(a.id)}>
+                        <Ico name="x" size={12}/>
+                      </button>
+                    </div>
+                    <p>{a.reason}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="card rebalance-tip-card">
+            <div className="card-title" style={{marginBottom:8}}>คำแนะนำเพิ่ม</div>
+            <div className="rebalance-tip">
+              <b>เริ่มจาก class ที่ drift สูงสุด</b>
+              <span>ถ้าจะใช้ cash flow เดือนนี้ ให้เริ่มจาก {topBuy ? topBuy.anchorTicker : "หมวดที่ขาดสุด"} ก่อน แล้วค่อยไล่รองลงมา</span>
+            </div>
+            <div className="rebalance-tip">
+              <b>ดูพร้อมกับพอร์ตจริง</b>
+              <span>ถ้าต้องการลงลึก เปิดหน้า Portfolio เพื่อดูรายสินทรัพย์ก่อนตัดสินใจขายหรือเติม</span>
+            </div>
+            <div className="rebalance-tip">
+              <b>ใช้ DCA เป็นตัวช่วย</b>
+              <span>
+                {nextDCA
+                  ? `DCA ถัดไปคือ ${nextDCA.ticker} ใน ${Math.max(0, window.daysBetween(window.todayISO(), nextDCA.nextDate))} วัน`
+                  : "ยังไม่มี DCA active ให้ใช้เติมพอร์ต"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </PageShell>
+  );
+}
+
 // ─────── CSS for page layouts ───────
 const PAGE_STYLES = `
 .page-shell { display: flex; flex-direction: column; gap: 0; }
@@ -934,6 +1292,314 @@ const PAGE_STYLES = `
 .earn-page-row { border-bottom: 1px solid var(--line); transition: background .15s; }
 .earn-page-row:last-child { border-bottom: 0; }
 .earn-page-row:hover { background: var(--surface-2); }
+
+/* Rebalance page */
+.rebalance-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, .9fr);
+  gap: 20px;
+  align-items: start;
+}
+.rebalance-main,
+.rebalance-side {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.rebalance-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.rebalance-profile-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rebalance-profile-tabs button {
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: transform .15s ease, border-color .15s ease, background .15s ease, color .15s ease;
+}
+.rebalance-profile-tabs button:hover { transform: translateY(-1px); border-color: var(--accent); }
+.rebalance-profile-tabs button.is-on {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.rebalance-tolerance {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-2);
+  padding: 10px 12px 11px;
+}
+.rebalance-tolerance label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.rebalance-tolerance label b {
+  color: var(--accent-ink);
+  font-size: 13px;
+}
+.rebalance-tolerance input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.rebalance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.rebalance-item {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px 14px 12px;
+  background: linear-gradient(135deg, var(--surface), var(--surface-2));
+}
+.rebalance-item.buy { background: linear-gradient(135deg, var(--surface), var(--up-soft)); }
+.rebalance-item.sell { background: linear-gradient(135deg, var(--surface), var(--down-soft)); }
+.rebalance-item.hold { background: linear-gradient(135deg, var(--surface), var(--surface-2)); }
+.rebalance-item-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+.rebalance-item-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+.rebalance-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.rebalance-item-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.rebalance-item-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.rebalance-item-meta {
+  text-align: right;
+  flex-shrink: 0;
+}
+.rebalance-current {
+  font-family: var(--font-num);
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--ink);
+}
+.rebalance-target {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.rebalance-bar {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--line);
+  margin-top: 12px;
+  overflow: hidden;
+}
+.rebalance-fill {
+  height: 100%;
+  border-radius: inherit;
+  opacity: .9;
+}
+.rebalance-marker {
+  position: absolute;
+  top: -3px;
+  width: 3px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--ink);
+  box-shadow: 0 0 0 2px rgba(255,255,255,.5);
+  transform: translateX(-1px);
+}
+.rebalance-item-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  align-items: center;
+  margin-top: 10px;
+}
+.rebalance-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.rebalance-action.buy { background: var(--up-soft); color: var(--up); }
+.rebalance-action.sell { background: var(--down-soft); color: var(--down); }
+.rebalance-action.hold { background: var(--surface-2); color: var(--muted); }
+.rebalance-drift {
+  font-family: var(--font-num);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent-ink);
+}
+.rebalance-amount {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.rebalance-holdings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.rebalance-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.rebalance-chip-text { white-space: nowrap; }
+.rebalance-rule-list,
+.rebalance-alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rebalance-rule {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+}
+.rebalance-rule span {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 800;
+  font-size: 11px;
+}
+.rebalance-rule b {
+  display: block;
+  font-size: 12px;
+  color: var(--ink);
+}
+.rebalance-rule p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.rebalance-alert {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+}
+.rebalance-alert-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+.rebalance-alert-head b {
+  display: block;
+  font-size: 13px;
+}
+.rebalance-alert-head span {
+  display: block;
+  margin-top: 1px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.rebalance-alert p {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.rebalance-dismiss {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+}
+.rebalance-tip {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+.rebalance-tip:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+.rebalance-tip b {
+  display: block;
+  font-size: 12px;
+  color: var(--ink);
+}
+.rebalance-tip span {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.rebalance-empty {
+  padding: 18px 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+@media (max-width: 1080px) {
+  .rebalance-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .rebalance-toolbar { grid-template-columns: 1fr; }
+}
 
 @media (max-width: 768px) {
   .dca-page-head { display: none; }
@@ -1124,4 +1790,4 @@ if (!document.getElementById("views-styles")) {
   document.head.appendChild(s);
 }
 
-Object.assign(window, { DCAView, EarnView, HistoryView, PortfolioView, BenchView, PageShell });
+Object.assign(window, { DCAView, EarnView, HistoryView, PortfolioView, BenchView, RebalanceView, PageShell });

@@ -80,6 +80,8 @@ function buildSeed() {
       accent: "mint",
       livePrices: false,
       notifyDCA: false, // user must opt-in
+      rebalanceProfile: "balanced",
+      rebalanceTolerance: 5,
       seeded: true,
     },
   };

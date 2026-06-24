@@ -16,7 +16,7 @@ function applyAccent(key) {
   r.setProperty("--accent-soft", a.soft);
 }
 
-const APP_VIEW_KINDS = ["dashboard","portfolio","dca","earn","history","tax","bench"];
+const APP_VIEW_KINDS = ["dashboard","portfolio","rebalance","dca","earn","history","tax","bench"];
 const APP_ACTION_KINDS = ["add-tx","settings"];
 
 function hashKind() {
@@ -120,7 +120,8 @@ function App() {
       <div className="app">
         <Sidebar active={activeNav}
                  onNav={(k) => goTo(k)}
-                 dcaDueCount={store.dca.filter(d => !d.paused && d.nextDate && d.nextDate <= window.todayISO()).length}/>
+                 dcaDueCount={store.dca.filter(d => !d.paused && d.nextDate && d.nextDate <= window.todayISO()).length}
+                 rebalanceAlertCount={(store.rebalanceAlerts || []).length}/>
         <main className="main">
           <Topbar ccy={s.ccy}
                   onCcy={(c) => window.updateSettings({ ccy: c })}
@@ -142,6 +143,10 @@ function App() {
                              onAddHolding={() => { setEditHolding(null); setShowHoldingModal(true); }}
                              onAddTx={() => { setEditTx(null); setShowTxModal(true); }}
                              onEditHolding={(h) => { setEditHolding(h); setShowHoldingModal(true); }}/>
+            : view.kind === "rebalance"
+            ? <RebalanceView ccy={s.ccy}
+                             onOpenAsset={onOpenAsset}
+                             onAddDCA={openDcaModal}/>
             : view.kind === "dca"
             ? <DCAView ccy={s.ccy} onAddDCA={openDcaModal} onEditDCA={openEditDCA}/>
             : view.kind === "earn"

@@ -1,11 +1,12 @@
 // Sidebar + Topbar + small shared bits
 
-function Sidebar({ active, onNav, dcaDueCount = 0 }) {
+function Sidebar({ active, onNav, dcaDueCount = 0, rebalanceAlertCount = 0 }) {
   const authUser = window.useAuthUser?.();
   const displayName = window.getAuthDisplayName?.(authUser) || "SiamFolio";
   const items = [
     { key: "dashboard", icon: "home", label: "หน้าแรก", labelShort: "หน้าแรก" },
     { key: "portfolio", icon: "wallet", label: "พอร์ตการลงทุน", labelShort: "พอร์ต" },
+    { key: "rebalance", icon: "swap", label: "ปรับพอร์ต", labelShort: "Rebal", badge: rebalanceAlertCount > 0 ? String(rebalanceAlertCount) : null },
     { key: "dca", icon: "dca", label: "DCA Schedule", labelShort: "DCA", badge: dcaDueCount > 0 ? String(dcaDueCount) : null },
     { key: "earn", icon: "earn", label: "Earn", labelShort: "Earn" },
     { key: "history", icon: "history", label: "ประวัติธุรกรรม", labelShort: "ประวัติ", mobileHide: true },
