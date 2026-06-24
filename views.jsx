@@ -911,6 +911,7 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
   const [profile, setProfile] = React.useState(settings.rebalanceProfile || "balanced");
   const [tolerance, setTolerance] = React.useState(Number(settings.rebalanceTolerance ?? 5));
   const [capital, setCapital] = React.useState(Number(settings.rebalanceCapitalTHB ?? 0));
+  const [assetTargets, setAssetTargets] = React.useState(() => settings.rebalanceAssetTargets || {});
 
   React.useEffect(() => {
     const nextProfile = settings.rebalanceProfile || "balanced";
@@ -988,6 +989,33 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
   const capitalDisplay = ccy === "THB" ? capitalTHB : capitalTHB / FX;
   const buyPowerTHB = Math.max(0, capitalTHB - plan.totalTHB);
   const needMoreTHB = Math.max(0, plan.totalTHB - capitalTHB);
+  const targetBasisTHB = Math.max(plan.totalTHB, capitalTHB);
+
+  const assetRows = React.useMemo(() => {
+    return holdings.map(h => {
+      const valueTHB = h.qty * h.price * (h.ccy === "THB" ? 1 : FX);
+      const currentPct = plan.totalTHB > 0 ? (valueTHB / plan.totalTHB) * 100 : 0;
+      const savedTarget = assetTargets[h.ticker];
+      const hasTarget = savedTarget !== undefined && savedTarget !== "";
+      const targetPct = hasTarget ? Math.max(0, Number(savedTarget) || 0) : currentPct;
+      const targetValueTHB = targetBasisTHB * targetPct / 100;
+      const gapTHB = targetValueTHB - valueTHB;
+      return {
+        ...h,
+        valueTHB,
+        currentPct,
+        targetPct,
+        targetValueTHB,
+        gapTHB,
+        buyNeedTHB: Math.max(0, gapTHB),
+        overTHB: Math.max(0, -gapTHB),
+        hasTarget,
+      };
+    }).sort((a, b) => b.buyNeedTHB - a.buyNeedTHB || b.valueTHB - a.valueTHB);
+  }, [FX, assetTargets, holdings, plan.totalTHB, targetBasisTHB]);
+
+  const targetPctSum = assetRows.reduce((s, h) => s + (Number(h.targetPct) || 0), 0);
+  const totalAssetNeedTHB = assetRows.reduce((s, h) => s + h.buyNeedTHB, 0);
 
   const setProfileAndPersist = (next) => {
     setProfile(next);
@@ -1003,6 +1031,15 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
     const normalized = Math.max(0, Number(next) || 0);
     setCapital(normalized);
     window.updateSettings?.({ rebalanceCapitalTHB: normalized });
+  };
+
+  const setAssetTargetAndPersist = (ticker, next) => {
+    const clean = next === "" ? "" : Math.min(100, Math.max(0, Number(next) || 0));
+    const updated = { ...assetTargets };
+    if (clean === "") delete updated[ticker];
+    else updated[ticker] = clean;
+    setAssetTargets(updated);
+    window.updateSettings?.({ rebalanceAssetTargets: updated });
   };
 
   return (
@@ -1112,6 +1149,69 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
                 value={tolerance}
                 onChange={e => setToleranceAndPersist(Number(e.target.value))}
               />
+            </div>
+          </div>
+
+          <div className="asset-target-panel">
+            <div className="asset-target-head">
+              <div>
+                <div className="card-title">เป้าหมายรายสินทรัพย์ที่ถืออยู่</div>
+                <div className="card-sub">
+                  ตั้งว่าแต่ละตัวอยากให้เป็นกี่ % แล้วระบบจะบอกว่าขาดอีกเท่าไรถึงเป้า
+                </div>
+              </div>
+              <div className="asset-target-summary">
+                <span>รวมเป้า {targetPctSum.toFixed(1)}%</span>
+                <b>{ccySym}{ccy === "THB" ? Math.round(totalAssetNeedTHB).toLocaleString() : fmtNum(totalAssetNeedTHB / FX, 2)}</b>
+              </div>
+            </div>
+            <div className="asset-target-list">
+              {assetRows.length === 0 ? (
+                <div className="rebalance-empty">ยังไม่มีสินทรัพย์ในพอร์ต</div>
+              ) : assetRows.map(h => {
+                const displayNeed = ccy === "THB" ? Math.round(h.buyNeedTHB).toLocaleString() : fmtNum(h.buyNeedTHB / FX, 2);
+                const displayOver = ccy === "THB" ? Math.round(h.overTHB).toLocaleString() : fmtNum(h.overTHB / FX, 2);
+                const displayValue = ccy === "THB" ? Math.round(h.valueTHB).toLocaleString() : fmtNum(h.valueTHB / FX, 2);
+                const canFill = buyPowerTHB > 0 ? Math.min(h.buyNeedTHB, buyPowerTHB) : 0;
+                const displayCanFill = ccy === "THB" ? Math.round(canFill).toLocaleString() : fmtNum(canFill / FX, 2);
+                return (
+                  <div className="asset-target-row" key={h.id || h.ticker}>
+                    <button type="button" className="asset-target-name" onClick={() => onOpenAsset?.(h)}>
+                      <AssetIcon ticker={h.ticker} classKey={h.classKey} size={32}/>
+                      <span>
+                        <b>{h.ticker}</b>
+                        <small>{ccySym}{displayValue} · ตอนนี้ {h.currentPct.toFixed(1)}%</small>
+                      </span>
+                    </button>
+                    <div className="asset-target-input">
+                      <input
+                        className="form-input"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        inputMode="decimal"
+                        value={assetTargets[h.ticker] ?? ""}
+                        placeholder={h.currentPct.toFixed(1)}
+                        onChange={e => setAssetTargetAndPersist(h.ticker, e.target.value)}
+                      />
+                      <span>%</span>
+                    </div>
+                    <div className="asset-target-gap">
+                      <b style={{color: h.buyNeedTHB > 0 ? "var(--up)" : "var(--muted)"}}>
+                        {h.buyNeedTHB > 0 ? `${ccySym}${displayNeed}` : "ถึงเป้าแล้ว"}
+                      </b>
+                      <small>
+                        {h.buyNeedTHB > 0
+                          ? `ซื้อได้ตอนนี้ ${ccySym}${displayCanFill}`
+                          : h.overTHB > 0
+                            ? `เกินเป้า ${ccySym}${displayOver}`
+                            : "น้ำหนักพอดี"}
+                      </small>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -1406,6 +1506,109 @@ const PAGE_STYLES = `
   flex-direction: column;
   gap: 14px;
 }
+.asset-target-panel {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--surface), var(--surface-2));
+}
+.asset-target-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.asset-target-summary {
+  text-align: right;
+  flex-shrink: 0;
+}
+.asset-target-summary span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+.asset-target-summary b {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-num);
+  font-size: 18px;
+  color: var(--accent-ink);
+}
+.asset-target-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.asset-target-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 112px minmax(145px, .65fr);
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: var(--surface);
+}
+.asset-target-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+.asset-target-name b {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.asset-target-name small {
+  display: block;
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.asset-target-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+.asset-target-input .form-input {
+  height: 34px;
+  padding: 6px 9px;
+  font-family: var(--font-num);
+  font-weight: 800;
+  text-align: right;
+}
+.asset-target-input span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.asset-target-gap {
+  text-align: right;
+  min-width: 0;
+}
+.asset-target-gap b {
+  display: block;
+  font-family: var(--font-num);
+  font-size: 14px;
+}
+.asset-target-gap small {
+  display: block;
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 11px;
+}
 .rebalance-item {
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -1644,6 +1847,16 @@ const PAGE_STYLES = `
 }
 @media (max-width: 720px) {
   .rebalance-toolbar { grid-template-columns: 1fr; }
+  .asset-target-head { flex-direction: column; }
+  .asset-target-summary { text-align: left; }
+  .asset-target-row {
+    grid-template-columns: 1fr 94px;
+    gap: 10px;
+  }
+  .asset-target-gap {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
 }
 
 @media (max-width: 768px) {
