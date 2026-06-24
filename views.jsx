@@ -910,17 +910,20 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
   const ccySym = ccy === "THB" ? "฿" : "$";
   const [profile, setProfile] = React.useState(settings.rebalanceProfile || "balanced");
   const [tolerance, setTolerance] = React.useState(Number(settings.rebalanceTolerance ?? 5));
+  const [capital, setCapital] = React.useState(Number(settings.rebalanceCapitalTHB ?? 0));
 
   React.useEffect(() => {
     const nextProfile = settings.rebalanceProfile || "balanced";
     const nextTol = Number(settings.rebalanceTolerance ?? 5);
-    if (nextProfile !== profile || nextTol !== Number(tolerance)) {
+    const nextCapital = Number(settings.rebalanceCapitalTHB ?? 0);
+    if (nextProfile !== profile || nextTol !== Number(tolerance) || nextCapital !== Number(capital)) {
       window.updateSettings?.({
         rebalanceProfile: profile,
         rebalanceTolerance: Number(tolerance),
+        rebalanceCapitalTHB: Number(capital),
       });
     }
-  }, [profile, settings.rebalanceProfile, settings.rebalanceTolerance, tolerance]);
+  }, [profile, settings.rebalanceProfile, settings.rebalanceTolerance, settings.rebalanceCapitalTHB, tolerance, capital]);
 
   const nextDCA = React.useMemo(() => {
     return (store.dca || [])
@@ -981,6 +984,10 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
   const profileMeta = REBALANCE_PROFILES[profile] || REBALANCE_PROFILES.balanced;
   const topBuy = plan.rows.find(r => r.action === "buy") || null;
   const topSell = plan.rows.find(r => r.action === "sell") || null;
+  const capitalTHB = Math.max(0, Number(capital) || 0);
+  const capitalDisplay = ccy === "THB" ? capitalTHB : capitalTHB / FX;
+  const buyPowerTHB = Math.max(0, capitalTHB - plan.totalTHB);
+  const needMoreTHB = Math.max(0, plan.totalTHB - capitalTHB);
 
   const setProfileAndPersist = (next) => {
     setProfile(next);
@@ -990,6 +997,12 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
   const setToleranceAndPersist = (next) => {
     setTolerance(next);
     window.updateSettings?.({ rebalanceTolerance: Number(next) });
+  };
+
+  const setCapitalAndPersist = (next) => {
+    const normalized = Math.max(0, Number(next) || 0);
+    setCapital(normalized);
+    window.updateSettings?.({ rebalanceCapitalTHB: normalized });
   };
 
   return (
@@ -1014,6 +1027,36 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
           <div className="delta" style={{color:"var(--muted)"}}>ยอดถือครองทั้งหมด</div>
         </div>
         <div className="kpi">
+          <div className="label">เงินทุนรอบนี้ ({ccySym})</div>
+          <div style={{display:"flex", flexDirection:"column", gap:8, marginTop:2}}>
+            <input
+              className="form-input"
+              type="number"
+              min="0"
+              step="1000"
+              inputMode="decimal"
+              value={capitalTHB > 0 ? capitalDisplay : ""}
+              placeholder={Math.round(ccy === "THB" ? plan.totalTHB : plan.totalTHB / FX).toLocaleString()}
+              onChange={e => setCapitalAndPersist(ccy === "THB" ? e.target.value : Number(e.target.value) * FX)}
+              style={{height:40, fontSize:16, fontWeight:700, fontFamily:"var(--font-num)"}}
+            />
+            <div className="delta" style={{color:"var(--muted)"}}>
+              ใส่จำนวนเงินทั้งหมดที่มีสำหรับรอบนี้
+            </div>
+          </div>
+        </div>
+        <div className="kpi">
+          <div className="label">ซื้อเพิ่มได้</div>
+          <div className="value" style={{color: buyPowerTHB > 0 ? "var(--up)" : "var(--muted)"}}>
+            {ccySym}{ccy === "THB" ? Math.round(buyPowerTHB).toLocaleString() : fmtNum(buyPowerTHB / FX, 2)}
+          </div>
+          <div className="delta" style={{color:"var(--muted)"}}>
+            {needMoreTHB > 0
+              ? `ต้องเติมอีก ${ccySym}${ccy === "THB" ? Math.round(needMoreTHB).toLocaleString() : fmtNum(needMoreTHB / FX, 2)}`
+              : `เหลือจากพอร์ต ${ccySym}${ccy === "THB" ? Math.round(buyPowerTHB).toLocaleString() : fmtNum(buyPowerTHB / FX, 2)}`}
+          </div>
+        </div>
+        <div className="kpi">
           <div className="label">ต้องหมุนเงิน</div>
           <div className="value" style={{color: turnoverTHB > 0 ? "var(--accent-ink)" : "var(--muted)"}}>
             {ccySym}{ccy === "THB" ? Math.round(turnoverTHB).toLocaleString() : fmtNum(turnoverTHB / FX, 2)}
@@ -1034,11 +1077,6 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
           <div className="delta" style={{color:"var(--muted)"}}>
             {plan.topAction ? `${plan.topAction.label} drift ${plan.topAction.driftPct >= 0 ? "+" : ""}${plan.topAction.driftPct.toFixed(1)}pts` : "ไม่มีข้อมูลพอ"}
           </div>
-        </div>
-        <div className="kpi">
-          <div className="label">Active alerts</div>
-          <div className="value" style={{color:"var(--accent-ink)"}}>{(store.rebalanceAlerts || []).length}</div>
-          <div className="delta" style={{color:"var(--muted)"}}>แจ้งเตือนที่ปักหมุดไว้</div>
         </div>
       </div>
 
@@ -1221,6 +1259,13 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
                 {nextDCA
                   ? `DCA ถัดไปคือ ${nextDCA.ticker} ใน ${Math.max(0, window.daysBetween(window.todayISO(), nextDCA.nextDate))} วัน`
                   : "ยังไม่มี DCA active ให้ใช้เติมพอร์ต"}
+              </span>
+            </div>
+            <div className="rebalance-tip">
+              <b>สรุปทุนที่ตั้งไว้</b>
+              <span>
+                ทุนทั้งหมด {ccySym}{ccy === "THB" ? Math.round(capitalTHB).toLocaleString() : fmtNum(capitalTHB / FX, 2)} ·
+                ซื้อเพิ่มได้ {ccySym}{ccy === "THB" ? Math.round(buyPowerTHB).toLocaleString() : fmtNum(buyPowerTHB / FX, 2)}
               </span>
             </div>
           </div>

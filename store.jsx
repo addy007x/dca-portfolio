@@ -82,6 +82,7 @@ function buildSeed() {
       notifyDCA: false, // user must opt-in
       rebalanceProfile: "balanced",
       rebalanceTolerance: 5,
+      rebalanceCapitalTHB: 0,
       seeded: true,
     },
   };
