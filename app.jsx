@@ -40,20 +40,6 @@ function setRouteHash(kind) {
   if (location.hash !== next) history.pushState(null, "", next);
 }
 
-function MangaPageLoader({ active, title = "Opening Portfolio" }) {
-  return (
-    <div className={`manga-page-loader ${active ? "is-active" : ""}`} aria-hidden={!active}>
-      <div className="manga-load-card" role="status" aria-live="polite">
-        <div className="manga-load-emblem" aria-hidden="true"></div>
-        <div className="manga-load-kicker">MANGA SYSTEM</div>
-        <div className="manga-load-title">{title}</div>
-        <div className="manga-load-sub">SYNC DATA / DRAW PANELS / READY</div>
-        <div className="manga-load-track"><span></span></div>
-      </div>
-    </div>
-  );
-}
-
 function App() {
   const store = useStore();
   const s = store.settings;
@@ -67,7 +53,6 @@ function App() {
   const [editTx, setEditTx] = React.useState(null);
   const [editEarn, setEditEarn] = React.useState(null);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [appReady, setAppReady] = React.useState(false);
 
   // Apply theme/density/accent
   React.useEffect(() => {
@@ -75,16 +60,6 @@ function App() {
     document.documentElement.dataset.theme = s.theme;
     applyAccent(s.accent);
   }, [s.density, s.theme, s.accent]);
-
-  React.useEffect(() => {
-    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-    if (prefersReducedMotion) {
-      setAppReady(true);
-      return;
-    }
-    const id = window.setTimeout(() => setAppReady(true), 1200);
-    return () => window.clearTimeout(id);
-  }, []);
 
   React.useEffect(() => {
     const syncRoute = () => {
@@ -142,13 +117,7 @@ function App() {
 
   return (
     <>
-      <MangaPageLoader active={!appReady} title="กำลังเปิดพอร์ต" />
-      <div className="app" style={{
-        opacity: appReady ? 1 : 0,
-        transform: appReady ? "translateY(0)" : "translateY(14px)",
-        filter: appReady ? "blur(0)" : "blur(5px)",
-        transition: "opacity .78s ease, transform .78s cubic-bezier(.2,.8,.2,1), filter .78s ease",
-      }}>
+      <div className="app">
         <Sidebar active={activeNav}
                  onNav={(k) => goTo(k)}
                  dcaDueCount={store.dca.filter(d => !d.paused && d.nextDate && d.nextDate <= window.todayISO()).length}/>
