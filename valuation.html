@@ -43,6 +43,9 @@ body {
     var(--bg);
   overflow: hidden;
 }
+body.loading-valuation {
+  overflow: hidden;
+}
 body::before {
   content: "";
   position: fixed;
@@ -53,6 +56,42 @@ body::before {
     radial-gradient(circle at 50% 50%, transparent 45%, rgba(0,0,0,.56));
   mix-blend-mode: screen;
   opacity: .25;
+}
+.valuation-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.25), transparent 45%, rgba(0,0,0,.25)),
+    url("assets/valuation-loading-lab.png") center / cover no-repeat,
+    #050101;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .7s ease, visibility .7s ease;
+}
+.valuation-loader::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 48%, transparent 34%, rgba(0,0,0,.34) 76%),
+    linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.34));
+}
+.valuation-loader.is-done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.loader-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
@@ -624,7 +663,10 @@ input:focus, select:focus {
 }
 </style>
 </head>
-<body>
+<body class="loading-valuation">
+<div class="valuation-loader" id="valuationLoader" role="status" aria-live="polite">
+  <div class="loader-sr">Opening Valuation Lab. Please wait 3 seconds.</div>
+</div>
 <main class="app">
   <header class="topbar">
     <a class="brand" href="./dashboard-design.html">
@@ -637,7 +679,7 @@ input:focus, select:focus {
       <button type="button">คริปโต</button>
       <button type="button">ปันผล</button>
       <button type="button">สแกนหุ้น</button>
-      <button type="button" onclick="location.href='./dashboard-design.html'">ออก</button>
+      <button type="button">ข่าวสาร</button>
     </nav>
     <div class="clock" id="clock">--:--:--</div>
   </header>
@@ -1428,6 +1470,13 @@ tickClock();
 renderWatchlist();
 updateLiveStatus();
 calculate();
+window.addEventListener("load", () => {
+  const loader = $("valuationLoader");
+  window.setTimeout(() => {
+    loader?.classList.add("is-done");
+    document.body.classList.remove("loading-valuation");
+  }, 3000);
+});
 </script>
 </body>
 </html>
