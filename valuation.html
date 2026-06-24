@@ -349,7 +349,7 @@ input:focus, select:focus {
 .chart-panel {
   padding: 10px;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 8px;
 }
 .chart-head {
@@ -384,6 +384,38 @@ input:focus, select:focus {
 .chart-controls button.active {
   color: #1a0707;
   background: var(--gold);
+}
+.live-strip {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px;
+  border: 1px solid rgba(244,198,110,.18);
+  background: rgba(0,0,0,.28);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6d6259;
+  box-shadow: 0 0 0 4px rgba(255,255,255,.04);
+}
+.live-dot.on {
+  background: var(--green);
+  box-shadow: 0 0 0 4px rgba(56,242,143,.12), 0 0 18px rgba(56,242,143,.45);
+  animation: livePulse 1.3s ease-in-out infinite;
+}
+.live-strip b {
+  color: var(--gold);
+}
+@keyframes livePulse {
+  0%, 100% { transform: scale(.86); opacity: .65; }
+  50% { transform: scale(1.18); opacity: 1; }
 }
 .canvas-wrap {
   min-height: 0;
@@ -600,12 +632,12 @@ input:focus, select:focus {
       <p>Thai & US Stock • Crypto • Technical Analysis • Dividend</p>
     </a>
     <nav class="nav" aria-label="Scanner tabs">
-      <!-- <button class="active" type="button">ภาพรวม</button>
+      <button class="active" type="button">ภาพรวม</button>
       <button type="button">หุ้น</button>
       <button type="button">คริปโต</button>
       <button type="button">ปันผล</button>
       <button type="button">สแกนหุ้น</button>
-      <button type="button">ข่าวสาร</button> -->
+      <button type="button">ข่าวสาร</button>
     </nav>
     <div class="clock" id="clock">--:--:--</div>
   </header>
@@ -686,11 +718,15 @@ input:focus, select:focus {
           <button class="btn gold" id="fetchPriceBtn" type="button">ดึงราคา</button>
         </div>
         <div class="action-grid">
+          <button class="btn" id="liveChartBtn" type="button">Live OFF</button>
+          <button class="btn" id="clearLiveBtn" type="button">ล้างกราฟสด</button>
+        </div>
+        <div class="action-grid">
           <button class="btn" id="saveBtn" type="button">เพิ่ม Watchlist</button>
           <button class="btn" id="resetBtn" type="button">รีเซ็ตตัวอย่าง</button>
         </div>
       </form>
-      <p class="note">ระบบนี้ใช้ราคา live จาก Worker เดิมเมื่อกดดึงราคา และคำนวณแนวรับแนวต้านจากกรอบราคา/ความผันผวนเพื่อช่วยวางแผน ไม่ใช่คำแนะนำการลงทุน</p>
+      <p class="note">ระบบนี้ใช้ราคา live จาก Worker เดิมเมื่อกดดึงราคา หรือเปิด Live เพื่อรีเฟรชกราฟอัตโนมัติทุก 30 วินาที ไม่ใช่คำแนะนำการลงทุน</p>
     </aside>
 
     <section class="center">
@@ -733,6 +769,11 @@ input:focus, select:focus {
             <button data-tf="6M">6M</button>
             <button data-tf="1Y">1Y</button>
           </div>
+        </div>
+        <div class="live-strip" id="liveStatus">
+          <span class="live-dot" id="liveDot"></span>
+          <b>REALTIME</b>
+          <span id="liveText">ปิดอยู่</span>
         </div>
         <div class="canvas-wrap">
           <canvas id="priceChart"></canvas>
@@ -828,6 +869,7 @@ input:focus, select:focus {
 <script>
 const API_BASE = "https://siamfolio-api.kingbooms5678.workers.dev";
 const THB = 36.67;
+const REALTIME_REFRESH_MS = 30000;
 const $ = (id) => document.getElementById(id);
 const form = $("scannerForm");
 const canvas = $("priceChart");
@@ -836,7 +878,14 @@ const state = {
   last: null,
   candles: [],
   source: "manual",
-  watchlist: JSON.parse(localStorage.getItem("siamfolio-technical-watchlist") || "[]")
+  watchlist: JSON.parse(localStorage.getItem("siamfolio-technical-watchlist") || "[]"),
+  liveOn: false,
+  liveBusy: false,
+  liveTimer: null,
+  liveKey: "",
+  liveSamples: [],
+  lastLiveAt: 0,
+  lastLiveError: ""
 };
 
 const samples = {
@@ -888,6 +937,60 @@ function readData() {
     name: samples[market]?.name || "Technical Scanner"
   };
 }
+function liveSeriesKey(data) {
+  return `${data.market}:${normalizeSymbol(data.ticker, data.market)}:${data.timeframe}`;
+}
+function ensureLiveSeries(data) {
+  const key = liveSeriesKey(data);
+  if (state.liveKey !== key) {
+    state.liveKey = key;
+    state.liveSamples = [];
+    state.lastLiveAt = 0;
+    state.lastLiveError = "";
+  }
+}
+function pushLiveSample(data, price) {
+  ensureLiveSeries(data);
+  const now = Date.now();
+  const last = state.liveSamples[state.liveSamples.length - 1];
+  if (last && now - last.time < 2000) {
+    last.price = price;
+    last.time = now;
+  } else {
+    state.liveSamples.push({ time: now, price });
+  }
+  state.liveSamples = state.liveSamples.slice(-90);
+  state.lastLiveAt = now;
+}
+function clearLiveSamples() {
+  state.liveSamples = [];
+  state.lastLiveAt = 0;
+  state.lastLiveError = "";
+  updateLiveStatus();
+  calculate();
+}
+function updateLiveStatus() {
+  const dot = $("liveDot");
+  const text = $("liveText");
+  const btn = $("liveChartBtn");
+  if (!dot || !text || !btn) return;
+  dot.classList.toggle("on", state.liveOn);
+  btn.textContent = state.liveOn ? "Live ON" : "Live OFF";
+  btn.classList.toggle("gold", state.liveOn);
+  if (state.liveBusy) {
+    text.textContent = "กำลังอัปเดตราคา...";
+    return;
+  }
+  if (state.lastLiveError) {
+    text.textContent = "อัปเดตล่าสุดไม่สำเร็จ: " + state.lastLiveError;
+    return;
+  }
+  if (state.liveOn && state.lastLiveAt) {
+    text.textContent = `เปิดอยู่ • ล่าสุด ${new Date(state.lastLiveAt).toLocaleTimeString("th-TH", { hour12: false })} • ${state.liveSamples.length} จุด`;
+    return;
+  }
+  text.textContent = state.liveOn ? "เปิดอยู่ • รอรอบแรก" : "ปิดอยู่";
+}
 function seeded(symbol) {
   let seed = 0;
   for (const ch of String(symbol)) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
@@ -914,13 +1017,29 @@ function buildCandles(data, tech) {
     candles.push({ open, high, low: Math.max(0, low), close, volume: 50 + rand() * 140 });
   }
   const scale = data.price / candles[candles.length - 1].close;
-  return candles.map(c => ({
+  const scaled = candles.map(c => ({
     open: c.open * scale,
     high: c.high * scale,
     low: c.low * scale,
     close: c.close * scale,
     volume: c.volume
   }));
+  if (state.liveKey !== liveSeriesKey(data) || state.liveSamples.length === 0) return scaled;
+  const live = state.liveSamples.slice(-Math.min(state.liveSamples.length, Math.floor(scaled.length * .55)));
+  const start = Math.max(0, scaled.length - live.length);
+  for (let i = 0; i < live.length; i += 1) {
+    const prevClose = i === 0 ? scaled[Math.max(0, start - 1)]?.close || live[i].price : live[i - 1].price;
+    const close = live[i].price;
+    const wiggle = Math.max(Math.abs(close - prevClose) * .4, close * tech.volatility * .035);
+    scaled[start + i] = {
+      open: prevClose,
+      high: Math.max(prevClose, close) + wiggle,
+      low: Math.max(.0001, Math.min(prevClose, close) - wiggle),
+      close,
+      volume: 180 + i * 8
+    };
+  }
+  return scaled;
 }
 function movingAverage(candles, period) {
   return candles.map((_, index) => {
@@ -1149,27 +1268,34 @@ function saveWatchlist() {
   localStorage.setItem("siamfolio-technical-watchlist", JSON.stringify(state.watchlist));
   renderWatchlist();
 }
+async function fetchLatestPrice(data) {
+  const symbol = normalizeSymbol(data.ticker, data.market);
+  const url = data.market === "CRYPTO"
+    ? `${API_BASE}/api/prices/crypto?symbols=${encodeURIComponent(symbol.replace("-USD", ""))}`
+    : `${API_BASE}/api/prices/stocks?symbols=${encodeURIComponent(symbol)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("price api " + res.status);
+  const json = await res.json();
+  const prices = json.prices || json || {};
+  const key = Object.keys(prices).find(k => (
+    k.toUpperCase() === symbol.toUpperCase() ||
+    k.toUpperCase().replace("-USD", "") === symbol.toUpperCase().replace("-USD", "")
+  )) || Object.keys(prices)[0];
+  const priceData = prices[key];
+  const price = typeof priceData === "number" ? priceData : (priceData?.price ?? priceData?.regularMarketPrice ?? priceData?.value);
+  if (!Number.isFinite(Number(price))) throw new Error("price not found");
+  return Number(price);
+}
 async function fetchPrice() {
   const data = readData();
-  const symbol = normalizeSymbol(data.ticker, data.market);
   $("fetchPriceBtn").disabled = true;
   $("fetchPriceBtn").textContent = "กำลังดึง...";
   try {
-    let url = "";
-    if (data.market === "CRYPTO") {
-      url = `${API_BASE}/api/prices/crypto?symbols=${encodeURIComponent(symbol.replace("-USD", ""))}`;
-    } else {
-      url = `${API_BASE}/api/prices/stocks?symbols=${encodeURIComponent(symbol)}`;
-    }
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("price api " + res.status);
-    const json = await res.json();
-    const key = Object.keys(json.prices || json || {}).find(k => k.toUpperCase() === symbol.toUpperCase() || k.toUpperCase().replace("-USD", "") === symbol.toUpperCase().replace("-USD", "")) || Object.keys(json.prices || json || {})[0];
-    const priceData = (json.prices || json)[key];
-    const price = typeof priceData === "number" ? priceData : (priceData?.price ?? priceData?.regularMarketPrice ?? priceData?.value);
-    if (Number.isFinite(Number(price))) $("price").value = Number(price).toFixed(data.market === "CRYPTO" ? 4 : 2);
-    state.source = "live";
-    if (data.market !== "CRYPTO") await fetchDividend(symbol);
+    const price = await fetchLatestPrice(data);
+    $("price").value = price.toFixed(data.market === "CRYPTO" ? 4 : 2);
+    pushLiveSample(data, price);
+    state.source = state.liveOn ? "live auto" : "live";
+    if (data.market !== "CRYPTO") await fetchDividend(normalizeSymbol(data.ticker, data.market));
   } catch (error) {
     state.source = "manual";
     alert("ดึงราคาไม่สำเร็จ: " + error.message);
@@ -1177,7 +1303,46 @@ async function fetchPrice() {
     $("fetchPriceBtn").disabled = false;
     $("fetchPriceBtn").textContent = "ดึงราคา";
     calculate();
+    updateLiveStatus();
   }
+}
+async function liveRefresh() {
+  if (!state.liveOn || state.liveBusy) return;
+  const data = readData();
+  ensureLiveSeries(data);
+  state.liveBusy = true;
+  state.lastLiveError = "";
+  updateLiveStatus();
+  try {
+    const price = await fetchLatestPrice(data);
+    $("price").value = price.toFixed(data.market === "CRYPTO" ? 4 : 2);
+    pushLiveSample(data, price);
+    state.source = "live auto";
+    calculate();
+  } catch (error) {
+    state.lastLiveError = error.message;
+  } finally {
+    state.liveBusy = false;
+    updateLiveStatus();
+  }
+}
+function startRealtimeChart() {
+  if (state.liveOn) return;
+  state.liveOn = true;
+  ensureLiveSeries(readData());
+  updateLiveStatus();
+  liveRefresh();
+  state.liveTimer = setInterval(liveRefresh, REALTIME_REFRESH_MS);
+}
+function stopRealtimeChart() {
+  state.liveOn = false;
+  if (state.liveTimer) clearInterval(state.liveTimer);
+  state.liveTimer = null;
+  updateLiveStatus();
+}
+function toggleRealtimeChart() {
+  if (state.liveOn) stopRealtimeChart();
+  else startRealtimeChart();
 }
 async function fetchDividend(symbol) {
   try {
@@ -1193,6 +1358,7 @@ async function fetchDividend(symbol) {
   } catch {}
 }
 function loadPreset(kind) {
+  stopRealtimeChart();
   const data = samples[kind];
   if (!data) return;
   $("ticker").value = data.ticker;
@@ -1205,6 +1371,8 @@ function loadPreset(kind) {
   $("lotSize").value = data.lotSize;
   document.querySelectorAll(".tabs button").forEach(btn => btn.classList.toggle("active", btn.dataset.preset === kind));
   state.source = "manual";
+  state.liveSamples = [];
+  updateLiveStatus();
   calculate();
 }
 function tickClock() {
@@ -1218,6 +1386,8 @@ form.addEventListener("submit", (event) => {
   calculate();
 });
 $("fetchPriceBtn").addEventListener("click", fetchPrice);
+$("liveChartBtn").addEventListener("click", toggleRealtimeChart);
+$("clearLiveBtn").addEventListener("click", clearLiveSamples);
 $("saveBtn").addEventListener("click", saveWatchlist);
 $("resetBtn").addEventListener("click", () => loadPreset($("market").value));
 $("market").addEventListener("change", () => loadPreset($("market").value));
@@ -1233,11 +1403,15 @@ document.querySelectorAll(".chart-controls button").forEach(btn => btn.addEventL
   document.querySelectorAll(".chart-controls button").forEach(x => x.classList.remove("active"));
   btn.classList.add("active");
   $("timeframe").value = btn.dataset.tf;
+  ensureLiveSeries(readData());
+  updateLiveStatus();
   calculate();
 }));
 ["ticker","currency","price","timeframe","chartType","dividend","shares","budget","lotSize"].forEach(id => {
   $(id).addEventListener("input", () => {
     state.source = "manual";
+    if (id === "ticker" || id === "timeframe") ensureLiveSeries(readData());
+    updateLiveStatus();
     calculate();
   });
 });
@@ -1247,6 +1421,7 @@ window.addEventListener("resize", () => {
 setInterval(tickClock, 1000);
 tickClock();
 renderWatchlist();
+updateLiveStatus();
 calculate();
 </script>
 </body>
