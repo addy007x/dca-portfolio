@@ -54,6 +54,199 @@ body::before {
   mix-blend-mode: screen;
   opacity: .25;
 }
+body.valuation-loading {
+  overflow: hidden;
+}
+.valuation-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 54% 42%, rgba(211,41,34,.28), transparent 32%),
+    linear-gradient(112deg, rgba(0,0,0,.96), rgba(44,2,8,.9) 58%, rgba(7,0,2,.98)),
+    var(--bg);
+  overflow: hidden;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .72s ease, visibility .72s ease;
+}
+.valuation-loader::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, transparent 0 47%, rgba(240,53,63,.16) 48%, transparent 52%),
+    repeating-linear-gradient(118deg, rgba(255,255,255,.055) 0 1px, transparent 1px 18px),
+    radial-gradient(circle, rgba(240,53,63,.42) 0 1px, transparent 2px) 0 0 / 38px 38px;
+  opacity: .32;
+  animation: loaderGridDrift 10s linear infinite;
+}
+.valuation-loader::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 42%, rgba(0,0,0,.72)),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.026) 0 1px, transparent 1px 4px);
+  mix-blend-mode: screen;
+  opacity: .4;
+}
+.valuation-loader.is-done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.valuation-load-card {
+  position: relative;
+  z-index: 1;
+  width: min(680px, calc(100vw - 36px));
+  min-height: 258px;
+  padding: 30px 36px 34px;
+  border: 1px solid rgba(240,53,63,.9);
+  background:
+    linear-gradient(135deg, rgba(9,8,12,.98), rgba(16,5,8,.96)),
+    url("assets/valuation-decor-texture.png") center / cover no-repeat;
+  box-shadow:
+    0 0 0 1px rgba(244,198,110,.18) inset,
+    0 0 48px rgba(240,53,63,.36),
+    0 26px 90px rgba(0,0,0,.68);
+  clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 26px, 100% 100%, 24px 100%, 0 calc(100% - 26px));
+  overflow: hidden;
+}
+.valuation-load-card::before,
+.valuation-load-card::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+.valuation-load-card::before {
+  inset: 8px;
+  border-top: 1px solid rgba(244,198,110,.28);
+  border-bottom: 1px solid rgba(240,53,63,.32);
+}
+.valuation-load-card::after {
+  width: 190px;
+  height: 190px;
+  right: -54px;
+  top: -50px;
+  background: radial-gradient(circle, rgba(240,53,63,.34), transparent 62%);
+  filter: blur(2px);
+}
+.loader-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 520px;
+}
+.loader-kicker {
+  width: max-content;
+  margin-bottom: 14px;
+  padding: 6px 11px;
+  background: #fff;
+  color: #12080a;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+.loader-title {
+  margin: 0;
+  color: #fff;
+  font-family: var(--display);
+  font-size: clamp(39px, 5vw, 58px);
+  line-height: .86;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-shadow:
+    3px 3px 0 rgba(240,53,63,.88),
+    0 0 22px rgba(255,255,255,.34),
+    0 0 34px rgba(240,53,63,.42);
+}
+.loader-sub {
+  margin-top: 13px;
+  color: rgba(255,242,231,.64);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+.loader-emblem {
+  position: absolute;
+  z-index: 1;
+  right: 34px;
+  top: 26px;
+  width: 112px;
+  height: 112px;
+  border: 1px solid rgba(240,53,63,.36);
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,.72)),
+    url("assets/valuation-decor-magic.png") center / cover no-repeat;
+  box-shadow:
+    0 0 24px rgba(240,53,63,.35),
+    inset 0 0 28px rgba(0,0,0,.6);
+  animation: loaderEmblemGlow 2.8s ease-in-out infinite;
+}
+.loader-progress {
+  position: relative;
+  z-index: 1;
+  height: 17px;
+  margin-top: 34px;
+  border: 1px solid rgba(244,198,110,.22);
+  background: rgba(0,0,0,.58);
+  overflow: hidden;
+}
+.loader-progress span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 88%;
+  background:
+    linear-gradient(90deg, #f0162e, #ff2b46 58%, #ffe5ea 72%, #ff3350 82%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.14) 0 8px, transparent 8px 16px);
+  box-shadow: 0 0 22px rgba(240,53,63,.8);
+  animation: loaderBar 3s cubic-bezier(.2,.7,.25,1) both;
+}
+.loader-progress span::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  bottom: -10px;
+  width: 70px;
+  right: -18px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.95), transparent);
+  filter: blur(2px);
+  animation: loaderShine 1.35s ease-in-out infinite;
+}
+.loader-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+@keyframes loaderBar {
+  from { width: 8%; }
+  to { width: 88%; }
+}
+@keyframes loaderShine {
+  from { transform: translateX(-520px) skewX(-16deg); opacity: .2; }
+  45%, 70% { opacity: .85; }
+  to { transform: translateX(120px) skewX(-16deg); opacity: .15; }
+}
+@keyframes loaderGridDrift {
+  from { transform: translate3d(0,0,0); }
+  to { transform: translate3d(46px,28px,0); }
+}
+@keyframes loaderEmblemGlow {
+  0%, 100% { filter: saturate(1) brightness(.95); transform: scale(1); }
+  50% { filter: saturate(1.35) brightness(1.18); transform: scale(1.025); }
+}
 button, input, select { font: inherit; }
 button { cursor: pointer; }
 a { color: inherit; text-decoration: none; }
@@ -624,7 +817,19 @@ input:focus, select:focus {
 }
 </style>
 </head>
-<body>
+<body class="valuation-loading">
+<div class="valuation-loader" id="valuationLoader" role="status" aria-live="polite">
+  <div class="valuation-load-card">
+    <div class="loader-copy">
+      <div class="loader-kicker">Stock Valuation Lab</div>
+      <h1 class="loader-title">Opening Valuation Lab</h1>
+      <div class="loader-sub">Please wait 3 seconds</div>
+    </div>
+    <div class="loader-emblem" aria-hidden="true"></div>
+    <div class="loader-progress" aria-hidden="true"><span></span></div>
+  </div>
+  <div class="loader-sr">Opening Valuation Lab. Please wait 3 seconds.</div>
+</div>
 <main class="app">
   <header class="topbar">
     <a class="brand" href="./dashboard-design.html">
@@ -637,7 +842,7 @@ input:focus, select:focus {
       <button type="button">คริปโต</button>
       <button type="button">ปันผล</button>
       <button type="button">สแกนหุ้น</button>
- <button type="button" onclick="location.href='./dashboard-design.html'">ออก</button>
+      <button type="button">ข่าวสาร</button>
     </nav>
     <div class="clock" id="clock">--:--:--</div>
   </header>
@@ -1428,6 +1633,13 @@ tickClock();
 renderWatchlist();
 updateLiveStatus();
 calculate();
+window.addEventListener("load", () => {
+  const loader = $("valuationLoader");
+  window.setTimeout(() => {
+    loader?.classList.add("is-done");
+    document.body.classList.remove("valuation-loading");
+  }, 3000);
+});
 </script>
 </body>
 </html>
