@@ -3,31 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Technical Scanner - SiamFolio</title>
+<title>Arcane Scanner - SiamFolio</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
-<meta name="theme-color" content="#0b0504">
+<meta name="theme-color" content="#05090b">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:ital,wght@0,500;0,700;0,800;1,700;1,800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&family=Barlow+Condensed:wght@500;600;700;800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 :root {
-  --bg: #070504;
-  --panel: rgba(8, 8, 10, .84);
-  --panel-strong: rgba(12, 8, 8, .92);
-  --line: rgba(211, 41, 34, .54);
-  --line-soft: rgba(211, 41, 34, .22);
-  --gold: #f4c66e;
-  --gold-2: #9d6723;
-  --red: #f0353f;
-  --red-dark: #5e0508;
-  --green: #38f28f;
-  --cyan: #41d8ff;
-  --text: #f7f0e8;
-  --muted: #aaa19a;
+  --bg: #04090b;
+  --panel: rgba(5, 13, 16, .88);
+  --panel-2: rgba(7, 18, 22, .76);
+  --panel-3: rgba(10, 16, 18, .94);
+  --line: rgba(221, 138, 35, .38);
+  --line-soft: rgba(221, 138, 35, .18);
+  --gold: #f4b22f;
+  --gold-2: #ffd978;
+  --orange: #ff8a19;
+  --red: #ff272f;
+  --green: #2cff61;
+  --blue: #36b5ff;
+  --violet: #b553ff;
+  --text: #f8efe2;
+  --muted: #a59686;
   --mono: "JetBrains Mono", monospace;
   --display: "Barlow Condensed", "IBM Plex Sans Thai", sans-serif;
+  --brand: "Cinzel", serif;
   --thai: "IBM Plex Sans Thai", sans-serif;
 }
 * { box-sizing: border-box; }
@@ -37,10 +41,11 @@ body {
   color: var(--text);
   font-family: var(--thai);
   background:
-    linear-gradient(90deg, rgba(0,0,0,.88), rgba(0,0,0,.34), rgba(0,0,0,.88)),
-    radial-gradient(circle at 52% 12%, rgba(235, 49, 43, .18), transparent 32%),
-    url("assets/manga-dashboard-library.png") center / cover fixed no-repeat,
-    var(--bg);
+    radial-gradient(circle at 50% -10%, rgba(244,178,47,.13), transparent 24%),
+    radial-gradient(circle at 72% 36%, rgba(37,135,87,.12), transparent 30%),
+    linear-gradient(90deg, rgba(0,0,0,.86), rgba(2,13,17,.54), rgba(0,0,0,.86)),
+    url("assets/valuation-decor-texture.png") center/cover fixed no-repeat,
+    #020506;
   overflow: hidden;
 }
 body::before {
@@ -49,457 +54,462 @@ body::before {
   inset: 0;
   pointer-events: none;
   background:
-    repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 4px),
-    radial-gradient(circle at 50% 50%, transparent 45%, rgba(0,0,0,.56));
-  mix-blend-mode: screen;
-  opacity: .25;
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px),
+    radial-gradient(circle at 50% 45%, transparent 48%, rgba(0,0,0,.58));
+  background-size: 100% 34px, 34px 100%, 100% 100%;
+  opacity: .32;
 }
 body::after {
   content: "";
   position: fixed;
-  inset: -18%;
+  inset: -16%;
   pointer-events: none;
   background:
-    radial-gradient(circle at 50% 52%, rgba(244,198,110,.08), transparent 20%),
-    linear-gradient(118deg, transparent 0 47%, rgba(240,53,63,.12) 48%, transparent 52%),
-    repeating-linear-gradient(118deg, rgba(255,255,255,.035) 0 1px, transparent 1px 20px);
+    url("assets/valuation-decor-magic.png") center/70% no-repeat,
+    linear-gradient(115deg, transparent 0 44%, rgba(244,178,47,.10) 49%, rgba(44,255,97,.04) 52%, transparent 58%);
   mix-blend-mode: screen;
-  opacity: .32;
-  animation: ambientSweep 12s linear infinite;
+  opacity: .20;
+  animation: arcaneSweep 16s linear infinite;
 }
-@keyframes ambientSweep {
-  from { transform: translate3d(-24px, -12px, 0); }
-  to { transform: translate3d(34px, 18px, 0); }
+@keyframes arcaneSweep {
+  from { transform: translate3d(-20px, -8px, 0); }
+  to { transform: translate3d(24px, 10px, 0); }
 }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
 a { color: inherit; text-decoration: none; }
 .app {
-  height: 100vh;
-  padding: 8px;
-  display: grid;
-  grid-template-rows: 58px minmax(0, 1fr) 28px;
-  gap: 8px;
-}
-.topbar,
-.ticker,
-.panel,
-.market-tape {
-  position: relative;
-  border: 1px solid var(--line);
-  background:
-    linear-gradient(180deg, rgba(12, 10, 12, .9), rgba(3, 3, 5, .85)),
-    radial-gradient(circle at 0 0, rgba(244, 198, 110, .1), transparent 24%);
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.035),
-    inset 0 0 28px rgba(240,53,63,.08),
-    0 0 22px rgba(0,0,0,.42);
-  backdrop-filter: blur(2px);
-}
-.topbar {
-  position: relative;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: minmax(260px, 360px) 1fr auto;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 12px;
-}
-.topbar::before,
-.panel::before,
-.ticker::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    url("assets/valuation-decor-magic.png") center / cover no-repeat,
-    linear-gradient(110deg, transparent, rgba(244,198,110,.08), transparent);
-  mix-blend-mode: screen;
-  opacity: .14;
-}
-.topbar::after,
-.ticker::after,
-.panel::after,
-.market-tape::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(105deg, transparent 0 42%, rgba(244,198,110,.1) 48%, rgba(240,53,63,.12) 52%, transparent 60%);
-  transform: translateX(-130%);
-  mix-blend-mode: screen;
-  opacity: .8;
-  animation: panelSweep 8s ease-in-out infinite;
-}
-@keyframes panelSweep {
-  0%, 38% { transform: translateX(-130%); }
-  56%, 100% { transform: translateX(130%); }
-}
-.brand,
-.nav,
-.clock,
-.panel > *,
-.ticker > * {
   position: relative;
   z-index: 1;
-}
-.brand {
+  height: 100vh;
+  padding: 10px;
   display: grid;
-  gap: 1px;
+  grid-template-rows: 58px minmax(0, 1fr) 142px 26px;
+  gap: 9px;
+}
+.topbar,
+.panel,
+.asset-strip,
+.scan-feed {
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(5, 15, 19, .94), rgba(2, 6, 8, .88)),
+    radial-gradient(circle at 16% 0, rgba(244,178,47,.12), transparent 32%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.035), 0 0 24px rgba(0,0,0,.44);
+  backdrop-filter: blur(3px);
+}
+.topbar {
+  display: grid;
+  grid-template-columns: 360px 1fr 300px;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 18px;
+  border-radius: 8px 18px 8px 18px;
 }
 .brand h1 {
   margin: 0;
-  color: var(--gold);
-  font-family: var(--display);
-  font-size: 30px;
-  font-weight: 800;
-  line-height: .88;
-  letter-spacing: .04em;
+  color: var(--gold-2);
+  font-family: var(--brand);
+  font-size: 29px;
+  line-height: .95;
+  letter-spacing: .10em;
   text-transform: uppercase;
-  text-shadow:
-    2px 2px 0 rgba(240,53,63,.45),
-    0 0 16px rgba(244,198,110,.32),
-    0 0 26px rgba(240,53,63,.24);
+  text-shadow: 0 0 18px rgba(244,178,47,.35);
 }
 .brand p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
+  margin: 2px 0 0;
+  color: #c2b5a5;
+  font-size: 12px;
+  font-weight: 600;
 }
 .nav {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(98px, 1fr));
+  gap: 9px;
+  align-items: center;
+}
+.nav button {
+  height: 44px;
+  border: 1px solid rgba(244,178,47,.27);
+  border-radius: 7px;
+  color: var(--gold);
+  background: rgba(0,0,0,.28);
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 800;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.nav button i { margin-right: 8px; }
+.nav button:hover,
+.nav button.active {
+  color: #fff2cf;
+  border-color: rgba(244,178,47,.78);
+  background: linear-gradient(180deg, rgba(244,178,47,.14), rgba(0,0,0,.35));
+  box-shadow: inset 0 0 20px rgba(244,178,47,.08), 0 0 16px rgba(244,178,47,.16);
+  transform: translateY(-1px);
+}
+.clock {
+  justify-self: end;
+  min-width: 270px;
+  height: 46px;
+  border: 1px solid rgba(244,178,47,.16);
+  border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  flex-wrap: wrap;
-}
-.nav button {
-  min-width: 98px;
-  height: 34px;
-  border: 1px solid rgba(244,198,110,.36);
-  color: #f9ead0;
-  background: rgba(0,0,0,.36);
-  font-family: var(--display);
-  font-size: 15px;
-  font-weight: 800;
-  font-style: italic;
-  text-transform: uppercase;
-  clip-path: polygon(9px 0, 100% 0, calc(100% - 9px) 100%, 0 100%);
-  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, color .16s ease;
-}
-.nav button:hover {
-  color: #fff8e8;
-  border-color: rgba(244,198,110,.72);
-  box-shadow: 0 0 16px rgba(240,53,63,.22);
-  transform: translateY(-1px);
-}
-.nav button.active {
-  border-color: rgba(244,198,110,.75);
-  background: linear-gradient(135deg, #8d100e, #250304);
-  box-shadow: 0 0 18px rgba(240,53,63,.34), inset 0 0 18px rgba(244,198,110,.08);
-}
-.clock {
-  font-family: var(--mono);
+  gap: 12px;
   color: var(--gold);
+  background: rgba(0,0,0,.36);
+  font-family: var(--mono);
+  font-size: 17px;
   font-weight: 800;
-  white-space: nowrap;
-  font-size: 14px;
 }
 .layout {
   min-height: 0;
   display: grid;
-  grid-template-columns: 300px minmax(560px, 1fr) 300px;
-  gap: 8px;
+  grid-template-columns: 360px minmax(680px, 1fr) 410px;
+  gap: 12px;
+}
+.left,
+.center,
+.right,
+.bottom-grid { min-height: 0; }
+.left,
+.right {
+  display: grid;
+  gap: 12px;
+}
+.left { grid-template-rows: minmax(0, 1fr); }
+.right { grid-template-rows: 326px 176px minmax(0, 1fr); }
+.center {
+  display: grid;
+  grid-template-rows: 118px minmax(360px, 1fr) 212px;
+  gap: 10px;
 }
 .panel {
   position: relative;
   overflow: hidden;
-  min-height: 0;
+  border-radius: 6px;
 }
-.panel-pad { padding: 11px; }
+.panel::before,
+.asset-strip::before,
+.scan-feed::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    url("assets/valuation-decor-library.png") center/cover no-repeat,
+    linear-gradient(120deg, transparent, rgba(244,178,47,.10), transparent);
+  mix-blend-mode: screen;
+  opacity: .085;
+}
+.panel-pad { padding: 16px; }
 .section-title {
+  position: relative;
+  z-index: 1;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
-  padding-bottom: 7px;
-  margin-bottom: 9px;
-  border-bottom: 1px solid rgba(240,53,63,.28);
+  gap: 12px;
+  margin-bottom: 12px;
 }
 .section-title h2 {
   margin: 0;
-  color: #fff4df;
-  font-family: var(--display);
-  font-size: 20px;
-  line-height: .95;
-  font-weight: 800;
-  font-style: italic;
-  text-transform: uppercase;
-  text-shadow: 1px 1px 0 rgba(240,53,63,.7), 0 0 14px rgba(244,198,110,.22);
-}
-.section-title span {
   color: var(--gold);
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 900;
+  font-family: var(--display);
+  font-size: 22px;
+  line-height: .9;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px rgba(244,178,47,.22);
+}
+.section-title span,
+.link-text {
+  color: var(--gold);
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 800;
   text-transform: uppercase;
 }
 .tabs {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 7px;
+  margin-bottom: 15px;
 }
 .tabs button,
-.chip {
-  min-height: 30px;
-  border: 1px solid rgba(244,198,110,.3);
-  color: #eadbc2;
-  background: rgba(0,0,0,.35);
-  font-family: var(--display);
-  font-weight: 800;
-  text-transform: uppercase;
-  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+.chip,
+.btn,
+.tf button {
+  border: 1px solid rgba(244,178,47,.30);
+  color: #e7d6bb;
+  background: rgba(0,0,0,.38);
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease, background .16s ease;
 }
-.tabs button:hover,
-.chip:hover {
-  border-color: rgba(244,198,110,.72);
-  box-shadow: 0 0 14px rgba(240,53,63,.2);
-  transform: translateY(-1px);
+.tabs button {
+  height: 40px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.08;
 }
 .tabs button.active,
-.chip.active {
-  color: #180605;
-  background: linear-gradient(135deg, #f7d681, #b77820);
+.chip.active,
+.tf button.active {
+  color: #1a0b05;
+  border-color: rgba(255,217,120,.9);
+  background: linear-gradient(180deg, #ffd978, #df941f);
+  box-shadow: inset 0 0 16px rgba(255,255,255,.2), 0 0 16px rgba(244,178,47,.18);
 }
 .field-grid {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 .field.full { grid-column: 1 / -1; }
-.field { display: grid; gap: 4px; }
+.field { display: grid; gap: 5px; }
 .field label {
-  color: #d2c8bf;
-  font-size: 11px;
+  color: #cdbfae;
+  font-size: 12px;
   font-weight: 800;
 }
 input, select {
   width: 100%;
   min-width: 0;
-  height: 33px;
-  border: 1px solid rgba(255,255,255,.13);
-  background: rgba(0,0,0,.55);
+  height: 35px;
+  border: 1px solid rgba(244,178,47,.18);
+  border-radius: 3px;
+  background: rgba(0,0,0,.48);
   color: var(--text);
-  padding: 0 10px;
+  padding: 0 11px;
   outline: none;
-  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
 }
 input:focus, select:focus {
-  border-color: rgba(244,198,110,.75);
-  box-shadow: 0 0 0 3px rgba(244,198,110,.12);
+  border-color: rgba(44,255,97,.72);
+  box-shadow: 0 0 0 2px rgba(44,255,97,.10);
 }
 .action-grid {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 9px;
+  gap: 10px;
+  margin-top: 12px;
 }
 .btn {
-  height: 34px;
-  border: 1px solid rgba(255,255,255,.13);
-  color: var(--text);
-  background: rgba(0,0,0,.45);
-  font-weight: 900;
-  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+  height: 42px;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 800;
 }
-.btn:hover {
+.btn i { margin-right: 8px; }
+.btn:hover,
+.tf button:hover,
+.tabs button:hover {
   transform: translateY(-1px);
-  filter: brightness(1.08);
-  box-shadow: 0 0 16px rgba(240,53,63,.22);
+  border-color: rgba(244,178,47,.72);
 }
 .btn.primary {
-  border-color: rgba(240,53,63,.78);
-  background: linear-gradient(135deg, #e32932, #6b0508);
+  color: #190b05;
+  border-color: rgba(255,217,120,.9);
+  background: linear-gradient(180deg, #ffd978, #d98a18);
+  font-size: 20px;
+  box-shadow: 0 0 18px rgba(244,178,47,.14);
 }
-.btn.gold {
-  color: #1b0806;
-  border-color: rgba(244,198,110,.8);
-  background: linear-gradient(135deg, #ffdd88, #b87921);
+.btn.live-on {
+  color: #10210f;
+  border-color: rgba(44,255,97,.8);
+  background: linear-gradient(180deg, #79ff8d, #1fb451);
+}
+.btn.danger-dot::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background: var(--red);
+  box-shadow: 0 0 12px rgba(255,39,47,.7);
 }
 .note {
+  position: relative;
+  z-index: 1;
+  margin: 12px 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.45;
-  margin: 8px 0 0;
 }
-.center {
-  min-height: 0;
-  display: grid;
-  grid-template-rows: 104px minmax(300px, 1fr) 194px;
-  gap: 8px;
-}
-.ticker {
+.asset-strip {
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(4, minmax(110px, 150px));
-  gap: 8px;
+  grid-template-columns: minmax(210px, 1fr) repeat(3, 158px) 294px;
   align-items: stretch;
-  padding: 10px;
+  border-radius: 7px;
 }
-.asset-name {
-  min-width: 0;
-  display: grid;
-  align-content: center;
+.asset-main {
+  position: relative;
+  z-index: 1;
+  padding: 16px 20px;
 }
-.asset-name h2 {
+.asset-main h2 {
   margin: 0;
   font-family: var(--display);
-  font-size: 44px;
-  line-height: .84;
+  font-size: 46px;
+  line-height: .83;
   letter-spacing: .03em;
-  text-transform: uppercase;
-  text-shadow:
-    2px 2px 0 rgba(240,53,63,.5),
-    0 0 20px rgba(244,198,110,.2);
 }
-.asset-name p {
+.asset-main p {
   margin: 5px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+  color: #d8cdbf;
+  font-size: 15px;
 }
-.tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 5px;
-}
+.tags { display: flex; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
 .tag {
   display: inline-flex;
   align-items: center;
-  min-height: 20px;
-  padding: 2px 7px;
-  border: 1px solid rgba(244,198,110,.34);
+  min-height: 23px;
+  padding: 2px 10px;
+  border: 1px solid rgba(244,178,47,.36);
+  border-radius: 3px;
   color: var(--gold);
-  background: rgba(0,0,0,.4);
+  background: rgba(0,0,0,.42);
   font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 900;
-}
-.metric {
-  border-left: 1px solid rgba(244,198,110,.22);
-  background:
-    linear-gradient(135deg, rgba(244,198,110,.06), transparent 55%),
-    rgba(0,0,0,.3);
-  padding: 9px;
-  display: grid;
-  align-content: center;
-}
-.metric span {
-  color: var(--muted);
   font-size: 11px;
   font-weight: 800;
 }
+.metric {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  padding: 14px 18px;
+  border-left: 1px solid rgba(244,178,47,.20);
+}
+.metric span {
+  color: #cbbdad;
+  font-size: 13px;
+  font-weight: 700;
+}
 .metric b {
+  font-family: var(--mono);
+  font-size: 20px;
+  line-height: 1.05;
+}
+.metric b.big {
+  color: #fff;
+  font-family: var(--display);
+  font-size: 31px;
+}
+.dividend-badge {
+  margin: 7px;
+  padding: 12px 14px;
+  border: 1px solid rgba(44,255,97,.78);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(0,40,16,.80), rgba(0,0,0,.62));
+  box-shadow: inset 0 0 24px rgba(44,255,97,.08), 0 0 14px rgba(44,255,97,.15);
+}
+.dividend-badge .cap {
+  color: var(--green);
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 800;
+}
+.dividend-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin-top: 8px;
+}
+.dividend-stats small {
+  color: #9ba89a;
+  font-size: 10px;
+}
+.dividend-stats b {
   display: block;
   margin-top: 4px;
+  color: var(--gold);
   font-family: var(--mono);
-  font-size: 17px;
+  font-size: 16px;
 }
-.metric .big {
-  font-family: var(--display);
-  font-size: 25px;
-  line-height: .92;
-}
-.good { color: var(--green) !important; }
-.bad { color: #ff5a67 !important; }
-.gold { color: var(--gold) !important; }
 .chart-panel {
-  padding: 10px;
+  padding: 14px 18px 14px;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
-  gap: 8px;
+  gap: 10px;
 }
-.chart-head {
+.chart-head,
+.mini-head {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
 }
 .chart-head h2 {
   margin: 0;
   color: var(--gold);
   font-family: var(--display);
-  font-size: 22px;
+  font-size: 23px;
   font-style: italic;
-  text-transform: uppercase;
+  font-weight: 800;
 }
-.chart-controls {
+.tf {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
-.chart-controls button {
-  min-width: 42px;
-  height: 27px;
-  border: 1px solid rgba(244,198,110,.25);
-  background: rgba(0,0,0,.38);
-  color: #e6dccf;
+.tf button {
+  min-width: 46px;
+  height: 28px;
+  border-radius: 3px;
   font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 900;
-}
-.chart-controls button.active {
-  color: #1a0707;
-  background: var(--gold);
+  font-size: 11px;
+  font-weight: 800;
 }
 .live-strip {
-  min-height: 30px;
+  position: relative;
+  z-index: 1;
+  min-height: 34px;
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 6px 8px;
-  border: 1px solid rgba(244,198,110,.18);
-  background: rgba(0,0,0,.28);
-  color: var(--muted);
+  gap: 10px;
+  color: #c6b9a8;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 .live-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: #6d6259;
-  box-shadow: 0 0 0 4px rgba(255,255,255,.04);
+  background: #666;
 }
 .live-dot.on {
   background: var(--green);
-  box-shadow: 0 0 0 4px rgba(56,242,143,.12), 0 0 18px rgba(56,242,143,.45);
-  animation: livePulse 1.3s ease-in-out infinite;
+  box-shadow: 0 0 0 5px rgba(44,255,97,.12), 0 0 18px rgba(44,255,97,.5);
+  animation: pulse 1.25s ease-in-out infinite;
 }
-.live-strip b {
-  color: var(--gold);
-}
-@keyframes livePulse {
-  0%, 100% { transform: scale(.86); opacity: .65; }
-  50% { transform: scale(1.18); opacity: 1; }
+@keyframes pulse {
+  0%, 100% { transform: scale(.85); opacity: .72; }
+  50% { transform: scale(1.14); opacity: 1; }
 }
 .canvas-wrap {
-  min-height: 0;
   position: relative;
-  border: 1px solid rgba(255,255,255,.08);
-  background:
-    linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,.62)),
-    radial-gradient(circle at 74% 28%, rgba(240,53,63,.16), transparent 22%);
-  box-shadow:
-    inset 0 0 0 1px rgba(244,198,110,.04),
-    inset 0 0 34px rgba(240,53,63,.1);
+  min-height: 0;
   overflow: hidden;
+  border-top: 1px solid rgba(244,178,47,.14);
+  background:
+    radial-gradient(circle at 74% 32%, rgba(44,255,97,.08), transparent 28%),
+    linear-gradient(180deg, rgba(0,0,0,.20), rgba(0,0,0,.56));
 }
 #priceChart {
   width: 100%;
@@ -508,10 +518,10 @@ input:focus, select:focus {
 }
 .level-list {
   position: absolute;
-  right: 10px;
-  top: 42px;
-  bottom: 16px;
-  width: 116px;
+  top: 34px;
+  right: 14px;
+  bottom: 22px;
+  width: 120px;
   display: grid;
   align-content: space-between;
   pointer-events: none;
@@ -520,32 +530,28 @@ input:focus, select:focus {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  padding: 3px 7px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.62);
+  padding: 3px 5px;
+  background: rgba(0,0,0,.60);
   font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 900;
+  font-size: 11px;
+  font-weight: 800;
 }
-.level-pill.res { color: #ff5a67; }
+.level-pill.res { color: #ff4b50; }
 .level-pill.sup { color: var(--green); }
 .info-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: 1.1fr 1fr 1.16fr .94fr;
+  gap: 10px;
 }
 .compact-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 10px;
-  line-height: 1.06;
+  font-size: 12px;
+  line-height: 1.15;
 }
 .compact-table td {
-  padding: 2px 0;
-  border-bottom: 1px solid rgba(255,255,255,.08);
-}
-.compact-table small {
-  display: none !important;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
 }
 .compact-table td:last-child {
   text-align: right;
@@ -553,149 +559,293 @@ input:focus, select:focus {
   font-weight: 800;
 }
 .tool-grid {
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
 }
 .tool {
-  min-height: 34px;
-  border: 1px solid rgba(244,198,110,.2);
+  min-height: 43px;
+  border: 1px solid rgba(244,178,47,.18);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  background: rgba(0,0,0,.30);
+  color: #eadcc4;
+  font-size: 12px;
+  font-weight: 800;
+}
+.tool i { color: var(--gold); }
+.ai-wrap {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 94px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.ai-dial {
+  width: 90px;
+  aspect-ratio: 1;
+  border-radius: 50%;
   display: grid;
   place-items: center;
-  color: #e9dcc6;
-  background: rgba(0,0,0,.34);
-  font-size: 11px;
+  background: conic-gradient(var(--violet) 0 87%, rgba(255,255,255,.12) 87% 100%);
+  box-shadow: 0 0 30px rgba(181,83,255,.25);
+}
+.ai-dial div {
+  width: 67px;
+  height: 67px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #090b0e;
+  font-family: var(--display);
+  font-size: 34px;
   font-weight: 800;
 }
-.right {
-  min-height: 0;
+.score-bars {
   display: grid;
-  grid-template-rows: minmax(180px, .72fr) minmax(250px, 1fr);
-  gap: 8px;
+  gap: 5px;
+  font-size: 12px;
 }
-.list {
+.score-bars span {
   display: grid;
-  gap: 7px;
-  max-height: 100%;
-  overflow: auto;
-  padding-right: 3px;
-}
-.watch-row,
-.market-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 1fr auto;
   gap: 8px;
+  color: #cfc2af;
+}
+.good { color: var(--green) !important; }
+.bad { color: #ff4b50 !important; }
+.gold { color: var(--gold) !important; }
+.watch-list,
+.news-list,
+.alert-list,
+.dividend-table {
+  position: relative;
+  z-index: 1;
+}
+.watch-list {
+  display: grid;
+  gap: 5px;
+}
+.watch-item {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 172px 14px;
+  gap: 10px;
   align-items: center;
-  padding: 8px;
-  border: 1px solid rgba(255,255,255,.09);
-  background:
-    linear-gradient(90deg, rgba(244,198,110,.08), transparent 34%),
-    rgba(0,0,0,.45);
+  min-height: 38px;
+  padding: 4px 8px;
+  border: 1px solid rgba(244,178,47,.14);
+  border-radius: 5px;
+  background: rgba(0,0,0,.32);
 }
-.watch-row strong,
-.market-row strong {
+.watch-item.active {
+  border-color: rgba(44,255,97,.65);
+  box-shadow: inset 0 0 22px rgba(44,255,97,.07);
+}
+.coin {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #ffb02a, #e77805);
+  color: #fff;
+}
+.coin.nvda { background: linear-gradient(135deg, #83d917, #0b5c05); }
+.coin.google { background: #f4f7fb; color: #4285f4; }
+.coin.tsm { background: #f21e28; }
+.coin.goldc { background: linear-gradient(135deg, #f7cc57, #9b6a15); }
+.watch-name strong {
   display: block;
   font-family: var(--display);
-  font-size: 17px;
+  font-size: 15px;
   line-height: .94;
-  text-transform: uppercase;
 }
-.watch-row small,
-.market-row small {
+.watch-name small,
+.watch-price small {
   display: block;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
 }
-.price-mini {
+.watch-price {
   text-align: right;
   font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 900;
-}
-.remove {
-  width: 26px;
-  height: 26px;
-  border: 1px solid rgba(240,53,63,.38);
-  background: rgba(0,0,0,.4);
-  color: #fff;
-  margin-left: 5px;
-}
-.dividend-panel {
-  min-height: 0;
-  overflow: auto;
-}
-.planner-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-.planner-card {
-  min-height: 62px;
-  border: 1px solid rgba(244,198,110,.18);
-  background:
-    linear-gradient(135deg, rgba(244,198,110,.1), rgba(240,53,63,.05)),
-    rgba(0,0,0,.45);
-  padding: 9px;
-}
-.planner-card span {
-  display: block;
-  color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
 }
-.planner-card b {
+.watch-item > div:nth-child(3) {
+  display: grid;
+  grid-template-columns: 82px 1fr;
+  align-items: center;
+  gap: 6px;
+}
+.watch-price small { margin-top: 1px; }
+.spark {
+  width: 82px;
+  height: 24px;
+}
+.summary-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.summary-card {
+  min-height: 52px;
+  padding: 9px 10px;
+  border: 1px solid rgba(244,178,47,.15);
+  border-radius: 4px;
+  background: rgba(0,0,0,.28);
+}
+.summary-card.hot { border-color: rgba(44,255,97,.72); box-shadow: inset 0 0 20px rgba(44,255,97,.08); }
+.summary-card small {
+  display: block;
+  color: #a99b8b;
+  font-size: 10px;
+}
+.summary-card b {
   display: block;
   margin-top: 4px;
-  color: var(--gold);
   font-family: var(--mono);
   font-size: 15px;
 }
-.market-tape {
-  min-height: 0;
+.allocation {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+.donut {
+  width: 160px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(#ff9919 0 25%, #2dc45d 25% 45%, #27bb59 45% 60%, #6959ed 60% 75%, #ffb52c 75% 85%, #f42635 85% 93%, #7767ff 93% 100%);
+  box-shadow: 0 0 34px rgba(54,181,255,.12);
+}
+.donut span {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #051014;
+  color: #fff;
+  font-family: var(--display);
+  font-size: 25px;
+  font-weight: 800;
+}
+.legend {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+.legend div {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: block;
+}
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr .88fr 1.22fr;
+  gap: 12px;
+}
+.news-list,
+.alert-list {
+  display: grid;
+  gap: 7px;
+}
+.news-row,
+.alert-row,
+.dividend-row {
+  display: grid;
+  align-items: center;
+  gap: 12px;
+  min-height: 23px;
+  padding: 3px 8px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  color: #d6cdbc;
+  font-size: 12px;
+}
+.news-row { grid-template-columns: 58px minmax(0, 1fr) 92px; }
+.alert-row { grid-template-columns: 24px minmax(0, 1fr) 132px; }
+.dividend-row { grid-template-columns: 1fr 1fr 1fr 90px; font-family: var(--mono); font-size: 11px; }
+.dividend-row.header {
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.scan-feed {
+  position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 22px;
-  padding: 0 10px;
+  gap: 28px;
+  padding: 0 16px;
+  border-radius: 0;
   font-family: var(--display);
-  font-size: 14px;
-  font-style: italic;
+  font-size: 15px;
+  font-weight: 700;
   white-space: nowrap;
 }
-.market-tape b {
-  color: var(--gold);
+.scan-feed b { color: var(--gold); }
+.realtime-foot {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #b7aa98;
+  font-family: var(--thai);
+  font-size: 12px;
+  font-weight: 500;
 }
-.empty {
-  color: var(--muted);
-  padding: 12px;
-  text-align: center;
-  border: 1px dashed rgba(255,255,255,.16);
+.mini-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 12px rgba(44,255,97,.7);
 }
-.info-grid .panel-pad {
-  padding: 9px 10px;
-}
-.info-grid .section-title {
-  margin-bottom: 6px;
-  padding-bottom: 6px;
-}
-.info-grid .section-title h2 {
-  font-size: 18px;
-}
-@media (max-width: 1180px) {
+@media (max-width: 1320px) {
   body { overflow: auto; }
-  .app { height: auto; min-height: 100vh; grid-template-rows: auto auto auto; }
-  .layout { grid-template-columns: 1fr; }
-  .center { grid-template-rows: auto 420px auto; }
-  .right { grid-template-rows: auto auto; }
+  .app { height: auto; min-height: 100vh; grid-template-rows: auto auto auto auto; }
   .topbar { grid-template-columns: 1fr; }
-  .nav { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; }
+  .clock { justify-self: start; }
+  .nav { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
+  .layout { grid-template-columns: 1fr; }
+  .center { grid-template-rows: auto 460px auto; }
+  .right { grid-template-rows: auto auto auto; }
+  .bottom-grid { grid-template-columns: 1fr; }
 }
-@media (max-width: 720px) {
-  .app { padding: 6px; }
-  .field-grid, .action-grid, .ticker, .info-grid, .planner-grid { grid-template-columns: 1fr; }
-  .center { grid-template-rows: auto 360px auto; }
-  .brand h1 { font-size: 22px; }
-  .nav button { min-width: 82px; }
+@media (max-width: 760px) {
+  .app { padding: 7px; }
+  .brand h1 { font-size: 24px; }
+  .nav { grid-template-columns: repeat(2, 1fr); }
+  .tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tabs button { font-size: 12px; padding: 0 4px; }
+  .field-grid,
+  .asset-strip,
+  .info-grid,
+  .summary-grid,
+  .allocation,
+  .action-grid { grid-template-columns: 1fr; }
+  .metric { border-left: 0; border-top: 1px solid rgba(244,178,47,.18); }
+  .center { grid-template-rows: auto 400px auto; }
 }
 </style>
 </head>
@@ -703,142 +853,148 @@ input:focus, select:focus {
 <main class="app">
   <header class="topbar">
     <a class="brand" href="./dashboard-design.html">
-      <h1>Stock Scanner</h1>
-      <p>Thai & US Stock • Crypto • Technical Analysis • Dividend</p>
+      <h1>Arcane Scanner</h1>
+      <p>Thai & US Stock · Crypto · Technical Analysis · Dividend</p>
     </a>
     <nav class="nav" aria-label="Scanner tabs">
-      <button class="active" type="button">ภาพรวม</button>
-      <button type="button">หุ้น</button>
-      <button type="button">คริปโต</button>
-      <button type="button">ปันผล</button>
-      <button type="button">สแกนหุ้น</button>
-   <button type="button" onclick="location.href='./dashboard-design.html'">ออก</button>
+      <button class="active" type="button"><i class="fa-solid fa-house-chimney-window"></i>ภาพรวม</button>
+      <button type="button"><i class="fa-solid fa-arrow-trend-up"></i>หุ้น</button>
+      <button type="button"><i class="fa-brands fa-bitcoin"></i>คริปโต</button>
+      <button type="button"><i class="fa-solid fa-bell"></i>ปันผล</button>
+      <button type="button"><i class="fa-solid fa-list-check"></i>สแกนหุ้น</button>
+      <button type="button"><i class="fa-solid fa-magnifying-glass-chart"></i>วอช</button>
     </nav>
-    <div class="clock" id="clock">--:--:--</div>
+    <div class="clock"><i class="fa-regular fa-clock"></i><span id="clock">--:--:--</span></div>
   </header>
 
   <section class="layout">
-    <aside class="panel panel-pad">
-      <div class="section-title">
-        <h2>ค้นหาสินทรัพย์</h2>
-        <span>input</span>
-      </div>
-      <div class="tabs">
-        <button data-preset="TH" type="button">หุ้นไทย</button>
-        <button class="active" data-preset="US" type="button">หุ้นต่างประเทศ</button>
-        <button data-preset="CRYPTO" type="button">คริปโต</button>
-      </div>
-      <form id="scannerForm">
-        <div class="field-grid">
-          <div class="field full">
-            <label for="ticker">สัญลักษณ์</label>
-            <input id="ticker" value="NVDA" autocomplete="off" placeholder="PTT.BK / NVDA / BTC">
-          </div>
-          <div class="field full">
-            <label for="market">ตลาด</label>
-            <select id="market">
-              <option value="TH">SET (Thai Stock)</option>
-              <option value="US" selected>NASDAQ / US Stock</option>
-              <option value="CRYPTO">Crypto</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="currency">สกุลเงิน</label>
-            <select id="currency">
-              <option value="THB">THB</option>
-              <option value="USD" selected>USD</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="price">ราคาปัจจุบัน</label>
-            <input id="price" type="number" step="0.0001" value="120">
-          </div>
-          <div class="field">
-            <label for="timeframe">ช่วงเวลา</label>
-            <select id="timeframe">
-              <option value="15M">15M</option>
-              <option value="1H">1H</option>
-              <option value="4H">4H</option>
-              <option value="1D">1D</option>
-              <option value="1W">1W</option>
-              <option value="1M" selected>1M</option>
-              <option value="3M">3M</option>
-              <option value="1Y">1Y</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="chartType">ประเภทกราฟ</label>
-            <select id="chartType">
-              <option value="candles">Candlestick</option>
-              <option value="line">Line</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="dividend">ปันผลต่อหุ้น/ปี</label>
-            <input id="dividend" type="number" step="0.0001" value="0.2">
-          </div>
-          <div class="field">
-            <label for="shares">จำนวนหุ้นที่ถือ</label>
-            <input id="shares" type="number" step="0.0001" value="100">
-          </div>
-          <div class="field">
-            <label for="budget">เงินลงทุน</label>
-            <input id="budget" type="number" step="0.01" value="10000">
-          </div>
-          <div class="field">
-            <label for="lotSize">Lot size</label>
-            <input id="lotSize" type="number" step="1" value="1">
-          </div>
+    <aside class="left">
+      <section class="panel panel-pad">
+        <div class="section-title">
+          <h2>ค้นหาสินทรัพย์</h2>
+          <span>INPUT</span>
         </div>
-        <div class="action-grid">
-          <button class="btn primary" type="submit">วิเคราะห์</button>
-          <button class="btn gold" id="fetchPriceBtn" type="button">ดึงราคา</button>
+        <div class="tabs">
+          <button data-preset="TH" type="button">หุ้นไทย</button>
+          <button class="active" data-preset="US" type="button">หุ้นต่างประเทศ</button>
+          <button data-preset="CRYPTO" type="button">คริปโต</button>
         </div>
-        <div class="action-grid">
-          <button class="btn" id="liveChartBtn" type="button">Live OFF</button>
-          <button class="btn" id="clearLiveBtn" type="button">ล้างกราฟสด</button>
-        </div>
-        <div class="action-grid">
-          <button class="btn" id="saveBtn" type="button">เพิ่ม Watchlist</button>
-          <button class="btn" id="resetBtn" type="button">รีเซ็ตตัวอย่าง</button>
-        </div>
-      </form>
-      <p class="note">ระบบนี้ใช้ราคา live จาก Worker เดิมเมื่อกดดึงราคา หรือเปิด Live เพื่อรีเฟรชกราฟอัตโนมัติทุก 30 วินาที ไม่ใช่คำแนะนำการลงทุน</p>
+        <form id="scannerForm">
+          <div class="field-grid">
+            <div class="field full">
+              <label for="ticker">สัญลักษณ์</label>
+              <input id="ticker" value="NVDA" autocomplete="off" placeholder="PTT.BK / NVDA / BTC">
+            </div>
+            <div class="field full">
+              <label for="market">ตลาด</label>
+              <select id="market">
+                <option value="TH">SET / Thai Stock</option>
+                <option value="US" selected>NASDAQ / US Stock</option>
+                <option value="CRYPTO">Crypto</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="currency">สกุลเงิน</label>
+              <select id="currency">
+                <option value="THB">THB</option>
+                <option value="USD" selected>USD</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="price">ราคาปัจจุบัน</label>
+              <input id="price" type="number" step="0.0001" value="120">
+            </div>
+            <div class="field">
+              <label for="timeframe">ช่วงเวลา</label>
+              <select id="timeframe">
+                <option value="15M">15M</option>
+                <option value="1H">1H</option>
+                <option value="4H">4H</option>
+                <option value="1D">1D</option>
+                <option value="1W">1W</option>
+                <option value="1M" selected>1M</option>
+                <option value="3M">3M</option>
+                <option value="1Y">1Y</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="chartType">ประเภทกราฟ</label>
+              <select id="chartType">
+                <option value="candles">Candlestick</option>
+                <option value="line">Line</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="dividend">ปันผลต่อหุ้น/ปี</label>
+              <input id="dividend" type="number" step="0.0001" value="0.86">
+            </div>
+            <div class="field">
+              <label for="shares">จำนวนหุ้นที่ถือ</label>
+              <input id="shares" type="number" step="0.0001" value="100">
+            </div>
+            <div class="field">
+              <label for="budget">เงินลงทุน</label>
+              <input id="budget" type="number" step="0.01" value="10000">
+            </div>
+            <div class="field">
+              <label for="lotSize">Lot size</label>
+              <input id="lotSize" type="number" step="1" value="1">
+            </div>
+          </div>
+          <div class="action-grid">
+            <button class="btn primary" type="submit"><i class="fa-solid fa-chart-line"></i>วิเคราะห์</button>
+            <button class="btn" id="fetchPriceBtn" type="button"><i class="fa-solid fa-cloud-arrow-down"></i>ดึงราคา</button>
+          </div>
+          <div class="action-grid">
+            <button class="btn danger-dot" id="liveChartBtn" type="button">Live OFF</button>
+            <button class="btn" id="clearLiveBtn" type="button"><i class="fa-solid fa-broom"></i>ล้างกราฟสด</button>
+          </div>
+          <div class="action-grid">
+            <button class="btn" id="saveBtn" type="button"><i class="fa-solid fa-star"></i>เพิ่ม Watchlist</button>
+            <button class="btn" id="resetBtn" type="button"><i class="fa-solid fa-rotate-right"></i>รีเซ็ตตัวอย่าง</button>
+          </div>
+        </form>
+        <p class="note">ระบบใช้ราคาสดจาก Worker เมื่อกดดึงราคา หรือเปิด Live เพื่อรีเฟรชกราฟอัตโนมัติทุก 30 วินาที ข้อมูลนี้ใช้ประกอบการวิเคราะห์ ไม่ใช่คำแนะนำการลงทุน</p>
+      </section>
     </aside>
 
     <section class="center">
-      <section class="ticker">
-        <div class="asset-name">
+      <section class="asset-strip">
+        <div class="asset-main">
           <h2 id="assetSymbol">NVDA</h2>
           <p id="assetName">NVIDIA Corporation</p>
           <div class="tags">
             <span class="tag" id="assetMarket">US Stock</span>
-            <span class="tag" id="assetSource">manual</span>
+            <span class="tag" id="assetSource">NASDAQ</span>
           </div>
         </div>
         <div class="metric">
           <span>Market Price</span>
           <b class="big" id="marketPrice">$120.00</b>
-          <span id="marketChange" class="bad">-1.11%</span>
+          <span id="marketChange" class="bad">-2.76%</span>
         </div>
         <div class="metric">
           <span>Entry Zone</span>
-          <b id="entryZone">$111.20 - $116.80</b>
+          <b class="good" id="entryZone">$112.45 - $115.92</b>
         </div>
         <div class="metric">
           <span>Stop / Risk</span>
-          <b id="stopLoss" class="bad">$104.50</b>
+          <b class="bad" id="stopLoss">$108.17</b>
         </div>
-        <div class="metric">
-          <span>Signal</span>
-          <b id="mainSignal" class="gold">รอรับ</b>
+        <div class="dividend-badge">
+          <div class="cap">DIVIDEND (TTM) <i class="fa-solid fa-crown" style="float:right;color:var(--gold)"></i></div>
+          <div class="dividend-stats">
+            <div><small>Dividend/Share</small><b id="topDivPerShare">$0.86</b></div>
+            <div><small>Dividend Yield</small><b class="good" id="topDivYield">0.17%</b></div>
+            <div><small>Annual Dividend</small><b id="topDivAnnual">$86.00</b></div>
+          </div>
         </div>
       </section>
 
       <section class="panel chart-panel">
         <div class="chart-head">
           <h2>กราฟราคา & แนวรับแนวต้าน</h2>
-          <div class="chart-controls">
+          <div class="tf">
             <button data-tf="15M">15M</button>
             <button data-tf="1H">1H</button>
             <button data-tf="4H">4H</button>
@@ -862,32 +1018,37 @@ input:focus, select:focus {
 
       <section class="info-grid">
         <article class="panel panel-pad">
-          <div class="section-title">
-            <h2>สรุปแนวรับแนวต้าน</h2>
-            <span>levels</span>
-          </div>
+          <div class="section-title"><h2>สรุปแนวรับแนวต้าน</h2><span>LEVELS</span></div>
           <table class="compact-table" id="levelTable"></table>
         </article>
         <article class="panel panel-pad">
-          <div class="section-title">
-            <h2>สัญญาณเทคนิค</h2>
-            <span id="signalSummary">watch</span>
-          </div>
+          <div class="section-title"><h2>สัญญาณเทคนิค</h2><span id="signalSummary">WATCH</span></div>
           <table class="compact-table" id="indicatorTable"></table>
         </article>
         <article class="panel panel-pad">
-          <div class="section-title">
-            <h2>เครื่องมือวิเคราะห์</h2>
-            <span>tools</span>
-          </div>
+          <div class="section-title"><h2>เครื่องมือวิเคราะห์</h2><span>TOOLS</span></div>
           <div class="tool-grid">
-            <div class="tool">MA 20 / 50 / 200</div>
-            <div class="tool">RSI</div>
-            <div class="tool">MACD</div>
-            <div class="tool">Volume</div>
-            <div class="tool">Support</div>
-            <div class="tool">Resistance</div>
+            <button class="tool" type="button"><i class="fa-solid fa-chart-simple"></i>MA 20 / 50 / 200</button>
+            <button class="tool" type="button"><i class="fa-solid fa-wave-square"></i>RSI</button>
+            <button class="tool" type="button"><i class="fa-solid fa-circle-nodes"></i>MACD</button>
+            <button class="tool" type="button"><i class="fa-solid fa-chart-column"></i>Volume</button>
+            <button class="tool" type="button"><i class="fa-solid fa-circle-plus"></i>Support</button>
+            <button class="tool" type="button"><i class="fa-solid fa-arrows-left-right-to-line"></i>Resistance</button>
           </div>
+        </article>
+        <article class="panel panel-pad">
+          <div class="section-title"><h2>AI Score</h2><span>87/100</span></div>
+          <div class="ai-wrap">
+            <div class="ai-dial"><div id="aiScore">87</div></div>
+            <div class="score-bars">
+              <span>Trend <b class="good">90</b></span>
+              <span>Volume <b class="good">80</b></span>
+              <span>RSI <b class="good">85</b></span>
+              <span>Dividend <b class="good">92</b></span>
+              <span>Risk <b class="gold">75</b></span>
+            </div>
+          </div>
+          <p class="note">AI ความมั่นใจ: สูง</p>
         </article>
       </section>
     </section>
@@ -895,59 +1056,87 @@ input:focus, select:focus {
     <aside class="right">
       <section class="panel panel-pad">
         <div class="section-title">
-          <h2>Watchlist</h2>
-          <span id="watchCount">0 saved</span>
+          <h2>WATCHLIST</h2>
+          <span><span id="watchCount">5 ITEMS</span> <button class="chip" id="quickSaveBtn" type="button" style="height:30px;width:30px;border-radius:5px;margin-left:8px"><i class="fa-solid fa-plus"></i></button></span>
         </div>
-        <div class="list" id="watchlist"></div>
+        <div class="watch-list" id="watchlist"></div>
+        <div class="link-text" style="text-align:center;margin-top:9px">View All Watchlist <i class="fa-solid fa-arrow-right"></i></div>
       </section>
-      <section class="panel panel-pad dividend-panel">
-        <div class="section-title">
-          <h2>ปันผล</h2>
-          <span>Dividend Income</span>
+
+      <section class="panel panel-pad">
+        <div class="section-title"><h2>PORTFOLIO SUMMARY</h2><span>ดูทั้งหมด</span></div>
+        <div class="summary-grid">
+          <div class="summary-card"><small>Total Value</small><b>$431,909</b></div>
+          <div class="summary-card"><small>Total Return</small><b class="good">+12.35%</b></div>
+          <div class="summary-card"><small>Dividend Yield (Port)</small><b class="gold">0.73%</b></div>
+          <div class="summary-card hot"><small>Annual Dividend</small><b class="good">$3,152.00</b></div>
+          <div class="summary-card"><small>Risk Score</small><b><i class="fa-solid fa-shield-halved gold"></i> 42 /100</b></div>
+          <div class="summary-card"><small>AI Score</small><b><i class="fa-solid fa-gem" style="color:var(--violet)"></i> 87 /100</b></div>
         </div>
-        <div class="planner-grid">
-          <div class="planner-card">
-            <span>เงินปันผลต่อหุ้น</span>
-            <b id="divPerShare">$0.00</b>
-          </div>
-          <div class="planner-card">
-            <span>Dividend Yield</span>
-            <b id="divYield">0.00%</b>
-          </div>
-          <div class="planner-card">
-            <span>ถืออยู่ จะได้/ปี</span>
-            <b id="divHeld">$0.00</b>
-          </div>
-          <div class="planner-card">
-            <span>เงินนี้ซื้อได้</span>
-            <b id="buyableShares">0 หุ้น</b>
-          </div>
-          <div class="planner-card">
-            <span>คาดปันผล/ปี</span>
-            <b id="divBudget">$0.00</b>
-          </div>
-          <div class="planner-card">
-            <span>เฉลี่ย/เดือน</span>
-            <b id="divMonthly">$0.00</b>
+      </section>
+
+      <section class="panel panel-pad">
+        <div class="section-title"><h2>ASSET ALLOCATION</h2><span>ดูทั้งหมด</span></div>
+        <div class="allocation">
+          <div class="donut"><span>100%</span></div>
+          <div class="legend">
+            <div><i style="background:#ff9919"></i><span>BTC</span><b>25%</b></div>
+            <div><i style="background:#2dc45d"></i><span>GOOGL</span><b>20%</b></div>
+            <div><i style="background:#27bb59"></i><span>NVDA</span><b>15%</b></div>
+            <div><i style="background:#6959ed"></i><span>TSM</span><b>15%</b></div>
+            <div><i style="background:#ffb52c"></i><span>XAUT</span><b>10%</b></div>
+            <div><i style="background:#f42635"></i><span>TRX</span><b>8%</b></div>
+            <div><i style="background:#7767ff"></i><span>SPCX</span><b>7%</b></div>
           </div>
         </div>
-        <p class="note" id="dividendNote">หุ้นที่ไม่มีปันผลหรือคริปโตจะแสดงเป็น 0 จนกว่าจะกรอกเอง</p>
       </section>
     </aside>
   </section>
 
-  <footer class="market-tape" id="marketTape">
-    <b>NEWS FEED</b>
-    <span>BTC รอทดสอบแนวรับ</span>
-    <span class="good">ตลาดคริปโต +1.20%</span>
-    <span>หุ้นไทยจับตา SET</span>
-    <span class="bad">ความเสี่ยง: ใช้ประกอบการตัดสินใจเท่านั้น</span>
+  <section class="bottom-grid">
+    <article class="panel panel-pad">
+      <div class="section-title"><h2>NEWS FEED</h2><span></span></div>
+      <div class="news-list">
+        <div class="news-row"><b class="gold">16:30</b><span>NVIDIA เตรียมเปิดตัว GPU รุ่นใหม่ Blackwell Ultra ในไตรมาส 3</span><small>Investing.com</small></div>
+        <div class="news-row"><b class="gold">15:45</b><span>NVIDIA พุ่งขึ้นหลังนักวิเคราะห์ปรับราคาเป้าหมายใหม่ $150</span><small>Bloomberg</small></div>
+        <div class="news-row"><b class="gold">14:20</b><span>สหรัฐฯ เตรียมจำกัดการส่งออกชิป AI ไปยังบางประเทศเพิ่มเติม</span><small>Reuters</small></div>
+      </div>
+      <div class="link-text" style="text-align:right;margin-top:6px">View All News <i class="fa-solid fa-arrow-right"></i></div>
+    </article>
+    <article class="panel panel-pad">
+      <div class="section-title"><h2>ALERTS</h2><span></span></div>
+      <div class="alert-list">
+        <div class="alert-row"><i class="fa-solid fa-circle-exclamation bad"></i><span>ราคาหุ้น NVDA ต่ำกว่า $110.00</span><small>25 มิ.ย. 2569 16:30</small></div>
+        <div class="alert-row"><i class="fa-solid fa-bell gold"></i><span>RSI NVDA ต่ำกว่า 30</span><small>25 มิ.ย. 2569 15:10</small></div>
+        <div class="alert-row"><i class="fa-solid fa-clock gold"></i><span>Dividend NVDA ขึ้นเครื่องหมาย XD</span><small>25 มิ.ย. 2569 09:00</small></div>
+      </div>
+      <div class="link-text" style="text-align:right;margin-top:6px">View All Alerts <i class="fa-solid fa-arrow-right"></i></div>
+    </article>
+    <article class="panel panel-pad">
+      <div class="section-title"><h2>UPCOMING DIVIDEND</h2><span></span></div>
+      <div class="dividend-table">
+        <div class="dividend-row header"><span>SYMBOL</span><span>EX-DATE</span><span>PAY DATE</span><span>DIVIDEND</span></div>
+        <div class="dividend-row"><b>NVDA</b><span>12 มิ.ย. 2569</span><span>26 มิ.ย. 2569</span><span>$0.0400</span></div>
+        <div class="dividend-row"><b>GOOGL</b><span>15 ก.ค. 2569</span><span>29 ก.ค. 2569</span><span>$0.2000</span></div>
+        <div class="dividend-row"><b>TSM</b><span>18 ก.ค. 2569</span><span>02 ส.ค. 2569</span><span>$0.5500</span></div>
+      </div>
+      <div class="link-text" style="text-align:center;margin-top:6px">View All Dividend <i class="fa-solid fa-arrow-right"></i></div>
+    </article>
+  </section>
+
+  <footer class="scan-feed" id="marketTape">
+    <b>SCAN FEED</b>
+    <span>NVDA รอรับ</span>
+    <span class="good">Entry $112.45-$115.92</span>
+    <span class="bad">Stop $108.17</span>
+    <span>Take profit $124.08</span>
+    <span>Dividend $0.86 (0.17%)</span>
+    <span class="realtime-foot"><i class="mini-dot"></i>Data Realtime</span>
   </footer>
 </main>
 
 <script>
 const API_BASE = "https://siamfolio-api.kingbooms5678.workers.dev";
-const THB = 36.67;
 const REALTIME_REFRESH_MS = 30000;
 const $ = (id) => document.getElementById(id);
 const form = $("scannerForm");
@@ -956,8 +1145,14 @@ const ctx = canvas.getContext("2d");
 const state = {
   last: null,
   candles: [],
-  source: "manual",
-  watchlist: JSON.parse(localStorage.getItem("siamfolio-technical-watchlist") || "[]"),
+  source: "NASDAQ",
+  watchlist: JSON.parse(localStorage.getItem("siamfolio-technical-watchlist") || "null") || [
+    { ticker: "BTCUSDT", market: "CRYPTO", currency: "USD", price: 61638, signal: "Bitcoin", change: -1.55 },
+    { ticker: "NVDA", market: "US", currency: "USD", price: 120, signal: "NVIDIA Corporation", change: -2.76 },
+    { ticker: "GOOGL", market: "US", currency: "USD", price: 180.25, signal: "Alphabet Inc.", change: 0.82 },
+    { ticker: "TSM", market: "US", currency: "USD", price: 175.50, signal: "Taiwan Semiconductor", change: 1.22 },
+    { ticker: "XAUT", market: "CRYPTO", currency: "USD", price: 2392, signal: "Gold (XAU/USD)", change: -0.35 }
+  ],
   liveOn: false,
   liveBusy: false,
   liveTimer: null,
@@ -966,23 +1161,18 @@ const state = {
   lastLiveAt: 0,
   lastLiveError: ""
 };
-
 const samples = {
-  US: { ticker: "NVDA", market: "US", currency: "USD", price: 120, dividend: 0.2, shares: 100, budget: 10000, lotSize: 1, name: "NVIDIA Corporation" },
-  TH: { ticker: "PTT.BK", market: "TH", currency: "THB", price: 31.75, dividend: 1.2, shares: 1000, budget: 10000, lotSize: 100, name: "PTT Public Company" },
-  CRYPTO: { ticker: "BTC", market: "CRYPTO", currency: "USD", price: 67382, dividend: 0, shares: 0.01, budget: 1000, lotSize: 1, name: "Bitcoin" }
+  US: { ticker: "NVDA", market: "US", currency: "USD", price: 120, dividend: 0.86, shares: 100, budget: 10000, lotSize: 1, name: "NVIDIA Corporation" },
+  TH: { ticker: "PTT.BK", market: "TH", currency: "THB", price: 31.75, dividend: 1.20, shares: 1000, budget: 10000, lotSize: 100, name: "PTT Public Company" },
+  CRYPTO: { ticker: "BTCUSDT", market: "CRYPTO", currency: "USD", price: 61638, dividend: 0, shares: .01, budget: 1000, lotSize: 1, name: "Bitcoin" }
 };
-
-function money(value, currency) {
+function money(value, currency = "USD") {
   const n = Number(value || 0);
   const symbol = currency === "THB" ? "฿" : "$";
-  const abs = Math.abs(n);
-  const digits = abs >= 100 ? 2 : abs >= 1 ? 2 : 4;
+  const digits = Math.abs(n) >= 100 ? 2 : Math.abs(n) >= 1 ? 2 : 4;
   return symbol + n.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
-function pct(value) {
-  return (Number(value || 0) >= 0 ? "+" : "") + Number(value || 0).toFixed(2) + "%";
-}
+function pct(value) { return (Number(value || 0) >= 0 ? "+" : "") + Number(value || 0).toFixed(2) + "%"; }
 function num(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -990,11 +1180,10 @@ function num(value, fallback = 0) {
 function normalizeSymbol(raw, market) {
   let symbol = String(raw || "").trim().toUpperCase();
   if (market === "TH" && symbol && !symbol.includes(".") && !symbol.includes("-")) symbol += ".BK";
+  if (market === "CRYPTO") symbol = symbol.replace("-USD", "").replace("/", "");
   return symbol;
 }
-function displaySymbol(symbol) {
-  return String(symbol || "").replace(".BK", "");
-}
+function displaySymbol(symbol) { return String(symbol || "").replace(".BK", "").replace("-USD", ""); }
 function marketLabel(market) {
   if (market === "TH") return "Thai Stock";
   if (market === "CRYPTO") return "Crypto";
@@ -1013,12 +1202,10 @@ function readData() {
     shares: num($("shares").value, 0),
     budget: num($("budget").value, 0),
     lotSize: Math.max(1, num($("lotSize").value, 1)),
-    name: samples[market]?.name || "Technical Scanner"
+    name: samples[market]?.name || "Arcane Scanner"
   };
 }
-function liveSeriesKey(data) {
-  return `${data.market}:${normalizeSymbol(data.ticker, data.market)}:${data.timeframe}`;
-}
+function liveSeriesKey(data) { return `${data.market}:${normalizeSymbol(data.ticker, data.market)}:${data.timeframe}`; }
 function ensureLiveSeries(data) {
   const key = liveSeriesKey(data);
   if (state.liveKey !== key) {
@@ -1052,23 +1239,23 @@ function updateLiveStatus() {
   const dot = $("liveDot");
   const text = $("liveText");
   const btn = $("liveChartBtn");
-  if (!dot || !text || !btn) return;
   dot.classList.toggle("on", state.liveOn);
   btn.textContent = state.liveOn ? "Live ON" : "Live OFF";
-  btn.classList.toggle("gold", state.liveOn);
+  btn.classList.toggle("live-on", state.liveOn);
+  btn.classList.toggle("danger-dot", !state.liveOn);
   if (state.liveBusy) {
     text.textContent = "กำลังอัปเดตราคา...";
     return;
   }
   if (state.lastLiveError) {
-    text.textContent = "อัปเดตล่าสุดไม่สำเร็จ: " + state.lastLiveError;
+    text.textContent = "อัปเดตไม่สำเร็จ: " + state.lastLiveError;
     return;
   }
   if (state.liveOn && state.lastLiveAt) {
-    text.textContent = `เปิดอยู่ • ล่าสุด ${new Date(state.lastLiveAt).toLocaleTimeString("th-TH", { hour12: false })} • ${state.liveSamples.length} จุด`;
-    return;
+    text.textContent = `เปิดอยู่ · ล่าสุด ${new Date(state.lastLiveAt).toLocaleTimeString("th-TH", { hour12: false })} · ${state.liveSamples.length} จุด`;
+  } else {
+    text.textContent = state.liveOn ? "เปิดอยู่ · รอรอบแรก" : "ปิดอยู่";
   }
-  text.textContent = state.liveOn ? "เปิดอยู่ • รอรอบแรก" : "ปิดอยู่";
 }
 function seeded(symbol) {
   let seed = 0;
@@ -1078,56 +1265,6 @@ function seeded(symbol) {
     return seed / 4294967296;
   };
 }
-function buildCandles(data, tech) {
-  const rand = seeded(data.ticker + data.timeframe);
-  const counts = { "15M": 40, "1H": 44, "4H": 48, "1D": 42, "1W": 52, "1M": 64, "3M": 68, "1Y": 80 };
-  const count = counts[data.timeframe] || 64;
-  const vol = tech.volatility * (data.market === "CRYPTO" ? 1.25 : 1);
-  const trend = tech.trend / count;
-  let close = data.price * (1 - tech.trend * .44);
-  const candles = [];
-  for (let i = 0; i < count; i++) {
-    const noise = (rand() - .49) * vol * 1.55;
-    const drift = trend + Math.sin(i / 7) * vol * .12;
-    const open = close;
-    close = Math.max(data.price * .18, close * (1 + drift + noise));
-    const spread = Math.abs(close - open) + data.price * vol * (.3 + rand() * .75);
-    const high = Math.max(open, close) + spread * (.25 + rand() * .45);
-    const low = Math.min(open, close) - spread * (.25 + rand() * .45);
-    candles.push({ open, high, low: Math.max(0, low), close, volume: 50 + rand() * 140 });
-  }
-  const scale = data.price / candles[candles.length - 1].close;
-  const scaled = candles.map(c => ({
-    open: c.open * scale,
-    high: c.high * scale,
-    low: c.low * scale,
-    close: c.close * scale,
-    volume: c.volume
-  }));
-  if (state.liveKey !== liveSeriesKey(data) || state.liveSamples.length === 0) return scaled;
-  const live = state.liveSamples.slice(-Math.min(state.liveSamples.length, Math.floor(scaled.length * .55)));
-  const start = Math.max(0, scaled.length - live.length);
-  for (let i = 0; i < live.length; i += 1) {
-    const prevClose = i === 0 ? scaled[Math.max(0, start - 1)]?.close || live[i].price : live[i - 1].price;
-    const close = live[i].price;
-    const wiggle = Math.max(Math.abs(close - prevClose) * .4, close * tech.volatility * .035);
-    scaled[start + i] = {
-      open: prevClose,
-      high: Math.max(prevClose, close) + wiggle,
-      low: Math.max(.0001, Math.min(prevClose, close) - wiggle),
-      close,
-      volume: 180 + i * 8
-    };
-  }
-  return scaled;
-}
-function movingAverage(candles, period) {
-  return candles.map((_, index) => {
-    const start = Math.max(0, index - period + 1);
-    const slice = candles.slice(start, index + 1);
-    return slice.reduce((sum, c) => sum + c.close, 0) / slice.length;
-  });
-}
 function computeTechnical(data) {
   const marketVol = data.market === "CRYPTO" ? .052 : data.market === "TH" ? .027 : .034;
   const tfWeight = { "15M": .24, "1H": .32, "4H": .42, "1D": .55, "1W": .8, "1M": 1, "3M": 1.2, "1Y": 1.75 }[data.timeframe] || 1;
@@ -1135,16 +1272,8 @@ function computeTechnical(data) {
   const rand = seeded(data.ticker + data.market);
   const trend = (rand() - .48) * .28 + (data.market === "CRYPTO" ? .03 : 0);
   const price = data.price;
-  const supports = [
-    price * (1 - volatility),
-    price * (1 - volatility * 1.85),
-    price * (1 - volatility * 2.9)
-  ];
-  const resistances = [
-    price * (1 + volatility),
-    price * (1 + volatility * 1.85),
-    price * (1 + volatility * 2.9)
-  ];
+  const supports = [price * (1 - volatility), price * (1 - volatility * 1.85), price * (1 - volatility * 2.9)];
+  const resistances = [price * (1 + volatility), price * (1 + volatility * 1.85), price * (1 + volatility * 2.9)];
   const rsi = Math.max(18, Math.min(82, 50 + trend * 85 + (rand() - .5) * 18));
   const macd = (trend * price * .04) + (rand() - .5) * price * .002;
   const ma20 = price * (1 - trend * .18);
@@ -1162,25 +1291,62 @@ function computeTechnical(data) {
   const rr = Math.max(.1, (take - entryHigh) / Math.max(.0001, entryHigh - stop));
   return { volatility, trend, supports, resistances, rsi, macd, ma20, ma50, ma200, signal, tone, entryLow, entryHigh, stop, take, rr };
 }
+function buildCandles(data, tech) {
+  const rand = seeded(data.ticker + data.timeframe);
+  const counts = { "15M": 42, "1H": 46, "4H": 52, "1D": 48, "1W": 56, "1M": 70, "3M": 76, "1Y": 88 };
+  const count = counts[data.timeframe] || 70;
+  const vol = tech.volatility * (data.market === "CRYPTO" ? 1.25 : 1);
+  const trend = tech.trend / count;
+  let close = data.price * (1 - tech.trend * .44);
+  const candles = [];
+  for (let i = 0; i < count; i++) {
+    const noise = (rand() - .49) * vol * 1.55;
+    const drift = trend + Math.sin(i / 7) * vol * .12;
+    const open = close;
+    close = Math.max(data.price * .18, close * (1 + drift + noise));
+    const spread = Math.abs(close - open) + data.price * vol * (.3 + rand() * .75);
+    const high = Math.max(open, close) + spread * (.25 + rand() * .45);
+    const low = Math.min(open, close) - spread * (.25 + rand() * .45);
+    candles.push({ open, high, low: Math.max(0, low), close, volume: 50 + rand() * 140 });
+  }
+  const scale = data.price / candles[candles.length - 1].close;
+  const scaled = candles.map(c => ({ open: c.open * scale, high: c.high * scale, low: c.low * scale, close: c.close * scale, volume: c.volume }));
+  if (state.liveKey !== liveSeriesKey(data) || state.liveSamples.length === 0) return scaled;
+  const live = state.liveSamples.slice(-Math.min(state.liveSamples.length, Math.floor(scaled.length * .55)));
+  const start = Math.max(0, scaled.length - live.length);
+  for (let i = 0; i < live.length; i += 1) {
+    const prevClose = i === 0 ? scaled[Math.max(0, start - 1)]?.close || live[i].price : live[i - 1].price;
+    const close = live[i].price;
+    const wiggle = Math.max(Math.abs(close - prevClose) * .4, close * tech.volatility * .035);
+    scaled[start + i] = { open: prevClose, high: Math.max(prevClose, close) + wiggle, low: Math.max(.0001, Math.min(prevClose, close) - wiggle), close, volume: 180 + i * 8 };
+  }
+  return scaled;
+}
+function movingAverage(candles, period) {
+  return candles.map((_, index) => {
+    const start = Math.max(0, index - period + 1);
+    const slice = candles.slice(start, index + 1);
+    return slice.reduce((sum, c) => sum + c.close, 0) / slice.length;
+  });
+}
 function drawChart(data, tech, candles) {
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.max(600, rect.width * dpr);
-  canvas.height = Math.max(300, rect.height * dpr);
+  canvas.width = Math.max(640, rect.width * dpr);
+  canvas.height = Math.max(320, rect.height * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const w = rect.width;
   const h = rect.height;
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = "rgba(0,0,0,.18)";
   ctx.fillRect(0, 0, w, h);
-  const pad = { l: 44, r: 140, t: 18, b: 46 };
+  const pad = { l: 28, r: 118, t: 20, b: 44 };
   const levels = [...tech.supports, ...tech.resistances, data.price, tech.ma20, tech.ma50, tech.ma200];
   const prices = candles.flatMap(c => [c.high, c.low]).concat(levels);
   const max = Math.max(...prices) * 1.015;
   const min = Math.min(...prices) * .985;
   const x = i => pad.l + i * ((w - pad.l - pad.r) / Math.max(1, candles.length - 1));
   const y = p => pad.t + (max - p) / (max - min) * (h - pad.t - pad.b);
-
   ctx.strokeStyle = "rgba(255,255,255,.08)";
   ctx.lineWidth = 1;
   for (let i = 0; i < 5; i++) {
@@ -1191,7 +1357,34 @@ function drawChart(data, tech, candles) {
     const gx = pad.l + i * ((w - pad.l - pad.r) / 6);
     ctx.beginPath(); ctx.moveTo(gx, pad.t); ctx.lineTo(gx, h - pad.b); ctx.stroke();
   }
-
+  const candleW = Math.max(4, ((w - pad.l - pad.r) / candles.length) * .55);
+  if (data.chartType === "line") {
+    drawLine(candles.map(c => c.close), "#f4b22f", 2.2);
+  } else {
+    candles.forEach((c, i) => {
+      const px = x(i);
+      const up = c.close >= c.open;
+      ctx.strokeStyle = up ? "#19e85f" : "#ff272f";
+      ctx.fillStyle = up ? "rgba(25,232,95,.88)" : "rgba(255,39,47,.92)";
+      ctx.beginPath(); ctx.moveTo(px, y(c.high)); ctx.lineTo(px, y(c.low)); ctx.stroke();
+      const top = y(Math.max(c.open, c.close));
+      const bottom = y(Math.min(c.open, c.close));
+      ctx.fillRect(px - candleW / 2, top, candleW, Math.max(2, bottom - top));
+      const vh = Math.min(28, c.volume / 8);
+      ctx.strokeStyle = up ? "rgba(25,232,95,.35)" : "rgba(255,39,47,.35)";
+      ctx.strokeRect(px - candleW / 2, h - pad.b - vh + 30, candleW, vh);
+    });
+  }
+  drawLine(movingAverage(candles, 20), "rgba(244,178,47,.9)", 1.5);
+  drawLine(movingAverage(candles, 50), "rgba(54,181,255,.7)", 1.3);
+  drawLine(movingAverage(candles, 200), "rgba(181,83,255,.55)", 1.2);
+  tech.resistances.slice().reverse().forEach((v, i) => drawLevel(v, "rgba(255,39,47,.86)", "R" + (3 - i)));
+  tech.supports.forEach((v, i) => drawLevel(v, "rgba(44,255,97,.82)", "S" + (i + 1)));
+  drawLevel(data.price, "rgba(255,255,255,.85)", "");
+  ctx.fillStyle = "rgba(255,255,255,.62)";
+  ctx.font = "700 11px JetBrains Mono";
+  ctx.fillText(`28 พ.ค.        2 มิ.ย.        5 มิ.ย.        10 มิ.ย.        13 มิ.ย.        18 มิ.ย.        23 มิ.ย.`, pad.l, h - 22);
+  ctx.fillText(`MA20 ${money(tech.ma20, data.currency)}     MA50 ${money(tech.ma50, data.currency)}     RSI ${tech.rsi.toFixed(1)}     MACD ${tech.macd.toFixed(4)}`, pad.l, h - 6);
   function drawLine(values, color, width = 1.2) {
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
@@ -1205,42 +1398,16 @@ function drawChart(data, tech, candles) {
   function drawLevel(value, color, label) {
     const py = y(value);
     ctx.strokeStyle = color;
-    ctx.setLineDash([5, 5]);
-    ctx.beginPath(); ctx.moveTo(pad.l, py); ctx.lineTo(w - pad.r + 8, py); ctx.stroke();
+    ctx.setLineDash([6, 5]);
+    ctx.beginPath(); ctx.moveTo(pad.l, py); ctx.lineTo(w - pad.r + 10, py); ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = color;
-    ctx.font = "700 11px JetBrains Mono";
-    ctx.fillText(label + " " + money(value, data.currency), w - pad.r + 12, py + 4);
+    ctx.font = "800 11px JetBrains Mono";
+    ctx.fillText((label ? label + "  " : "") + money(value, data.currency), w - pad.r + 16, py + 4);
   }
-
-  if (data.chartType === "line") {
-    drawLine(candles.map(c => c.close), "#f4c66e", 2);
-  } else {
-    const candleW = Math.max(4, ((w - pad.l - pad.r) / candles.length) * .55);
-    candles.forEach((c, i) => {
-      const px = x(i);
-      const up = c.close >= c.open;
-      ctx.strokeStyle = up ? "#39e78a" : "#ef303c";
-      ctx.fillStyle = up ? "rgba(57,231,138,.82)" : "rgba(239,48,60,.86)";
-      ctx.beginPath(); ctx.moveTo(px, y(c.high)); ctx.lineTo(px, y(c.low)); ctx.stroke();
-      const top = y(Math.max(c.open, c.close));
-      const bottom = y(Math.min(c.open, c.close));
-      ctx.fillRect(px - candleW / 2, top, candleW, Math.max(2, bottom - top));
-    });
-  }
-  drawLine(movingAverage(candles, 20), "rgba(244,198,110,.92)");
-  drawLine(movingAverage(candles, 50), "rgba(65,216,255,.7)");
-  drawLine(movingAverage(candles, 200), "rgba(190,75,255,.55)");
-  tech.resistances.slice().reverse().forEach((v, i) => drawLevel(v, "rgba(255,82,100,.8)", "R" + (3 - i)));
-  tech.supports.forEach((v, i) => drawLevel(v, "rgba(56,242,143,.78)", "S" + (i + 1)));
-  drawLevel(data.price, "rgba(244,198,110,.85)", "NOW");
-
-  ctx.fillStyle = "rgba(255,255,255,.65)";
-  ctx.font = "700 11px JetBrains Mono";
-  ctx.fillText(`MA20 ${money(tech.ma20, data.currency)}   MA50 ${money(tech.ma50, data.currency)}   RSI ${tech.rsi.toFixed(1)}`, pad.l, h - 16);
 }
 function renderLevels(data, tech) {
-  $("levelList").innerHTML = [
+  const levels = [
     ["แนวต้าน 3", tech.resistances[2], "res"],
     ["แนวต้าน 2", tech.resistances[1], "res"],
     ["แนวต้าน 1", tech.resistances[0], "res"],
@@ -1248,88 +1415,73 @@ function renderLevels(data, tech) {
     ["แนวรับ 1", tech.supports[0], "sup"],
     ["แนวรับ 2", tech.supports[1], "sup"],
     ["แนวรับ 3", tech.supports[2], "sup"]
-  ].map(([label, value, cls]) => `<div class="level-pill ${cls}"><span>${label}</span><b>${money(value, data.currency)}</b></div>`).join("");
+  ];
+  $("levelList").innerHTML = levels.map(([label, value, cls]) => `<div class="level-pill ${cls}"><span>${label}</span><b>${money(value, data.currency)}</b></div>`).join("");
   $("levelTable").innerHTML = [
     ["แนวต้าน 3 (R3)", tech.resistances[2], "bad"],
     ["แนวต้าน 2 (R2)", tech.resistances[1], "bad"],
     ["แนวต้าน 1 (R1)", tech.resistances[0], "bad"],
-    ["จุดเข้าโซนรับ", `${money(tech.entryLow, data.currency)} - ${money(tech.entryHigh, data.currency)}`, "gold"],
+    ["จุดเข้าซื้อแนะนำ", `${money(tech.entryLow, data.currency)} - ${money(tech.entryHigh, data.currency)}`, "gold"],
     ["แนวรับ 1 (S1)", tech.supports[0], "good"],
     ["แนวรับ 2 (S2)", tech.supports[1], "good"],
     ["แนวรับ 3 (S3)", tech.supports[2], "good"]
   ].map(([label, value, cls]) => `<tr><td>${label}</td><td class="${cls}">${typeof value === "number" ? money(value, data.currency) : value}</td></tr>`).join("");
   $("indicatorTable").innerHTML = [
-    ["RSI (14)", tech.rsi.toFixed(2), tech.rsi < 38 ? "ซื้อสะสม" : tech.rsi > 67 ? "ร้อนแรง" : "กลาง"],
-    ["MACD", tech.macd.toFixed(4), tech.macd >= 0 ? "บวก" : "ลบ"],
-    ["MA 20", money(tech.ma20, data.currency), data.price > tech.ma20 ? "ยืนได้" : "ต่ำกว่า"],
-    ["MA 50", money(tech.ma50, data.currency), data.price > tech.ma50 ? "ยืนได้" : "ต่ำกว่า"],
-    ["Risk / Reward", tech.rr.toFixed(2), tech.rr >= 1.5 ? "น่าสนใจ" : "ระวัง"]
-  ].map(([a,b,c]) => `<tr><td>${a}<br><small class="note" style="display:block;margin:1px 0 0">${c}</small></td><td>${b}</td></tr>`).join("");
+    ["RSI (14)", tech.rsi.toFixed(2)],
+    ["MACD", tech.macd.toFixed(4)],
+    ["MA 20", money(tech.ma20, data.currency)],
+    ["MA 50", money(tech.ma50, data.currency)],
+    ["Risk / Reward", tech.rr.toFixed(2)]
+  ].map(([a,b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join("");
 }
 function renderDividend(data) {
   const price = Math.max(.0001, data.price);
   const div = Math.max(0, data.dividend);
   const buyable = Math.floor((data.budget / price) / data.lotSize) * data.lotSize;
   const heldAnnual = data.shares * div;
-  const budgetAnnual = buyable * div;
   const yieldPct = div / price * 100;
-  $("divPerShare").textContent = money(div, data.currency);
-  $("divYield").textContent = yieldPct.toFixed(2) + "%";
-  $("divHeld").textContent = money(heldAnnual, data.currency);
-  $("buyableShares").textContent = buyable.toLocaleString("en-US") + (data.market === "CRYPTO" ? " หน่วย" : " หุ้น");
-  $("divBudget").textContent = money(budgetAnnual, data.currency);
-  $("divMonthly").textContent = money(budgetAnnual / 12, data.currency);
+  $("topDivPerShare").textContent = money(div, data.currency);
+  $("topDivYield").textContent = yieldPct.toFixed(2) + "%";
+  $("topDivAnnual").textContent = money(heldAnnual, data.currency);
 }
-function calculate() {
-  const data = readData();
-  const tech = computeTechnical(data);
-  const candles = buildCandles(data, tech);
-  state.last = { ...data, tech };
-  state.candles = candles;
-  $("assetSymbol").textContent = displaySymbol(data.ticker);
-  $("assetName").textContent = data.name || (marketLabel(data.market) + " technical analysis");
-  $("assetMarket").textContent = marketLabel(data.market);
-  $("assetSource").textContent = state.source;
-  $("marketPrice").textContent = money(data.price, data.currency);
-  const daily = tech.trend * 45;
-  $("marketChange").textContent = pct(daily);
-  $("marketChange").className = daily >= 0 ? "good" : "bad";
-  $("entryZone").textContent = `${money(tech.entryLow, data.currency)} - ${money(tech.entryHigh, data.currency)}`;
-  $("stopLoss").textContent = money(tech.stop, data.currency);
-  $("mainSignal").textContent = tech.signal;
-  $("mainSignal").className = tech.tone;
-  $("signalSummary").textContent = tech.signal;
-  renderLevels(data, tech);
-  renderDividend(data);
-  drawChart(data, tech, candles);
-  renderTape(data, tech);
+function sparkSvg(item, index) {
+  const rand = seeded(item.ticker + index);
+  let y = 15 + rand() * 4;
+  const pts = [];
+  for (let i = 0; i < 28; i++) {
+    y += (rand() - .44) * 5 + (item.change >= 0 ? -.28 : .15);
+    y = Math.max(3, Math.min(22, y));
+    pts.push(`${i * 3},${y.toFixed(1)}`);
+  }
+  const color = item.change >= 0 ? "#2cff61" : "#ff272f";
+  return `<svg class="spark" viewBox="0 0 82 26" aria-hidden="true"><polyline fill="none" stroke="${color}" stroke-width="2" points="${pts.join(" ")}"/></svg>`;
 }
-function renderTape(data, tech) {
-  $("marketTape").innerHTML = `
-    <b>SCAN FEED</b>
-    <span>${displaySymbol(data.ticker)} ${tech.signal}</span>
-    <span class="good">Entry ${money(tech.entryLow, data.currency)}-${money(tech.entryHigh, data.currency)}</span>
-    <span class="bad">Stop ${money(tech.stop, data.currency)}</span>
-    <span>Take profit ${money(tech.take, data.currency)}</span>
-    <span>Dividend ${Number(data.dividend || 0).toFixed(4)} / unit</span>
-  `;
+function coinClass(ticker) {
+  if (/NVDA/.test(ticker)) return "nvda";
+  if (/GOOG/.test(ticker)) return "google";
+  if (/TSM/.test(ticker)) return "tsm";
+  if (/XAUT|GOLD/.test(ticker)) return "goldc";
+  return "";
+}
+function coinIcon(ticker) {
+  if (/BTC/.test(ticker)) return `<i class="fa-brands fa-bitcoin"></i>`;
+  if (/NVDA/.test(ticker)) return `<i class="fa-solid fa-eye"></i>`;
+  if (/GOOG/.test(ticker)) return `G`;
+  if (/TSM/.test(ticker)) return `tsmc`;
+  if (/XAUT|GOLD/.test(ticker)) return `<i class="fa-solid fa-coins"></i>`;
+  return ticker.slice(0, 2);
 }
 function renderWatchlist() {
-  $("watchCount").textContent = state.watchlist.length + " saved";
-  if (!state.watchlist.length) {
-    $("watchlist").innerHTML = `<div class="empty">ยังไม่มี watchlist<br>กดเพิ่ม Watchlist เพื่อเก็บสัญญาณ</div>`;
-    return;
-  }
-  $("watchlist").innerHTML = state.watchlist.map((item, index) => `
-    <div class="watch-row">
+  $("watchCount").textContent = state.watchlist.length + " ITEMS";
+  $("watchlist").innerHTML = state.watchlist.slice(0, 5).map((item, index) => `
+    <div class="watch-item ${displaySymbol(item.ticker) === displaySymbol(readData().ticker) ? "active" : ""}" data-watch="${index}">
+      <div class="coin ${coinClass(item.ticker)}">${coinIcon(item.ticker)}</div>
+      <div class="watch-name"><strong>${displaySymbol(item.ticker)}</strong><small>${item.signal || marketLabel(item.market)}</small></div>
       <div>
-        <strong>${displaySymbol(item.ticker)}</strong>
-        <small>${marketLabel(item.market)} • ${item.signal}</small>
+        ${sparkSvg(item, index)}
+        <div class="watch-price">${money(item.price, item.currency)}<small class="${item.change >= 0 ? "good" : "bad"}">${pct(item.change || 0)}</small></div>
       </div>
-      <div class="price-mini">
-        ${money(item.price, item.currency)}
-        <button class="remove" data-remove="${index}" type="button">×</button>
-      </div>
+      <i class="fa-solid fa-chevron-right gold"></i>
     </div>
   `).join("");
 }
@@ -1341,17 +1493,52 @@ function saveWatchlist() {
     market: data.market,
     currency: data.currency,
     price: data.price,
-    signal: tech.signal,
+    signal: data.name,
+    change: tech.trend * 45,
     savedAt: Date.now()
   };
-  state.watchlist = [item, ...state.watchlist.filter(x => x.ticker !== item.ticker)].slice(0, 18);
+  state.watchlist = [item, ...state.watchlist.filter(x => x.ticker !== item.ticker)].slice(0, 8);
   localStorage.setItem("siamfolio-technical-watchlist", JSON.stringify(state.watchlist));
   renderWatchlist();
+}
+function calculate() {
+  const data = readData();
+  const tech = computeTechnical(data);
+  const candles = buildCandles(data, tech);
+  state.last = { ...data, tech };
+  state.candles = candles;
+  $("assetSymbol").textContent = displaySymbol(data.ticker);
+  $("assetName").textContent = data.name || (marketLabel(data.market) + " technical analysis");
+  $("assetMarket").textContent = marketLabel(data.market);
+  $("assetSource").textContent = data.market === "US" ? "NASDAQ" : state.source;
+  $("marketPrice").textContent = money(data.price, data.currency);
+  const daily = tech.trend * 45;
+  $("marketChange").textContent = pct(daily);
+  $("marketChange").className = daily >= 0 ? "good" : "bad";
+  $("entryZone").textContent = `${money(tech.entryLow, data.currency)} - ${money(tech.entryHigh, data.currency)}`;
+  $("stopLoss").textContent = money(tech.stop, data.currency);
+  $("signalSummary").textContent = tech.signal;
+  renderLevels(data, tech);
+  renderDividend(data);
+  drawChart(data, tech, candles);
+  renderWatchlist();
+  renderTape(data, tech);
+}
+function renderTape(data, tech) {
+  $("marketTape").innerHTML = `
+    <b>SCAN FEED</b>
+    <span>${displaySymbol(data.ticker)} ${tech.signal}</span>
+    <span class="good">Entry ${money(tech.entryLow, data.currency)}-${money(tech.entryHigh, data.currency)}</span>
+    <span class="bad">Stop ${money(tech.stop, data.currency)}</span>
+    <span>Take profit ${money(tech.take, data.currency)}</span>
+    <span>Dividend ${money(data.dividend, data.currency)} (${(data.dividend / Math.max(.0001, data.price) * 100).toFixed(2)}%)</span>
+    <span class="realtime-foot"><i class="mini-dot"></i>Data Realtime</span>
+  `;
 }
 async function fetchLatestPrice(data) {
   const symbol = normalizeSymbol(data.ticker, data.market);
   const url = data.market === "CRYPTO"
-    ? `${API_BASE}/api/prices/crypto?symbols=${encodeURIComponent(symbol.replace("-USD", ""))}`
+    ? `${API_BASE}/api/prices/crypto?symbols=${encodeURIComponent(symbol.replace("-USD", "").replace("USDT", ""))}`
     : `${API_BASE}/api/prices/stocks?symbols=${encodeURIComponent(symbol)}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error("price api " + res.status);
@@ -1369,19 +1556,18 @@ async function fetchLatestPrice(data) {
 async function fetchPrice() {
   const data = readData();
   $("fetchPriceBtn").disabled = true;
-  $("fetchPriceBtn").textContent = "กำลังดึง...";
+  $("fetchPriceBtn").innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>กำลังดึง...`;
   try {
     const price = await fetchLatestPrice(data);
     $("price").value = price.toFixed(data.market === "CRYPTO" ? 4 : 2);
     pushLiveSample(data, price);
-    state.source = state.liveOn ? "live auto" : "live";
-    if (data.market !== "CRYPTO") await fetchDividend(normalizeSymbol(data.ticker, data.market));
+    state.source = state.liveOn ? "LIVE" : "LIVE";
   } catch (error) {
-    state.source = "manual";
+    state.source = "MANUAL";
     alert("ดึงราคาไม่สำเร็จ: " + error.message);
   } finally {
     $("fetchPriceBtn").disabled = false;
-    $("fetchPriceBtn").textContent = "ดึงราคา";
+    $("fetchPriceBtn").innerHTML = `<i class="fa-solid fa-cloud-arrow-down"></i>ดึงราคา`;
     calculate();
     updateLiveStatus();
   }
@@ -1397,7 +1583,7 @@ async function liveRefresh() {
     const price = await fetchLatestPrice(data);
     $("price").value = price.toFixed(data.market === "CRYPTO" ? 4 : 2);
     pushLiveSample(data, price);
-    state.source = "live auto";
+    state.source = "LIVE";
     calculate();
   } catch (error) {
     state.lastLiveError = error.message;
@@ -1424,19 +1610,6 @@ function toggleRealtimeChart() {
   if (state.liveOn) stopRealtimeChart();
   else startRealtimeChart();
 }
-async function fetchDividend(symbol) {
-  try {
-    const res = await fetch(`${API_BASE}/api/fundamentals/dividends?symbols=${encodeURIComponent(symbol)}`);
-    if (!res.ok) return;
-    const json = await res.json();
-    const item = (json.dividends || json)[symbol] || Object.values(json.dividends || json)[0];
-    const annual = item?.annualDividend ?? item?.dividendRate ?? item?.trailingAnnualDividendRate;
-    if (Number.isFinite(Number(annual))) {
-      $("dividend").value = Number(annual).toFixed(4);
-      $("dividendNote").textContent = "อัปเดตปันผลจาก API แล้ว หากข้อมูลไม่ตรงสามารถแก้เองได้";
-    }
-  } catch {}
-}
 function loadPreset(kind) {
   stopRealtimeChart();
   const data = samples[kind];
@@ -1450,7 +1623,7 @@ function loadPreset(kind) {
   $("budget").value = data.budget;
   $("lotSize").value = data.lotSize;
   document.querySelectorAll(".tabs button").forEach(btn => btn.classList.toggle("active", btn.dataset.preset === kind));
-  state.source = "manual";
+  state.source = data.market === "US" ? "NASDAQ" : "MANUAL";
   state.liveSamples = [];
   updateLiveStatus();
   calculate();
@@ -1459,37 +1632,33 @@ function tickClock() {
   const now = new Date();
   $("clock").textContent = now.toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" }) + "  " + now.toLocaleTimeString("th-TH", { hour12: false });
 }
-
 form.addEventListener("submit", (event) => {
   event.preventDefault();
-  state.source = state.source || "manual";
   calculate();
 });
 $("fetchPriceBtn").addEventListener("click", fetchPrice);
 $("liveChartBtn").addEventListener("click", toggleRealtimeChart);
 $("clearLiveBtn").addEventListener("click", clearLiveSamples);
 $("saveBtn").addEventListener("click", saveWatchlist);
+$("quickSaveBtn").addEventListener("click", saveWatchlist);
 $("resetBtn").addEventListener("click", () => loadPreset($("market").value));
 $("market").addEventListener("change", () => loadPreset($("market").value));
-$("watchlist").addEventListener("click", (event) => {
-  const index = event.target.dataset.remove;
-  if (index == null) return;
-  state.watchlist.splice(Number(index), 1);
-  localStorage.setItem("siamfolio-technical-watchlist", JSON.stringify(state.watchlist));
-  renderWatchlist();
-});
 document.querySelectorAll(".tabs button").forEach(btn => btn.addEventListener("click", () => loadPreset(btn.dataset.preset)));
-document.querySelectorAll(".chart-controls button").forEach(btn => btn.addEventListener("click", () => {
-  document.querySelectorAll(".chart-controls button").forEach(x => x.classList.remove("active"));
+document.querySelectorAll(".tf button").forEach(btn => btn.addEventListener("click", () => {
+  document.querySelectorAll(".tf button").forEach(x => x.classList.remove("active"));
   btn.classList.add("active");
   $("timeframe").value = btn.dataset.tf;
   ensureLiveSeries(readData());
   updateLiveStatus();
   calculate();
 }));
+document.querySelectorAll(".nav button").forEach(btn => btn.addEventListener("click", () => {
+  document.querySelectorAll(".nav button").forEach(x => x.classList.remove("active"));
+  btn.classList.add("active");
+}));
 ["ticker","currency","price","timeframe","chartType","dividend","shares","budget","lotSize"].forEach(id => {
   $(id).addEventListener("input", () => {
-    state.source = "manual";
+    state.source = "MANUAL";
     if (id === "ticker" || id === "timeframe") ensureLiveSeries(readData());
     updateLiveStatus();
     calculate();
