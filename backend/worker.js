@@ -1143,8 +1143,20 @@ async function verifyLineSignature(req, env, bodyText) {
 }
 
 function lineMessages(payload) {
-  if (Array.isArray(payload)) return payload;
-  if (payload && typeof payload === "object") return [payload];
+  const clean = (message) => {
+    if (message?.type === "flex" && /Portfolio|Rebalance/i.test(String(message.altText || ""))) {
+      return {
+        ...message,
+        contents: {
+          ...(message.contents || {}),
+          footer: undefined,
+        },
+      };
+    }
+    return message;
+  };
+  if (Array.isArray(payload)) return payload.map(clean);
+  if (payload && typeof payload === "object") return [clean(payload)];
   return [{ type: "text", text: String(payload || "") }];
 }
 
@@ -2175,30 +2187,6 @@ function rebalanceFlexMessage(snapshot, profileLabel = "SiamFolio") {
             size: "xs",
             color: "#8C7D6B",
             wrap: true,
-          }),
-        ],
-      },
-      footer: {
-        type: "box",
-        layout: "vertical",
-        spacing: "sm",
-        contents: [
-          {
-            type: "button",
-            style: "primary",
-            color: "#191512",
-            action: {
-              type: "uri",
-              label: "\u0E40\u0E1B\u0E34\u0E14 Rebalance",
-              uri: "https://addy007x.github.io/dca-portfolio/#rebalance",
-            },
-          },
-          flexText("\u0E1E\u0E34\u0E21\u0E1E\u0E4C Rebalance, \u0E40\u0E1B\u0E49\u0E32 \u0E2B\u0E23\u0E37\u0E2D \u0E08\u0E31\u0E14\u0E1E\u0E2D\u0E23\u0E4C\u0E15 \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E19\u0E35\u0E49\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07", {
-            size: "xs",
-            color: "#8C7D6B",
-            align: "center",
-            wrap: true,
-            margin: "sm",
           }),
         ],
       },
