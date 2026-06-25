@@ -1310,6 +1310,33 @@ function clampPct(value, fallback = 0) {
   return Math.max(0, Math.min(100, n));
 }
 
+function txYearBE(tx) {
+  const raw = String(tx?.date || "");
+  const iso = raw.match(/^(\d{4})-\d{2}-\d{2}/);
+  if (iso) return String(Number(iso[1]) + 543);
+  const years = raw.match(/\d{4}/g) || [];
+  if (!years.length) return "";
+  const y = Number(years[years.length - 1]);
+  if (!Number.isFinite(y)) return "";
+  return String(y >= 2400 ? y : y + 543);
+}
+
+function txValueTHB(tx, fx = 35.8) {
+  const usd = Number(tx?.valUSD || 0);
+  if (!Number.isFinite(usd)) return 0;
+  return usd * fx;
+}
+
+function planInvestedByTicker(transactions, yearBE, fx = 35.8) {
+  const out = {};
+  (transactions || []).forEach(tx => {
+    if (!tx?.ticker || txYearBE(tx) !== String(yearBE)) return;
+    const sign = tx.kind === "sell" ? -1 : 1;
+    out[tx.ticker] = (out[tx.ticker] || 0) + sign * txValueTHB(tx, fx);
+  });
+  return out;
+}
+
 function rebalancePlanStats(snapshot) {
   const stats = portfolioStats(snapshot);
   const settings = snapshot?.settings || {};
@@ -1317,20 +1344,25 @@ function rebalancePlanStats(snapshot) {
   const yearPlans = settings.rebalanceYearPlans || snapshot?.rebalanceYearPlans || {};
   const excluded = new Set((settings.rebalanceExcludedTickers || snapshot?.rebalanceExcludedTickers || []).map(String));
   const capitalTHB = Math.max(0, Number(settings.rebalanceCapitalTHB ?? snapshot?.rebalanceCapitalTHB ?? 0) || 0);
-  const basisTHB = Math.max(stats.totalValue, capitalTHB);
-  const buyPowerTHB = Math.max(0, capitalTHB - stats.totalValue);
   const currentYear = String(settings.rebalancePlanYear || snapshot?.rebalancePlanYear || new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok", year: "numeric" }));
   const savedPlan = yearPlans[String(currentYear)] || null;
+  const fx = Number(snapshot?.fx || snapshot?.settings?.fx || 35.8) || 35.8;
+  const investedByTicker = planInvestedByTicker(snapshot?.transactions || [], currentYear, fx);
+  const planInvestedTHB = Object.values(investedByTicker).reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0);
+  const basisTHB = capitalTHB;
+  const buyPowerTHB = Math.max(0, capitalTHB - planInvestedTHB);
 
   const rows = stats.rows.filter(row => !excluded.has(String(row.ticker))).map(row => {
     const savedTarget = targets[row.ticker];
     const hasTarget = savedTarget !== undefined && savedTarget !== "";
-    const currentPct = stats.totalValue > 0 ? (row.valueTHB / stats.totalValue) * 100 : 0;
+    const valueTHB = Math.max(0, Number(investedByTicker[row.ticker] || 0));
+    const currentPct = capitalTHB > 0 ? (valueTHB / capitalTHB) * 100 : 0;
     const targetPct = hasTarget ? clampPct(savedTarget, currentPct) : currentPct;
     const targetValueTHB = basisTHB * targetPct / 100;
-    const gapTHB = targetValueTHB - row.valueTHB;
+    const gapTHB = targetValueTHB - valueTHB;
     return {
       ...row,
+      valueTHB,
       currentPct,
       targetPct,
       targetValueTHB,
@@ -1352,6 +1384,7 @@ function rebalancePlanStats(snapshot) {
     capitalTHB,
     basisTHB,
     buyPowerTHB,
+    planInvestedTHB,
     currentYear,
     savedPlan,
     targetPctSum,
@@ -2085,7 +2118,7 @@ function formatRebalanceSummary(snapshot) {
   const lines = [
     "SiamFolio Rebalance",
     `\u0E40\u0E07\u0E34\u0E19\u0E17\u0E38\u0E19\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49: ${fmtLineTHB(plan.capitalTHB)}`,
-    `\u0E40\u0E07\u0E34\u0E19\u0E25\u0E07\u0E17\u0E38\u0E19\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27: ${fmtLineTHB(plan.totalCost)}`,
+    `\u0E40\u0E07\u0E34\u0E19\u0E25\u0E07\u0E17\u0E38\u0E19\u0E1B\u0E35\u0E19\u0E35\u0E49: ${fmtLineTHB(plan.planInvestedTHB)}`,
     `\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32\u0E1E\u0E2D\u0E23\u0E4C\u0E15: ${fmtLineTHB(plan.totalValue)}`,
     `\u0E0B\u0E37\u0E49\u0E2D\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E14\u0E49: ${fmtLineTHB(plan.buyPowerTHB)}`,
     `\u0E15\u0E31\u0E49\u0E07\u0E40\u0E1B\u0E49\u0E32\u0E41\u0E25\u0E49\u0E27: ${plan.targetCount}/${plan.rows.length} \u0E15\u0E31\u0E27 (${plan.targetPctSum.toFixed(1)}%)`,
@@ -2108,7 +2141,7 @@ function rebalanceFlexMessage(snapshot, profileLabel = "SiamFolio") {
   const ownerName = String(profileLabel || "SiamFolio").trim() || "SiamFolio";
   const rows = plan.rows.slice(0, 8);
   const completeness = plan.rows.length > 0 ? (plan.targetCount / plan.rows.length) * 100 : 0;
-  const capitalPct = plan.capitalTHB > 0 ? Math.min(100, (plan.totalValue / plan.capitalTHB) * 100) : 0;
+  const capitalPct = plan.capitalTHB > 0 ? Math.min(100, (plan.planInvestedTHB / plan.capitalTHB) * 100) : 0;
   const altText = `${ownerName} Rebalance ${fmtLineTHB(plan.capitalTHB)} target ${plan.targetPctSum.toFixed(1)}%`;
 
   return {
@@ -2152,7 +2185,7 @@ function rebalanceFlexMessage(snapshot, profileLabel = "SiamFolio") {
                 layout: "horizontal",
                 spacing: "md",
                 contents: [
-                  flexRebalanceMetric("\u0E25\u0E07\u0E17\u0E38\u0E19\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27", fmtLineTHB(plan.totalCost)),
+                  flexRebalanceMetric("\u0E25\u0E07\u0E17\u0E38\u0E19\u0E1B\u0E35\u0E19\u0E35\u0E49", fmtLineTHB(plan.planInvestedTHB)),
                   flexRebalanceMetric("\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32\u0E1E\u0E2D\u0E23\u0E4C\u0E15", fmtLineTHB(plan.totalValue)),
                 ],
               },

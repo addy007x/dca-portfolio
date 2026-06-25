@@ -34,6 +34,33 @@ function calcEarnedUSDForSeconds(p, seconds, price) {
 }
 
 // ─────── DCA View ───────
+function txYearBE(tx) {
+  const raw = String(tx?.date || "");
+  const iso = raw.match(/^(\d{4})-\d{2}-\d{2}/);
+  if (iso) return String(Number(iso[1]) + 543);
+  const years = raw.match(/\d{4}/g) || [];
+  if (!years.length) return "";
+  const y = Number(years[years.length - 1]);
+  if (!Number.isFinite(y)) return "";
+  return String(y >= 2400 ? y : y + 543);
+}
+
+function txValueTHB(tx, fx = 35.8) {
+  const usd = Number(tx?.valUSD || 0);
+  if (!Number.isFinite(usd)) return 0;
+  return usd * fx;
+}
+
+function planInvestedByTicker(transactions, yearBE, fx = 35.8) {
+  const out = {};
+  (transactions || []).forEach(tx => {
+    if (!tx?.ticker || txYearBE(tx) !== String(yearBE)) return;
+    const sign = tx.kind === "sell" ? -1 : 1;
+    out[tx.ticker] = (out[tx.ticker] || 0) + sign * txValueTHB(tx, fx);
+  });
+  return out;
+}
+
 function DCAView({ ccy, onAddDCA, onEditDCA }) {
   const store = window.useStore();
   const FX = store.fx || 35.8;
@@ -905,6 +932,7 @@ const REBALANCE_META = {
 function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
   const store = window.useStore();
   const holdings = store.holdings || [];
+  const transactions = store.transactions || [];
   const FX = store.fx || 35.8;
   const settings = store.settings || {};
   const currentPlanYear = String(new Date().getFullYear() + 543);
@@ -990,15 +1018,20 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
   const topBuy = plan.rows.find(r => r.action === "buy") || null;
   const topSell = plan.rows.find(r => r.action === "sell") || null;
   const capitalTHB = Math.max(0, Number(capital) || 0);
-  const buyPowerTHB = Math.max(0, capitalTHB - plan.totalTHB);
-  const needMoreTHB = Math.max(0, plan.totalTHB - capitalTHB);
-  const targetBasisTHB = Math.max(plan.totalTHB, capitalTHB);
+  const investedByTicker = React.useMemo(
+    () => planInvestedByTicker(transactions, planYear, FX),
+    [transactions, planYear, FX]
+  );
+  const planInvestedTHB = Object.values(investedByTicker).reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0);
+  const buyPowerTHB = Math.max(0, capitalTHB - planInvestedTHB);
+  const needMoreTHB = Math.max(0, capitalTHB - planInvestedTHB);
+  const targetBasisTHB = capitalTHB;
 
   const assetRows = React.useMemo(() => {
     const excluded = new Set((excludedTickers || []).map(String));
     return holdings.filter(h => !excluded.has(String(h.ticker))).map(h => {
-      const valueTHB = h.qty * h.price * (h.ccy === "THB" ? 1 : FX);
-      const currentPct = plan.totalTHB > 0 ? (valueTHB / plan.totalTHB) * 100 : 0;
+      const valueTHB = Math.max(0, Number(investedByTicker[h.ticker] || 0));
+      const currentPct = capitalTHB > 0 ? (valueTHB / capitalTHB) * 100 : 0;
       const savedTarget = assetTargets[h.ticker];
       const hasTarget = savedTarget !== undefined && savedTarget !== "";
       const targetPct = hasTarget ? Math.max(0, Number(savedTarget) || 0) : currentPct;
@@ -1016,22 +1049,28 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
         hasTarget,
       };
     }).sort((a, b) => b.buyNeedTHB - a.buyNeedTHB || b.valueTHB - a.valueTHB);
-  }, [FX, assetTargets, excludedTickers, holdings, plan.totalTHB, targetBasisTHB]);
+  }, [assetTargets, capitalTHB, excludedTickers, holdings, investedByTicker, targetBasisTHB]);
 
   const targetPctSum = assetRows.reduce((s, h) => s + (Number(h.targetPct) || 0), 0);
   const totalAssetNeedTHB = assetRows.reduce((s, h) => s + h.buyNeedTHB, 0);
+  const unmetAssetRows = assetRows.filter(h => h.hasTarget && h.buyNeedTHB > 1);
   const allAssetTargetsEntered = assetRows.length > 0 && assetRows.every(h => h.hasTarget);
   const assetTargetsComplete = allAssetTargetsEntered && Math.abs(targetPctSum - 100) <= 0.05;
-  const annualPlanReady = assetTargetsComplete && capitalTHB > 0;
+  const planFundingComplete = capitalTHB > 0 && planInvestedTHB + 1 >= capitalTHB;
+  const annualPlanReady = assetTargetsComplete && planFundingComplete && unmetAssetRows.length === 0;
   const targetStatusText = !allAssetTargetsEntered
-    ? "กรอกเป้าให้ครบทุกตัวก่อนบันทึก"
+    ? "กรอกเป้าหมายให้ครบทุกตัวก่อนบันทึก"
     : !assetTargetsComplete
       ? targetPctSum < 100
         ? `ยังขาดอีก ${(100 - targetPctSum).toFixed(1)}%`
         : `เกินเป้า ${(targetPctSum - 100).toFixed(1)}%`
       : capitalTHB <= 0
-        ? "ใส่เงินทุนปีนี้ก่อนบันทึก"
-        : "เป้าหมายครบ 100% พร้อมบันทึก";
+        ? "ใส่เงินทุนรอบนี้ก่อนบันทึก"
+        : !planFundingComplete
+          ? `ลงทุนปี ${planYear} ยังต่ำกว่าทุนอีก ฿${Math.round(capitalTHB - planInvestedTHB).toLocaleString()}`
+          : unmetAssetRows.length > 0
+            ? `ยังมี ${unmetAssetRows.length} สินทรัพย์ต่ำกว่าเป้า`
+            : "ซื้อครบตามเป้าหรือมากกว่าแล้ว พร้อมบันทึก";
   const savedPlan = yearPlans[String(planYear)] || null;
 
   const setProfileAndPersist = (next) => {
@@ -1084,13 +1123,13 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
   };
 
   const saveAnnualPlan = () => {
-    if (!assetTargetsComplete || capitalTHB <= 0) return;
+    if (!annualPlanReady) return;
     const key = String(planYear || currentPlanYear);
     const snapshot = {
       year: key,
       savedAt: new Date().toISOString(),
       capitalTHB,
-      totalTHB: plan.totalTHB,
+      totalTHB: planInvestedTHB,
       buyPowerTHB,
       targetPctSum,
       assetTargets: { ...assetTargets },
