@@ -912,6 +912,8 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
   const [tolerance, setTolerance] = React.useState(Number(settings.rebalanceTolerance ?? 5));
   const [capital, setCapital] = React.useState(Number(settings.rebalanceCapitalTHB ?? 0));
   const [assetTargets, setAssetTargets] = React.useState(() => settings.rebalanceAssetTargets || {});
+  const [yearPlans, setYearPlans] = React.useState(() => settings.rebalanceYearPlans || {});
+  const [planYear, setPlanYear] = React.useState(() => String(new Date().getFullYear() + 543));
 
   React.useEffect(() => {
     const nextProfile = settings.rebalanceProfile || "balanced";
@@ -986,7 +988,6 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
   const topBuy = plan.rows.find(r => r.action === "buy") || null;
   const topSell = plan.rows.find(r => r.action === "sell") || null;
   const capitalTHB = Math.max(0, Number(capital) || 0);
-  const capitalDisplay = ccy === "THB" ? capitalTHB : capitalTHB / FX;
   const buyPowerTHB = Math.max(0, capitalTHB - plan.totalTHB);
   const needMoreTHB = Math.max(0, plan.totalTHB - capitalTHB);
   const targetBasisTHB = Math.max(plan.totalTHB, capitalTHB);
@@ -1016,6 +1017,19 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
 
   const targetPctSum = assetRows.reduce((s, h) => s + (Number(h.targetPct) || 0), 0);
   const totalAssetNeedTHB = assetRows.reduce((s, h) => s + h.buyNeedTHB, 0);
+  const allAssetTargetsEntered = assetRows.length > 0 && assetRows.every(h => h.hasTarget);
+  const assetTargetsComplete = allAssetTargetsEntered && Math.abs(targetPctSum - 100) <= 0.05;
+  const annualPlanReady = assetTargetsComplete && capitalTHB > 0;
+  const targetStatusText = !allAssetTargetsEntered
+    ? "กรอกเป้าให้ครบทุกตัวก่อนบันทึก"
+    : !assetTargetsComplete
+      ? targetPctSum < 100
+        ? `ยังขาดอีก ${(100 - targetPctSum).toFixed(1)}%`
+        : `เกินเป้า ${(targetPctSum - 100).toFixed(1)}%`
+      : capitalTHB <= 0
+        ? "ใส่เงินทุนปีนี้ก่อนบันทึก"
+        : "เป้าหมายครบ 100% พร้อมบันทึก";
+  const savedPlan = yearPlans[String(planYear)] || null;
 
   const setProfileAndPersist = (next) => {
     setProfile(next);
@@ -1042,6 +1056,32 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
     window.updateSettings?.({ rebalanceAssetTargets: updated });
   };
 
+  const saveAnnualPlan = () => {
+    if (!annualPlanReady) return;
+    const key = String(planYear || new Date().getFullYear() + 543);
+    const snapshot = {
+      year: key,
+      savedAt: new Date().toISOString(),
+      capitalTHB,
+      totalTHB: plan.totalTHB,
+      buyPowerTHB,
+      targetPctSum,
+      assetTargets: { ...assetTargets },
+      assets: assetRows.map(h => ({
+        ticker: h.ticker,
+        classKey: h.classKey,
+        currentPct: Number(h.currentPct.toFixed(4)),
+        targetPct: Number(h.targetPct.toFixed(4)),
+        valueTHB: Math.round(h.valueTHB),
+        buyNeedTHB: Math.round(h.buyNeedTHB),
+        overTHB: Math.round(h.overTHB),
+      })),
+    };
+    const updated = { ...yearPlans, [key]: snapshot };
+    setYearPlans(updated);
+    window.updateSettings?.({ rebalanceYearPlans: updated });
+  };
+
   return (
     <PageShell
       title="Rebalance"
@@ -1064,7 +1104,7 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
           <div className="delta" style={{color:"var(--muted)"}}>ยอดถือครองทั้งหมด</div>
         </div>
         <div className="kpi">
-          <div className="label">เงินทุนรอบนี้ ({ccySym})</div>
+          <div className="label">เงินทุนรอบนี้ (THB)</div>
           <div style={{display:"flex", flexDirection:"column", gap:8, marginTop:2}}>
             <input
               className="form-input"
@@ -1072,13 +1112,13 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
               min="0"
               step="1000"
               inputMode="decimal"
-              value={capitalTHB > 0 ? capitalDisplay : ""}
-              placeholder={Math.round(ccy === "THB" ? plan.totalTHB : plan.totalTHB / FX).toLocaleString()}
-              onChange={e => setCapitalAndPersist(ccy === "THB" ? e.target.value : Number(e.target.value) * FX)}
+              value={capitalTHB > 0 ? capitalTHB : ""}
+              placeholder={Math.round(plan.totalTHB).toLocaleString()}
+              onChange={e => setCapitalAndPersist(e.target.value)}
               style={{height:40, fontSize:16, fontWeight:700, fontFamily:"var(--font-num)"}}
             />
             <div className="delta" style={{color:"var(--muted)"}}>
-              ใส่จำนวนเงินทั้งหมดที่มีสำหรับรอบนี้
+              ฟิกเป็นเงินบาท ไม่เปลี่ยนตามปุ่มสกุลเงิน
             </div>
           </div>
         </div>
@@ -1165,6 +1205,59 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
                 <b>{ccySym}{ccy === "THB" ? Math.round(totalAssetNeedTHB).toLocaleString() : fmtNum(totalAssetNeedTHB / FX, 2)}</b>
               </div>
             </div>
+            <div className={`annual-plan-save ${annualPlanReady ? "is-ready" : ""}`}>
+              <div>
+                <b>{targetStatusText}</b>
+                <span>
+                  ทุนปีนี้ ฿{Math.round(capitalTHB).toLocaleString()} ·
+                  {savedPlan ? ` บันทึกปี ${planYear} แล้ว` : " ยังไม่ได้บันทึกปีนี้"}
+                </span>
+              </div>
+              <div className="annual-plan-actions">
+                <input
+                  className="form-input"
+                  type="number"
+                  min="2500"
+                  step="1"
+                  value={planYear}
+                  onChange={e => setPlanYear(e.target.value)}
+                  aria-label="ปีแผน Rebalance"
+                />
+                <button
+                  type="button"
+                  className={`btn sm ${annualPlanReady ? "accent" : ""}`}
+                  disabled={!annualPlanReady}
+                  onClick={saveAnnualPlan}
+                >
+                  บันทึกแผนปีนี้
+                </button>
+              </div>
+            </div>
+            {Object.keys(yearPlans).length > 0 && (
+              <div className="annual-plan-history">
+                {Object.keys(yearPlans).sort((a, b) => Number(b) - Number(a)).slice(0, 4).map(y => {
+                  const item = yearPlans[y];
+                  return (
+                    <button
+                      type="button"
+                      key={y}
+                      className={String(planYear) === String(y) ? "is-on" : ""}
+                      onClick={() => {
+                        setPlanYear(String(y));
+                        if (item?.assetTargets) {
+                          setAssetTargets(item.assetTargets);
+                          window.updateSettings?.({ rebalanceAssetTargets: item.assetTargets });
+                        }
+                        if (item?.capitalTHB != null) setCapitalAndPersist(item.capitalTHB);
+                      }}
+                    >
+                      <b>{y}</b>
+                      <span>฿{Math.round(item?.capitalTHB || 0).toLocaleString()}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             <div className="asset-target-list">
               {assetRows.length === 0 ? (
                 <div className="rebalance-empty">ยังไม่มีสินทรัพย์ในพอร์ต</div>
@@ -1364,8 +1457,8 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
             <div className="rebalance-tip">
               <b>สรุปทุนที่ตั้งไว้</b>
               <span>
-                ทุนทั้งหมด {ccySym}{ccy === "THB" ? Math.round(capitalTHB).toLocaleString() : fmtNum(capitalTHB / FX, 2)} ·
-                ซื้อเพิ่มได้ {ccySym}{ccy === "THB" ? Math.round(buyPowerTHB).toLocaleString() : fmtNum(buyPowerTHB / FX, 2)}
+                ทุนทั้งหมด ฿{Math.round(capitalTHB).toLocaleString()} ·
+                ซื้อเพิ่มได้ ฿{Math.round(buyPowerTHB).toLocaleString()}
               </span>
             </div>
           </div>
@@ -1535,6 +1628,73 @@ const PAGE_STYLES = `
   font-family: var(--font-num);
   font-size: 18px;
   color: var(--accent-ink);
+}
+.annual-plan-save {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: var(--surface);
+}
+.annual-plan-save.is-ready {
+  border-color: color-mix(in oklab, var(--up) 38%, var(--line));
+  background: color-mix(in oklab, var(--up-soft) 48%, var(--surface));
+}
+.annual-plan-save b {
+  display: block;
+  font-size: 12px;
+  color: var(--ink);
+}
+.annual-plan-save span {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.annual-plan-actions {
+  display: grid;
+  grid-template-columns: 86px auto;
+  gap: 8px;
+  align-items: center;
+}
+.annual-plan-actions .form-input {
+  height: 32px;
+  padding: 6px 8px;
+  font-family: var(--font-num);
+  font-weight: 800;
+}
+.annual-plan-history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.annual-plan-history button {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 7px 10px;
+  min-width: 92px;
+  text-align: left;
+}
+.annual-plan-history button.is-on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.annual-plan-history b {
+  display: block;
+  font-size: 12px;
+}
+.annual-plan-history span {
+  display: block;
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .asset-target-list {
   display: flex;
@@ -1849,6 +2009,8 @@ const PAGE_STYLES = `
   .rebalance-toolbar { grid-template-columns: 1fr; }
   .asset-target-head { flex-direction: column; }
   .asset-target-summary { text-align: left; }
+  .annual-plan-save { grid-template-columns: 1fr; }
+  .annual-plan-actions { grid-template-columns: 86px minmax(0, 1fr); }
   .asset-target-row {
     grid-template-columns: 1fr 94px;
     gap: 10px;

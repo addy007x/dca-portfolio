@@ -105,6 +105,12 @@ async function pushPortfolio() {
     transactions: s.transactions,
     dca: s.dca,
     earn: s.earn,
+    rebalanceAlerts: s.rebalanceAlerts || [],
+    benchmarks: s.benchmarks || [],
+    fx: s.fx,
+    fxUpdatedAt: s.fxUpdatedAt || 0,
+    pricesUpdatedAt: s.pricesUpdatedAt || 0,
+    settings: s.settings || {},
   };
   return backendFetch("/api/portfolio", { method: "PUT", body: JSON.stringify(body) });
 }

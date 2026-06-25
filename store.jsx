@@ -84,6 +84,7 @@ function buildSeed() {
       rebalanceTolerance: 5,
       rebalanceCapitalTHB: 0,
       rebalanceAssetTargets: {},
+      rebalanceYearPlans: {},
       seeded: true,
     },
   };
