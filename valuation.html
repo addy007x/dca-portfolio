@@ -102,10 +102,10 @@ a { color: inherit; text-decoration: none; }
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(260px, 360px) 1fr auto;
+  grid-template-columns: minmax(300px, 380px) minmax(560px, 1fr) 260px;
   align-items: center;
   gap: 12px;
-  padding: 6px 12px;
+  padding: 8px 14px;
 }
 .topbar::before,
 .panel::before,
@@ -154,7 +154,7 @@ a { color: inherit; text-decoration: none; }
   margin: 0;
   color: var(--gold);
   font-family: var(--brand);
-  font-size: 32px;
+  font-size: 34px;
   font-weight: 900;
   line-height: .88;
   letter-spacing: .085em;
@@ -171,20 +171,20 @@ a { color: inherit; text-decoration: none; }
   font-weight: 800;
 }
 .nav {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  flex-wrap: wrap;
+  gap: 14px;
+  flex-wrap: nowrap;
 }
 .nav button {
-  min-width: 98px;
-  height: 34px;
+  min-width: 116px;
+  height: 42px;
   border: 1px solid rgba(244,198,110,.36);
   color: #f9ead0;
   background: rgba(0,0,0,.36);
   font-family: var(--display);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
   font-style: italic;
   text-transform: uppercase;
@@ -192,7 +192,7 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   justify-content: center;
   gap: 7px;
-  clip-path: polygon(9px 0, 100% 0, calc(100% - 9px) 100%, 0 100%);
+  clip-path: polygon(11px 0, 100% 0, calc(100% - 11px) 100%, 0 100%);
   transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, color .16s ease;
 }
 .nav button::before,
@@ -210,6 +210,7 @@ a { color: inherit; text-decoration: none; }
 .nav button:nth-child(4)::before { content: "\f0f3"; }
 .nav button:nth-child(5)::before { content: "\f0ae"; }
 .nav button:nth-child(6)::before { content: "\f2f5"; }
+.nav button::before { display: none; }
 .nav button:hover {
   color: #fff8e8;
   border-color: rgba(244,198,110,.72);
@@ -227,7 +228,7 @@ a { color: inherit; text-decoration: none; }
   color: var(--gold);
   font-weight: 800;
   white-space: nowrap;
-  font-size: 14px;
+  font-size: 15px;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
@@ -243,7 +244,7 @@ a { color: inherit; text-decoration: none; }
 .layout {
   min-height: 0;
   display: grid;
-  grid-template-columns: 300px minmax(560px, 1fr) 300px;
+  grid-template-columns: 380px minmax(680px, 1fr) 380px;
   gap: 8px;
 }
 .panel {
