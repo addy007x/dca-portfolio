@@ -1082,6 +1082,14 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
     window.updateSettings?.({ rebalanceYearPlans: updated });
   };
 
+  const deleteAnnualPlan = (year) => {
+    const key = String(year);
+    const updated = { ...yearPlans };
+    delete updated[key];
+    setYearPlans(updated);
+    window.updateSettings?.({ rebalanceYearPlans: updated });
+  };
+
   return (
     <PageShell
       title="Rebalance"
@@ -1241,7 +1249,7 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
                     <button
                       type="button"
                       key={y}
-                      className={String(planYear) === String(y) ? "is-on" : ""}
+                      className={`annual-plan-chip ${String(planYear) === String(y) ? "is-on" : ""}`}
                       onClick={() => {
                         setPlanYear(String(y));
                         if (item?.assetTargets) {
@@ -1252,6 +1260,25 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
                       }}
                     >
                       <b>{y}</b>
+                      <span
+                        className="annual-plan-delete"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`delete plan ${y}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteAnnualPlan(y);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            deleteAnnualPlan(y);
+                          }
+                        }}
+                      >
+                        &times;
+                      </span>
                       <span>฿{Math.round(item?.capitalTHB || 0).toLocaleString()}</span>
                     </button>
                   );
@@ -1673,16 +1700,17 @@ const PAGE_STYLES = `
   gap: 8px;
   margin-bottom: 12px;
 }
-.annual-plan-history button {
+.annual-plan-history .annual-plan-chip {
+  position: relative;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--surface);
   color: var(--ink);
-  padding: 7px 10px;
-  min-width: 92px;
+  padding: 7px 34px 7px 10px;
+  min-width: 114px;
   text-align: left;
 }
-.annual-plan-history button.is-on {
+.annual-plan-history .annual-plan-chip.is-on {
   border-color: var(--accent);
   background: var(--accent-soft);
 }
@@ -1695,6 +1723,27 @@ const PAGE_STYLES = `
   margin-top: 1px;
   color: var(--muted);
   font-size: 11px;
+}
+.annual-plan-delete {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid !important;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: 0 !important;
+  border-radius: 999px;
+  color: var(--down) !important;
+  background: color-mix(in oklab, var(--down-soft) 58%, transparent);
+  font-size: 18px !important;
+  font-weight: 900;
+  line-height: 1;
+}
+.annual-plan-delete:hover {
+  color: #fff !important;
+  background: var(--down);
 }
 .asset-target-list {
   display: flex;
