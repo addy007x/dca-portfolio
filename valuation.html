@@ -85,7 +85,7 @@ a { color: inherit; text-decoration: none; }
   height: 100vh;
   padding: 10px;
   display: grid;
-  grid-template-rows: 58px minmax(0, 1fr) 134px 26px;
+  grid-template-rows: 58px minmax(0, 1fr) 26px;
   gap: 9px;
 }
 .topbar,
@@ -175,7 +175,6 @@ a { color: inherit; text-decoration: none; }
 .left,
 .center,
 .right,
-.bottom-grid { min-height: 0; }
 .left,
 .right {
   display: grid;
@@ -185,9 +184,10 @@ a { color: inherit; text-decoration: none; }
 .right { grid-template-rows: 308px 166px minmax(0, 1fr); }
 .center {
   display: grid;
-  grid-template-rows: 116px minmax(222px, 1fr) 168px;
+  grid-template-rows: 116px minmax(0, 1fr) 176px;
   gap: 10px;
 }
+.center > * { min-height: 0; }
 .panel {
   position: relative;
   overflow: hidden;
@@ -446,6 +446,9 @@ input:focus, select:focus {
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 8px;
 }
+@media (min-width: 1321px) {
+  .chart-panel { max-height: calc(100vh - 434px); }
+}
 .chart-head,
 .mini-head {
   position: relative;
@@ -622,10 +625,7 @@ input:focus, select:focus {
 .good { color: var(--green) !important; }
 .bad { color: #ff4b50 !important; }
 .gold { color: var(--gold) !important; }
-.watch-list,
-.news-list,
-.alert-list,
-.dividend-table {
+.watch-list {
   position: relative;
   z-index: 1;
 }
@@ -762,35 +762,6 @@ input:focus, select:focus {
   border-radius: 3px;
   display: block;
 }
-.bottom-grid {
-  display: grid;
-  grid-template-columns: 1fr .88fr 1.22fr;
-  gap: 12px;
-}
-.news-list,
-.alert-list {
-  display: grid;
-  gap: 7px;
-}
-.news-row,
-.alert-row,
-.dividend-row {
-  display: grid;
-  align-items: center;
-  gap: 12px;
-  min-height: 21px;
-  padding: 2px 8px;
-  border-bottom: 1px solid rgba(255,255,255,.07);
-  color: #d6cdbc;
-  font-size: 12px;
-}
-.news-row { grid-template-columns: 58px minmax(0, 1fr) 92px; }
-.alert-row { grid-template-columns: 24px minmax(0, 1fr) 132px; }
-.dividend-row { grid-template-columns: 1fr 1fr 1fr 90px; font-family: var(--mono); font-size: 11px; }
-.dividend-row.header {
-  color: var(--muted);
-  text-transform: uppercase;
-}
 .scan-feed {
   position: relative;
   overflow: hidden;
@@ -824,14 +795,13 @@ input:focus, select:focus {
 }
 @media (max-width: 1320px) {
   body { overflow: auto; }
-  .app { height: auto; min-height: 100vh; grid-template-rows: auto auto auto auto; }
+  .app { height: auto; min-height: 100vh; grid-template-rows: auto auto auto; }
   .topbar { grid-template-columns: 1fr; }
   .clock { justify-self: start; }
   .nav { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
   .layout { grid-template-columns: 1fr; }
   .center { grid-template-rows: auto 460px auto; }
   .right { grid-template-rows: auto auto auto; }
-  .bottom-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
   .app { padding: 7px; }
@@ -1092,37 +1062,6 @@ input:focus, select:focus {
         </div>
       </section>
     </aside>
-  </section>
-
-  <section class="bottom-grid">
-    <article class="panel panel-pad">
-      <div class="section-title"><h2>NEWS FEED</h2><span></span></div>
-      <div class="news-list">
-        <div class="news-row"><b class="gold">16:30</b><span>NVIDIA เตรียมเปิดตัว GPU รุ่นใหม่ Blackwell Ultra ในไตรมาส 3</span><small>Investing.com</small></div>
-        <div class="news-row"><b class="gold">15:45</b><span>NVIDIA พุ่งขึ้นหลังนักวิเคราะห์ปรับราคาเป้าหมายใหม่ $150</span><small>Bloomberg</small></div>
-        <div class="news-row"><b class="gold">14:20</b><span>สหรัฐฯ เตรียมจำกัดการส่งออกชิป AI ไปยังบางประเทศเพิ่มเติม</span><small>Reuters</small></div>
-      </div>
-      <div class="link-text" style="text-align:right;margin-top:6px">View All News <i class="fa-solid fa-arrow-right"></i></div>
-    </article>
-    <article class="panel panel-pad">
-      <div class="section-title"><h2>ALERTS</h2><span></span></div>
-      <div class="alert-list">
-        <div class="alert-row"><i class="fa-solid fa-circle-exclamation bad"></i><span>ราคาหุ้น NVDA ต่ำกว่า $110.00</span><small>25 มิ.ย. 2569 16:30</small></div>
-        <div class="alert-row"><i class="fa-solid fa-bell gold"></i><span>RSI NVDA ต่ำกว่า 30</span><small>25 มิ.ย. 2569 15:10</small></div>
-        <div class="alert-row"><i class="fa-solid fa-clock gold"></i><span>Dividend NVDA ขึ้นเครื่องหมาย XD</span><small>25 มิ.ย. 2569 09:00</small></div>
-      </div>
-      <div class="link-text" style="text-align:right;margin-top:6px">View All Alerts <i class="fa-solid fa-arrow-right"></i></div>
-    </article>
-    <article class="panel panel-pad">
-      <div class="section-title"><h2>UPCOMING DIVIDEND</h2><span></span></div>
-      <div class="dividend-table">
-        <div class="dividend-row header"><span>SYMBOL</span><span>EX-DATE</span><span>PAY DATE</span><span>DIVIDEND</span></div>
-        <div class="dividend-row"><b>NVDA</b><span>12 มิ.ย. 2569</span><span>26 มิ.ย. 2569</span><span>$0.0400</span></div>
-        <div class="dividend-row"><b>GOOGL</b><span>15 ก.ค. 2569</span><span>29 ก.ค. 2569</span><span>$0.2000</span></div>
-        <div class="dividend-row"><b>TSM</b><span>18 ก.ค. 2569</span><span>02 ส.ค. 2569</span><span>$0.5500</span></div>
-      </div>
-      <div class="link-text" style="text-align:center;margin-top:6px">View All Dividend <i class="fa-solid fa-arrow-right"></i></div>
-    </article>
   </section>
 
   <footer class="scan-feed" id="marketTape">
