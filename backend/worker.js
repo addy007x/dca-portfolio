@@ -1193,6 +1193,11 @@ function fmtSignedTHB(value) {
   return `${n >= 0 ? "+" : "-"}${fmtTHB(Math.abs(n))}`;
 }
 
+function fmtLineTHB(value) {
+  const n = Math.round(Math.abs(Number(value) || 0));
+  return `${value < 0 ? "-" : ""}\u0E3F${n.toLocaleString("en-US")}`;
+}
+
 function fmtPctValue(value) {
   const n = Number(value) || 0;
   return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
@@ -1995,10 +2000,10 @@ function flexRebalanceMetric(label, value, color = "#FFFFFF") {
 
 function flexRebalanceAssetRow(row, index) {
   const status = row.buyNeedTHB > 0
-    ? `ขาดอีก ${fmtTHB(row.buyNeedTHB)}`
+    ? `Need ${fmtLineTHB(row.buyNeedTHB)}`
     : row.overTHB > 0
-      ? `เกินเป้า ${fmtTHB(row.overTHB)}`
-      : "ถึงเป้าแล้ว";
+      ? `Over ${fmtLineTHB(row.overTHB)}`
+      : "On target";
   const accent = row.buyNeedTHB > 0 ? "#26A269" : row.overTHB > 0 ? "#D94E4E" : "#E6C56A";
   return {
     type: "box",
@@ -2022,8 +2027,8 @@ function flexRebalanceAssetRow(row, index) {
             contents: [
               flexText(row.ticker, { size: "sm", color: "#211C18", weight: "bold" }),
               flexText(row.hasTarget
-                ? `ตอนนี้ ${row.currentPct.toFixed(1)}% / เป้า ${row.targetPct.toFixed(1)}%`
-                : `ตอนนี้ ${row.currentPct.toFixed(1)}% / ยังไม่ตั้งเป้า`, {
+                ? `Now ${row.currentPct.toFixed(1)}% / Target ${row.targetPct.toFixed(1)}%`
+                : `Now ${row.currentPct.toFixed(1)}% / No target set`, {
                 size: "xxs",
                 color: "#8C7D6B",
                 margin: "xs",
@@ -2037,7 +2042,7 @@ function flexRebalanceAssetRow(row, index) {
             flex: 4,
             contents: [
               flexText(status, { size: "xs", color: accent, weight: "bold", align: "end", wrap: true }),
-              flexText(`ซื้อได้ ${fmtTHB(row.canBuyTHB)}`, {
+              flexText(`Can buy ${fmtLineTHB(row.canBuyTHB)}`, {
                 size: "xxs",
                 color: "#8C7D6B",
                 align: "end",
@@ -2052,8 +2057,8 @@ function flexRebalanceAssetRow(row, index) {
         type: "box",
         layout: "horizontal",
         contents: [
-          flexText(`มูลค่า ${fmtTHB(row.valueTHB)}`, { size: "xxs", color: "#8C7D6B", flex: 1 }),
-          flexText(`เป้า ${fmtTHB(row.targetValueTHB)}`, { size: "xxs", color: "#8C7D6B", align: "end", flex: 1 }),
+          flexText(`Value ${fmtLineTHB(row.valueTHB)}`, { size: "xxs", color: "#8C7D6B", flex: 1 }),
+          flexText(`Target ${fmtLineTHB(row.targetValueTHB)}`, { size: "xxs", color: "#8C7D6B", align: "end", flex: 1 }),
         ],
       },
     ],
@@ -2062,17 +2067,17 @@ function flexRebalanceAssetRow(row, index) {
 
 function formatRebalanceSummary(snapshot) {
   const plan = rebalancePlanStats(snapshot);
-  if (!plan.rows.length) return "SiamFolio Rebalance\nยังไม่มีสินทรัพย์ในพอร์ต";
+  if (!plan.rows.length) return "SiamFolio Rebalance\nNo holdings found";
   const lines = [
     "SiamFolio Rebalance",
-    `เงินทุนรอบนี้: ${fmtTHB(plan.capitalTHB)}`,
-    `เงินลงทุนไปแล้ว: ${fmtTHB(plan.totalCost)}`,
-    `มูลค่าพอร์ต: ${fmtTHB(plan.totalValue)}`,
-    `ซื้อเพิ่มได้: ${fmtTHB(plan.buyPowerTHB)}`,
-    `ตั้งเป้าแล้ว: ${plan.targetCount}/${plan.rows.length} ตัว (${plan.targetPctSum.toFixed(1)}%)`,
+    `Capital: ${fmtLineTHB(plan.capitalTHB)}`,
+    `Invested: ${fmtLineTHB(plan.totalCost)}`,
+    `Portfolio value: ${fmtLineTHB(plan.totalValue)}`,
+    `Buy power: ${fmtLineTHB(plan.buyPowerTHB)}`,
+    `Targets set: ${plan.targetCount}/${plan.rows.length} assets (${plan.targetPctSum.toFixed(1)}%)`,
     "",
     ...plan.rows.slice(0, 8).map(row => {
-      const need = row.buyNeedTHB > 0 ? `ขาด ${fmtTHB(row.buyNeedTHB)}` : row.overTHB > 0 ? `เกิน ${fmtTHB(row.overTHB)}` : "ถึงเป้า";
+      const need = row.buyNeedTHB > 0 ? `need ${fmtLineTHB(row.buyNeedTHB)}` : row.overTHB > 0 ? `over ${fmtLineTHB(row.overTHB)}` : "on target";
       return `${row.ticker}: ${row.currentPct.toFixed(1)}% -> ${row.targetPct.toFixed(1)}% · ${need}`;
     }),
   ];
@@ -2086,7 +2091,7 @@ function rebalanceFlexMessage(snapshot, profileLabel = "SiamFolio") {
   const rows = plan.rows.slice(0, 8);
   const completeness = plan.rows.length > 0 ? (plan.targetCount / plan.rows.length) * 100 : 0;
   const capitalPct = plan.capitalTHB > 0 ? Math.min(100, (plan.totalValue / plan.capitalTHB) * 100) : 0;
-  const altText = `${ownerName} Rebalance ${fmtTHB(plan.capitalTHB)} target ${plan.targetPctSum.toFixed(1)}%`;
+  const altText = `${ownerName} Rebalance ${fmtLineTHB(plan.capitalTHB)} target ${plan.targetPctSum.toFixed(1)}%`;
 
   return {
     type: "flex",
@@ -2101,8 +2106,8 @@ function rebalanceFlexMessage(snapshot, profileLabel = "SiamFolio") {
         backgroundColor: "#170F0C",
         contents: [
           flexText("REBALANCE CONTROL", { size: "xs", color: "#E6C56A", weight: "bold" }),
-          flexText("เป้าหมายรายสินทรัพย์", { size: "xl", color: "#FFFFFF", weight: "bold", margin: "sm", wrap: true }),
-          flexText(`${ownerName} · ปี ${plan.currentYear}`, { size: "xs", color: "#D6C1A1", margin: "sm" }),
+          flexText("Per-Asset Targets", { size: "xl", color: "#FFFFFF", weight: "bold", margin: "sm", wrap: true }),
+          flexText(`${ownerName} · Year ${plan.currentYear}`, { size: "xs", color: "#D6C1A1", margin: "sm" }),
         ],
       },
       body: {
@@ -2122,15 +2127,15 @@ function rebalanceFlexMessage(snapshot, profileLabel = "SiamFolio") {
             borderWidth: "1px",
             cornerRadius: "14px",
             contents: [
-              flexText("เงินทุนรอบนี้", { size: "xs", color: "#E6C56A", weight: "bold" }),
-              flexText(fmtTHB(plan.capitalTHB), { size: "xxl", color: "#FFFFFF", weight: "bold", wrap: true }),
+              flexText("Capital this round", { size: "xs", color: "#E6C56A", weight: "bold" }),
+              flexText(fmtLineTHB(plan.capitalTHB), { size: "xxl", color: "#FFFFFF", weight: "bold", wrap: true }),
               {
                 type: "box",
                 layout: "horizontal",
                 spacing: "md",
                 contents: [
-                  flexRebalanceMetric("ลงทุนไปแล้ว", fmtTHB(plan.totalCost)),
-                  flexRebalanceMetric("มูลค่าพอร์ต", fmtTHB(plan.totalValue)),
+                  flexRebalanceMetric("Invested", fmtLineTHB(plan.totalCost)),
+                  flexRebalanceMetric("Portfolio", fmtLineTHB(plan.totalValue)),
                 ],
               },
               {
@@ -2138,12 +2143,12 @@ function rebalanceFlexMessage(snapshot, profileLabel = "SiamFolio") {
                 layout: "horizontal",
                 spacing: "md",
                 contents: [
-                  flexRebalanceMetric("ซื้อเพิ่มได้", fmtTHB(plan.buyPowerTHB), "#E6C56A"),
-                  flexRebalanceMetric("เป้าครบ", `${plan.targetCount}/${plan.rows.length} ตัว`, completeness >= 100 ? "#26A269" : "#E6C56A"),
+                  flexRebalanceMetric("Buy power", fmtLineTHB(plan.buyPowerTHB), "#E6C56A"),
+                  flexRebalanceMetric("Targets", `${plan.targetCount}/${plan.rows.length} assets`, completeness >= 100 ? "#26A269" : "#E6C56A"),
                 ],
               },
               flexProgressBar(capitalPct, "#E94949", "#3A211D"),
-              flexText(`พอร์ตใช้ทุนไป ${capitalPct.toFixed(1)}% · รวมเป้า ${plan.targetPctSum.toFixed(1)}%`, {
+              flexText(`Capital used ${capitalPct.toFixed(1)}% · Target sum ${plan.targetPctSum.toFixed(1)}%`, {
                 size: "xs",
                 color: "#D6C1A1",
                 weight: "bold",
@@ -2161,8 +2166,8 @@ function rebalanceFlexMessage(snapshot, profileLabel = "SiamFolio") {
             ],
           },
           flexText(plan.savedPlan
-            ? `มีแผนปี ${plan.currentYear} บันทึกไว้แล้ว`
-            : "ตั้งเป้าครบ 100% แล้วกดบันทึกแผนปีนี้ในหน้า Rebalance ได้", {
+            ? `Saved plan found for ${plan.currentYear}`
+            : "Set targets to 100%, then save the yearly plan on the Rebalance page.", {
             size: "xs",
             color: "#8C7D6B",
             wrap: true,
@@ -2180,11 +2185,11 @@ function rebalanceFlexMessage(snapshot, profileLabel = "SiamFolio") {
             color: "#191512",
             action: {
               type: "uri",
-              label: "เปิด Rebalance",
+              label: "Open Rebalance",
               uri: "https://addy007x.github.io/dca-portfolio/#rebalance",
             },
           },
-          flexText("พิมพ์ Rebalance, เป้า หรือ จัดพอร์ต เพื่อดูการ์ดนี้อีกครั้ง", {
+          flexText("Type Rebalance, target, or Thai target commands to show this card again.", {
             size: "xs",
             color: "#8C7D6B",
             align: "center",
@@ -2400,6 +2405,13 @@ function portfolioFlexMessage(snapshot, profileLabel = "SiamFolio") {
 function lineCommand(text) {
   const t = String(text || "").trim().toLowerCase();
   if (!t) return null;
+  if (
+    t.includes("rebalance") ||
+    t.includes("target") ||
+    t.includes("\u0E40\u0E1B\u0E49\u0E32") ||
+    t.includes("\u0E23\u0E35\u0E1A\u0E32\u0E25\u0E32\u0E19") ||
+    t.includes("\u0E08\u0E31\u0E14\u0E1E\u0E2D\u0E23\u0E4C\u0E15")
+  ) return "rebalance";
   if (t.includes("rebalance") || t.includes("target") || t.includes("เป้า") || t.includes("รีบาลานซ์") || t.includes("จัดพอร์ต")) return "rebalance";
   if (/^(ผูก|link)\s*[a-z0-9]{4,12}$/i.test(t) || /^[a-z0-9]{6}$/i.test(t)) return "link";
   if (["help", "คำสั่ง", "ช่วยเหลือ"].includes(t)) return "help";
