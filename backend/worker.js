@@ -2000,10 +2000,10 @@ function flexRebalanceMetric(label, value, color = "#FFFFFF") {
 
 function flexRebalanceAssetRow(row, index) {
   const status = row.buyNeedTHB > 0
-    ? `Need ${fmtLineTHB(row.buyNeedTHB)}`
+    ? `\u0E02\u0E32\u0E14\u0E2D\u0E35\u0E01 ${fmtLineTHB(row.buyNeedTHB)}`
     : row.overTHB > 0
-      ? `Over ${fmtLineTHB(row.overTHB)}`
-      : "On target";
+      ? `\u0E40\u0E01\u0E34\u0E19\u0E40\u0E1B\u0E49\u0E32 ${fmtLineTHB(row.overTHB)}`
+      : "\u0E16\u0E36\u0E07\u0E40\u0E1B\u0E49\u0E32\u0E41\u0E25\u0E49\u0E27";
   const accent = row.buyNeedTHB > 0 ? "#26A269" : row.overTHB > 0 ? "#D94E4E" : "#E6C56A";
   return {
     type: "box",
@@ -2027,8 +2027,8 @@ function flexRebalanceAssetRow(row, index) {
             contents: [
               flexText(row.ticker, { size: "sm", color: "#211C18", weight: "bold" }),
               flexText(row.hasTarget
-                ? `Now ${row.currentPct.toFixed(1)}% / Target ${row.targetPct.toFixed(1)}%`
-                : `Now ${row.currentPct.toFixed(1)}% / No target set`, {
+                ? `\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49 ${row.currentPct.toFixed(1)}% / \u0E40\u0E1B\u0E49\u0E32 ${row.targetPct.toFixed(1)}%`
+                : `\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49 ${row.currentPct.toFixed(1)}% / \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E15\u0E31\u0E49\u0E07\u0E40\u0E1B\u0E49\u0E32`, {
                 size: "xxs",
                 color: "#8C7D6B",
                 margin: "xs",
@@ -2042,7 +2042,7 @@ function flexRebalanceAssetRow(row, index) {
             flex: 4,
             contents: [
               flexText(status, { size: "xs", color: accent, weight: "bold", align: "end", wrap: true }),
-              flexText(`Can buy ${fmtLineTHB(row.canBuyTHB)}`, {
+              flexText(`\u0E0B\u0E37\u0E49\u0E2D\u0E44\u0E14\u0E49 ${fmtLineTHB(row.canBuyTHB)}`, {
                 size: "xxs",
                 color: "#8C7D6B",
                 align: "end",
@@ -2057,8 +2057,8 @@ function flexRebalanceAssetRow(row, index) {
         type: "box",
         layout: "horizontal",
         contents: [
-          flexText(`Value ${fmtLineTHB(row.valueTHB)}`, { size: "xxs", color: "#8C7D6B", flex: 1 }),
-          flexText(`Target ${fmtLineTHB(row.targetValueTHB)}`, { size: "xxs", color: "#8C7D6B", align: "end", flex: 1 }),
+          flexText(`\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32 ${fmtLineTHB(row.valueTHB)}`, { size: "xxs", color: "#8C7D6B", flex: 1 }),
+          flexText(`\u0E40\u0E1B\u0E49\u0E32 ${fmtLineTHB(row.targetValueTHB)}`, { size: "xxs", color: "#8C7D6B", align: "end", flex: 1 }),
         ],
       },
     ],
@@ -2067,17 +2067,21 @@ function flexRebalanceAssetRow(row, index) {
 
 function formatRebalanceSummary(snapshot) {
   const plan = rebalancePlanStats(snapshot);
-  if (!plan.rows.length) return "SiamFolio Rebalance\nNo holdings found";
+  if (!plan.rows.length) return "SiamFolio Rebalance\n\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2A\u0E34\u0E19\u0E17\u0E23\u0E31\u0E1E\u0E22\u0E4C\u0E43\u0E19\u0E1E\u0E2D\u0E23\u0E4C\u0E15";
   const lines = [
     "SiamFolio Rebalance",
-    `Capital: ${fmtLineTHB(plan.capitalTHB)}`,
-    `Invested: ${fmtLineTHB(plan.totalCost)}`,
-    `Portfolio value: ${fmtLineTHB(plan.totalValue)}`,
-    `Buy power: ${fmtLineTHB(plan.buyPowerTHB)}`,
-    `Targets set: ${plan.targetCount}/${plan.rows.length} assets (${plan.targetPctSum.toFixed(1)}%)`,
+    `\u0E40\u0E07\u0E34\u0E19\u0E17\u0E38\u0E19\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49: ${fmtLineTHB(plan.capitalTHB)}`,
+    `\u0E40\u0E07\u0E34\u0E19\u0E25\u0E07\u0E17\u0E38\u0E19\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27: ${fmtLineTHB(plan.totalCost)}`,
+    `\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32\u0E1E\u0E2D\u0E23\u0E4C\u0E15: ${fmtLineTHB(plan.totalValue)}`,
+    `\u0E0B\u0E37\u0E49\u0E2D\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E14\u0E49: ${fmtLineTHB(plan.buyPowerTHB)}`,
+    `\u0E15\u0E31\u0E49\u0E07\u0E40\u0E1B\u0E49\u0E32\u0E41\u0E25\u0E49\u0E27: ${plan.targetCount}/${plan.rows.length} \u0E15\u0E31\u0E27 (${plan.targetPctSum.toFixed(1)}%)`,
     "",
     ...plan.rows.slice(0, 8).map(row => {
-      const need = row.buyNeedTHB > 0 ? `need ${fmtLineTHB(row.buyNeedTHB)}` : row.overTHB > 0 ? `over ${fmtLineTHB(row.overTHB)}` : "on target";
+      const need = row.buyNeedTHB > 0
+        ? `\u0E02\u0E32\u0E14 ${fmtLineTHB(row.buyNeedTHB)}`
+        : row.overTHB > 0
+          ? `\u0E40\u0E01\u0E34\u0E19 ${fmtLineTHB(row.overTHB)}`
+          : "\u0E16\u0E36\u0E07\u0E40\u0E1B\u0E49\u0E32";
       return `${row.ticker}: ${row.currentPct.toFixed(1)}% -> ${row.targetPct.toFixed(1)}% · ${need}`;
     }),
   ];
@@ -2106,8 +2110,8 @@ function rebalanceFlexMessage(snapshot, profileLabel = "SiamFolio") {
         backgroundColor: "#170F0C",
         contents: [
           flexText("REBALANCE CONTROL", { size: "xs", color: "#E6C56A", weight: "bold" }),
-          flexText("Per-Asset Targets", { size: "xl", color: "#FFFFFF", weight: "bold", margin: "sm", wrap: true }),
-          flexText(`${ownerName} · Year ${plan.currentYear}`, { size: "xs", color: "#D6C1A1", margin: "sm" }),
+          flexText("\u0E40\u0E1B\u0E49\u0E32\u0E2B\u0E21\u0E32\u0E22\u0E23\u0E32\u0E22\u0E2A\u0E34\u0E19\u0E17\u0E23\u0E31\u0E1E\u0E22\u0E4C", { size: "xl", color: "#FFFFFF", weight: "bold", margin: "sm", wrap: true }),
+          flexText(`${ownerName} · \u0E1B\u0E35 ${plan.currentYear}`, { size: "xs", color: "#D6C1A1", margin: "sm" }),
         ],
       },
       body: {
@@ -2127,15 +2131,15 @@ function rebalanceFlexMessage(snapshot, profileLabel = "SiamFolio") {
             borderWidth: "1px",
             cornerRadius: "14px",
             contents: [
-              flexText("Capital this round", { size: "xs", color: "#E6C56A", weight: "bold" }),
+              flexText("\u0E40\u0E07\u0E34\u0E19\u0E17\u0E38\u0E19\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49", { size: "xs", color: "#E6C56A", weight: "bold" }),
               flexText(fmtLineTHB(plan.capitalTHB), { size: "xxl", color: "#FFFFFF", weight: "bold", wrap: true }),
               {
                 type: "box",
                 layout: "horizontal",
                 spacing: "md",
                 contents: [
-                  flexRebalanceMetric("Invested", fmtLineTHB(plan.totalCost)),
-                  flexRebalanceMetric("Portfolio", fmtLineTHB(plan.totalValue)),
+                  flexRebalanceMetric("\u0E25\u0E07\u0E17\u0E38\u0E19\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27", fmtLineTHB(plan.totalCost)),
+                  flexRebalanceMetric("\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32\u0E1E\u0E2D\u0E23\u0E4C\u0E15", fmtLineTHB(plan.totalValue)),
                 ],
               },
               {
@@ -2143,12 +2147,12 @@ function rebalanceFlexMessage(snapshot, profileLabel = "SiamFolio") {
                 layout: "horizontal",
                 spacing: "md",
                 contents: [
-                  flexRebalanceMetric("Buy power", fmtLineTHB(plan.buyPowerTHB), "#E6C56A"),
-                  flexRebalanceMetric("Targets", `${plan.targetCount}/${plan.rows.length} assets`, completeness >= 100 ? "#26A269" : "#E6C56A"),
+                  flexRebalanceMetric("\u0E0B\u0E37\u0E49\u0E2D\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E14\u0E49", fmtLineTHB(plan.buyPowerTHB), "#E6C56A"),
+                  flexRebalanceMetric("\u0E15\u0E31\u0E49\u0E07\u0E40\u0E1B\u0E49\u0E32", `${plan.targetCount}/${plan.rows.length} \u0E15\u0E31\u0E27`, completeness >= 100 ? "#26A269" : "#E6C56A"),
                 ],
               },
               flexProgressBar(capitalPct, "#E94949", "#3A211D"),
-              flexText(`Capital used ${capitalPct.toFixed(1)}% · Target sum ${plan.targetPctSum.toFixed(1)}%`, {
+              flexText(`\u0E43\u0E0A\u0E49\u0E17\u0E38\u0E19\u0E44\u0E1B ${capitalPct.toFixed(1)}% · \u0E23\u0E27\u0E21\u0E40\u0E1B\u0E49\u0E32 ${plan.targetPctSum.toFixed(1)}%`, {
                 size: "xs",
                 color: "#D6C1A1",
                 weight: "bold",
@@ -2161,13 +2165,13 @@ function rebalanceFlexMessage(snapshot, profileLabel = "SiamFolio") {
             layout: "vertical",
             spacing: "sm",
             contents: [
-              flexText("TARGET ASSETS", { size: "sm", color: "#211C18", weight: "bold" }),
+              flexText("\u0E01\u0E23\u0E32\u0E1F\u0E40\u0E1B\u0E49\u0E32\u0E2B\u0E21\u0E32\u0E22\u0E41\u0E15\u0E48\u0E25\u0E30\u0E15\u0E31\u0E27", { size: "sm", color: "#211C18", weight: "bold" }),
               ...rows.map(flexRebalanceAssetRow),
             ],
           },
           flexText(plan.savedPlan
-            ? `Saved plan found for ${plan.currentYear}`
-            : "Set targets to 100%, then save the yearly plan on the Rebalance page.", {
+            ? `\u0E21\u0E35\u0E41\u0E1C\u0E19\u0E1B\u0E35 ${plan.currentYear} \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27`
+            : "\u0E15\u0E31\u0E49\u0E07\u0E40\u0E1B\u0E49\u0E32\u0E43\u0E2B\u0E49\u0E04\u0E23\u0E1A 100% \u0E41\u0E25\u0E49\u0E27\u0E01\u0E14\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E41\u0E1C\u0E19\u0E1B\u0E35\u0E19\u0E35\u0E49\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32 Rebalance", {
             size: "xs",
             color: "#8C7D6B",
             wrap: true,
@@ -2185,11 +2189,11 @@ function rebalanceFlexMessage(snapshot, profileLabel = "SiamFolio") {
             color: "#191512",
             action: {
               type: "uri",
-              label: "Open Rebalance",
+              label: "\u0E40\u0E1B\u0E34\u0E14 Rebalance",
               uri: "https://addy007x.github.io/dca-portfolio/#rebalance",
             },
           },
-          flexText("Type Rebalance, target, or Thai target commands to show this card again.", {
+          flexText("\u0E1E\u0E34\u0E21\u0E1E\u0E4C Rebalance, \u0E40\u0E1B\u0E49\u0E32 \u0E2B\u0E23\u0E37\u0E2D \u0E08\u0E31\u0E14\u0E1E\u0E2D\u0E23\u0E4C\u0E15 \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E19\u0E35\u0E49\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07", {
             size: "xs",
             color: "#8C7D6B",
             align: "center",
