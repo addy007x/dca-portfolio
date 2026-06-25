@@ -87,6 +87,7 @@ function buildSeed() {
       rebalanceAssetTargets: {},
       rebalanceExcludedTickers: [],
       rebalanceYearPlans: {},
+      deletedDcaTxIds: [],
       seeded: true,
     },
   };
@@ -265,8 +266,12 @@ function removeTransaction(id) {
   updateStore(s => {
     const old = s.transactions.find(t => t.id === id);
     if (!old) return s;
+    const deletedDcaTxIds = old.kind === "dca" && old.id
+      ? Array.from(new Set([...(s.settings?.deletedDcaTxIds || []), old.id])).slice(-500)
+      : (s.settings?.deletedDcaTxIds || []);
     return {
       ...s,
+      settings: { ...(s.settings || {}), deletedDcaTxIds },
       holdings: s.holdings.map(h => h.ticker === old.ticker ? reverseTxFromHolding(h, old) : h),
       dca: s.dca.map(d => adjustDcaAfterTxChange(d, old, null, s.fx)),
       transactions: s.transactions.filter(t => t.id !== id),
@@ -307,7 +312,24 @@ function addDCA(d) {
 }
 
 function removeDCA(id) {
-  updateStore(s => ({ ...s, dca: s.dca.filter(d => d.id !== id) }));
+  updateStore(s => {
+    const linkedTx = (s.transactions || []).filter(t => t.kind === "dca" && t.dcaId === id);
+    const deletedDcaTxIds = Array.from(new Set([
+      ...(s.settings?.deletedDcaTxIds || []),
+      ...linkedTx.map(t => t.id).filter(Boolean),
+    ])).slice(-500);
+    const holdings = linkedTx.reduce(
+      (rows, tx) => rows.map(h => h.ticker === tx.ticker ? reverseTxFromHolding(h, tx) : h),
+      s.holdings
+    );
+    return {
+      ...s,
+      settings: { ...(s.settings || {}), deletedDcaTxIds },
+      dca: s.dca.filter(d => d.id !== id),
+      holdings,
+      transactions: s.transactions.filter(t => !(t.kind === "dca" && t.dcaId === id)),
+    };
+  });
 }
 
 function updateDCA(id, patch) {

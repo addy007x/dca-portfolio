@@ -394,7 +394,15 @@ async function mergePortfolioSnapshotForSave(env, user, incoming) {
   const incomingTx = Array.isArray(incoming.transactions) ? incoming.transactions : [];
   const currentTx = Array.isArray(current.transactions) ? current.transactions : [];
   const txIds = new Set(incomingTx.map(t => t.id).filter(Boolean));
-  const preservedDcaTx = currentTx.filter(t => t.kind === "dca" && t.dcaId && !txIds.has(t.id));
+  const incomingDcaIds = new Set((incoming.dca || []).map(d => d.id).filter(Boolean));
+  const deletedDcaTxIds = new Set((incoming.settings?.deletedDcaTxIds || []).filter(Boolean));
+  const preservedDcaTx = currentTx.filter(t => (
+    t.kind === "dca" &&
+    t.dcaId &&
+    incomingDcaIds.has(t.dcaId) &&
+    !txIds.has(t.id) &&
+    !deletedDcaTxIds.has(t.id)
+  ));
   if (preservedDcaTx.length) next.transactions = [...preservedDcaTx, ...incomingTx];
 
   const currentDcaById = new Map((current.dca || []).map(d => [d.id, d]));
