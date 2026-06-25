@@ -1315,13 +1315,14 @@ function rebalancePlanStats(snapshot) {
   const settings = snapshot?.settings || {};
   const targets = settings.rebalanceAssetTargets || snapshot?.rebalanceAssetTargets || {};
   const yearPlans = settings.rebalanceYearPlans || snapshot?.rebalanceYearPlans || {};
+  const excluded = new Set((settings.rebalanceExcludedTickers || snapshot?.rebalanceExcludedTickers || []).map(String));
   const capitalTHB = Math.max(0, Number(settings.rebalanceCapitalTHB ?? snapshot?.rebalanceCapitalTHB ?? 0) || 0);
   const basisTHB = Math.max(stats.totalValue, capitalTHB);
   const buyPowerTHB = Math.max(0, capitalTHB - stats.totalValue);
-  const currentYear = new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok", year: "numeric" });
+  const currentYear = String(settings.rebalancePlanYear || snapshot?.rebalancePlanYear || new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok", year: "numeric" }));
   const savedPlan = yearPlans[String(currentYear)] || null;
 
-  const rows = stats.rows.map(row => {
+  const rows = stats.rows.filter(row => !excluded.has(String(row.ticker))).map(row => {
     const savedTarget = targets[row.ticker];
     const hasTarget = savedTarget !== undefined && savedTarget !== "";
     const currentPct = stats.totalValue > 0 ? (row.valueTHB / stats.totalValue) * 100 : 0;
@@ -1357,6 +1358,7 @@ function rebalancePlanStats(snapshot) {
     targetCount,
     totalNeedTHB,
     totalOverTHB,
+    excludedCount: excluded.size,
   };
 }
 

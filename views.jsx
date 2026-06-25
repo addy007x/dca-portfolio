@@ -907,13 +907,15 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
   const holdings = store.holdings || [];
   const FX = store.fx || 35.8;
   const settings = store.settings || {};
+  const currentPlanYear = String(new Date().getFullYear() + 543);
   const ccySym = ccy === "THB" ? "฿" : "$";
   const [profile, setProfile] = React.useState(settings.rebalanceProfile || "balanced");
   const [tolerance, setTolerance] = React.useState(Number(settings.rebalanceTolerance ?? 5));
   const [capital, setCapital] = React.useState(Number(settings.rebalanceCapitalTHB ?? 0));
   const [assetTargets, setAssetTargets] = React.useState(() => settings.rebalanceAssetTargets || {});
   const [yearPlans, setYearPlans] = React.useState(() => settings.rebalanceYearPlans || {});
-  const [planYear, setPlanYear] = React.useState(() => String(new Date().getFullYear() + 543));
+  const [excludedTickers, setExcludedTickers] = React.useState(() => settings.rebalanceExcludedTickers || []);
+  const [planYear, setPlanYear] = React.useState(() => String(settings.rebalancePlanYear || currentPlanYear));
 
   React.useEffect(() => {
     const nextProfile = settings.rebalanceProfile || "balanced";
@@ -993,7 +995,8 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
   const targetBasisTHB = Math.max(plan.totalTHB, capitalTHB);
 
   const assetRows = React.useMemo(() => {
-    return holdings.map(h => {
+    const excluded = new Set((excludedTickers || []).map(String));
+    return holdings.filter(h => !excluded.has(String(h.ticker))).map(h => {
       const valueTHB = h.qty * h.price * (h.ccy === "THB" ? 1 : FX);
       const currentPct = plan.totalTHB > 0 ? (valueTHB / plan.totalTHB) * 100 : 0;
       const savedTarget = assetTargets[h.ticker];
@@ -1013,7 +1016,7 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
         hasTarget,
       };
     }).sort((a, b) => b.buyNeedTHB - a.buyNeedTHB || b.valueTHB - a.valueTHB);
-  }, [FX, assetTargets, holdings, plan.totalTHB, targetBasisTHB]);
+  }, [FX, assetTargets, excludedTickers, holdings, plan.totalTHB, targetBasisTHB]);
 
   const targetPctSum = assetRows.reduce((s, h) => s + (Number(h.targetPct) || 0), 0);
   const totalAssetNeedTHB = assetRows.reduce((s, h) => s + h.buyNeedTHB, 0);
@@ -1056,9 +1059,33 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
     window.updateSettings?.({ rebalanceAssetTargets: updated });
   };
 
+  const setPlanYearAndPersist = (next) => {
+    const clean = String(next || currentPlanYear);
+    setPlanYear(clean);
+    window.updateSettings?.({ rebalancePlanYear: clean });
+  };
+
+  const removeAssetTarget = (ticker) => {
+    const key = String(ticker);
+    const nextTargets = { ...assetTargets };
+    delete nextTargets[key];
+    const nextExcluded = Array.from(new Set([...(excludedTickers || []).map(String), key]));
+    setAssetTargets(nextTargets);
+    setExcludedTickers(nextExcluded);
+    window.updateSettings?.({
+      rebalanceAssetTargets: nextTargets,
+      rebalanceExcludedTickers: nextExcluded,
+    });
+  };
+
+  const restoreAssetTargets = () => {
+    setExcludedTickers([]);
+    window.updateSettings?.({ rebalanceExcludedTickers: [] });
+  };
+
   const saveAnnualPlan = () => {
-    if (!annualPlanReady) return;
-    const key = String(planYear || new Date().getFullYear() + 543);
+    if (!assetTargetsComplete || capitalTHB <= 0) return;
+    const key = String(planYear || currentPlanYear);
     const snapshot = {
       year: key,
       savedAt: new Date().toISOString(),
@@ -1067,6 +1094,7 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
       buyPowerTHB,
       targetPctSum,
       assetTargets: { ...assetTargets },
+      excludedTickers: [...(excludedTickers || [])],
       assets: assetRows.map(h => ({
         ticker: h.ticker,
         classKey: h.classKey,
@@ -1078,8 +1106,19 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
       })),
     };
     const updated = { ...yearPlans, [key]: snapshot };
+    const nextYear = String((Number(key) || Number(currentPlanYear)) + 1);
     setYearPlans(updated);
-    window.updateSettings?.({ rebalanceYearPlans: updated });
+    setPlanYear(nextYear);
+    setCapital(0);
+    setAssetTargets({});
+    setExcludedTickers([]);
+    window.updateSettings?.({
+      rebalanceYearPlans: updated,
+      rebalancePlanYear: nextYear,
+      rebalanceCapitalTHB: 0,
+      rebalanceAssetTargets: {},
+      rebalanceExcludedTickers: [],
+    });
   };
 
   const deleteAnnualPlan = (year) => {
@@ -1231,7 +1270,7 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
                   min="2500"
                   step="1"
                   value={planYear}
-                  onChange={e => setPlanYear(e.target.value)}
+                  onChange={e => setPlanYearAndPersist(e.target.value)}
                   aria-label="ปีแผน Rebalance"
                 />
                 <button
@@ -1254,10 +1293,14 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
                       key={y}
                       className={`annual-plan-chip ${String(planYear) === String(y) ? "is-on" : ""}`}
                       onClick={() => {
-                        setPlanYear(String(y));
+                        setPlanYearAndPersist(String(y));
                         if (item?.assetTargets) {
                           setAssetTargets(item.assetTargets);
-                          window.updateSettings?.({ rebalanceAssetTargets: item.assetTargets });
+                          setExcludedTickers(item.excludedTickers || []);
+                          window.updateSettings?.({
+                            rebalanceAssetTargets: item.assetTargets,
+                            rebalanceExcludedTickers: item.excludedTickers || [],
+                          });
                         }
                         if (item?.capitalTHB != null) setCapitalAndPersist(item.capitalTHB);
                       }}
@@ -1288,9 +1331,19 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
                 })}
               </div>
             )}
+            {excludedTickers.length > 0 && (
+              <div className="asset-target-restore-row">
+                <span>ซ่อนจากแผน {excludedTickers.length} ตัว: {excludedTickers.join(", ")}</span>
+                <button type="button" className="btn sm" onClick={restoreAssetTargets}>
+                  คืนสินทรัพย์ที่ลบ
+                </button>
+              </div>
+            )}
             <div className="asset-target-list">
               {assetRows.length === 0 ? (
-                <div className="rebalance-empty">ยังไม่มีสินทรัพย์ในพอร์ต</div>
+                <div className="rebalance-empty">
+                  {holdings.length > 0 ? "ลบสินทรัพย์ออกจากแผนหมดแล้ว กดคืนสินทรัพย์ที่ลบเพื่อเริ่มใหม่" : "ยังไม่มีสินทรัพย์ในพอร์ต"}
+                </div>
               ) : assetRows.map(h => {
                 const displayNeed = ccy === "THB" ? Math.round(h.buyNeedTHB).toLocaleString() : fmtNum(h.buyNeedTHB / FX, 2);
                 const displayOver = ccy === "THB" ? Math.round(h.overTHB).toLocaleString() : fmtNum(h.overTHB / FX, 2);
@@ -1331,6 +1384,9 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
                             ? `เกินเป้า ${ccySym}${displayOver}`
                             : "น้ำหนักพอดี"}
                       </small>
+                      <button type="button" className="asset-target-remove" onClick={() => removeAssetTarget(h.ticker)}>
+                        ลบออกจากแผน
+                      </button>
                     </div>
                   </div>
                 );
@@ -1533,6 +1589,8 @@ function RebalanceHistoryView({ ccy, onBack }) {
     window.updateSettings?.({
       rebalanceAssetTargets: plan.assetTargets || {},
       rebalanceCapitalTHB: Number(plan.capitalTHB || 0),
+      rebalanceExcludedTickers: plan.excludedTickers || [],
+      rebalancePlanYear: String(plan.year || selectedYear),
     });
     location.hash = "#rebalance";
   };
@@ -1959,6 +2017,19 @@ const PAGE_STYLES = `
   flex-direction: column;
   gap: 8px;
 }
+.asset-target-restore-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 9px 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+}
 .asset-target-row {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) 112px minmax(145px, .65fr);
@@ -2026,6 +2097,19 @@ const PAGE_STYLES = `
   margin-top: 1px;
   color: var(--muted);
   font-size: 11px;
+}
+.asset-target-remove {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--down);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.asset-target-remove:hover {
+  text-decoration: underline;
 }
 .rebalance-item {
   border: 1px solid var(--line);
@@ -2477,6 +2561,7 @@ const PAGE_STYLES = `
   .asset-target-summary { text-align: left; }
   .annual-plan-save { grid-template-columns: 1fr; }
   .annual-plan-actions { grid-template-columns: 86px minmax(0, 1fr); }
+  .asset-target-restore-row { align-items: flex-start; flex-direction: column; }
   .asset-target-row {
     grid-template-columns: 1fr 94px;
     gap: 10px;
