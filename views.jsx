@@ -1096,6 +1096,9 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
       sub="คำนวณสัดส่วนพอร์ตจริง เทียบ target mix แล้วแนะนำว่าควรซื้อหรือขายตรงไหนก่อน"
       actions={
         <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
+          <button className="btn sm" onClick={() => { location.hash = "#rebalance-history"; }}>
+            <Ico name="history" size={13}/> ประวัติแผน
+          </button>
           <button className="btn sm" onClick={() => { location.hash = "#portfolio"; }}>
             <Ico name="wallet" size={13}/> ดูพอร์ต
           </button>
@@ -1496,6 +1499,212 @@ function RebalanceView({ ccy, onOpenAsset, onAddDCA }) {
 }
 
 // ─────── CSS for page layouts ───────
+function RebalanceHistoryView({ ccy, onBack }) {
+  const store = window.useStore();
+  const FX = Number(store.fx || 35.8);
+  const settings = store.settings || {};
+  const yearPlans = settings.rebalanceYearPlans || {};
+  const years = Object.keys(yearPlans).sort((a, b) => Number(b) - Number(a));
+  const [selectedYear, setSelectedYear] = React.useState(() => years[0] || "");
+
+  React.useEffect(() => {
+    if (!years.length) {
+      if (selectedYear) setSelectedYear("");
+      return;
+    }
+    if (!selectedYear || !yearPlans[selectedYear]) setSelectedYear(years[0]);
+  }, [years.join("|"), selectedYear]);
+
+  const plan = selectedYear ? yearPlans[selectedYear] : null;
+  const assets = (plan?.assets || []).slice().sort((a, b) => Number(b.targetPct || 0) - Number(a.targetPct || 0));
+  const money = (value) => {
+    const n = Number(value) || 0;
+    return ccy === "THB" ? "\u0E3F" + Math.round(n).toLocaleString("th-TH") : "$" + fmtNum(n / FX, 2);
+  };
+  const totalNeed = assets.reduce((sum, a) => sum + Math.max(0, Number(a.buyNeedTHB || 0)), 0);
+  const totalOver = assets.reduce((sum, a) => sum + Math.max(0, Number(a.overTHB || 0)), 0);
+  const topNeed = assets.filter(a => Number(a.buyNeedTHB || 0) > 0).slice(0, 3);
+  const targetSum = Number(plan?.targetPctSum || assets.reduce((sum, a) => sum + Number(a.targetPct || 0), 0));
+  const progressPct = Number(plan?.capitalTHB || 0) > 0 ? Math.min(100, (Number(plan?.totalTHB || 0) / Number(plan?.capitalTHB || 0)) * 100) : 0;
+  const savedAt = plan?.savedAt ? new Date(plan.savedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "-";
+
+  const loadPlan = () => {
+    if (!plan) return;
+    window.updateSettings?.({
+      rebalanceAssetTargets: plan.assetTargets || {},
+      rebalanceCapitalTHB: Number(plan.capitalTHB || 0),
+    });
+    location.hash = "#rebalance";
+  };
+
+  const deletePlan = () => {
+    if (!selectedYear) return;
+    const updated = { ...yearPlans };
+    delete updated[selectedYear];
+    window.updateSettings?.({ rebalanceYearPlans: updated });
+    setSelectedYear(Object.keys(updated).sort((a, b) => Number(b) - Number(a))[0] || "");
+  };
+
+  return (
+    <PageShell
+      title="ประวัติแผน Rebalance"
+      sub="ดูแผนที่บันทึกไว้แต่ละปี พร้อมทุนที่ใช้ สัดส่วนเป้าหมาย และสินทรัพย์ในแผน"
+      actions={
+        <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
+          <button className="btn sm" onClick={onBack || (() => { location.hash = "#rebalance"; })}>
+            <Ico name="swap" size={13}/> กลับ Rebalance
+          </button>
+          {plan && (
+            <button className="btn sm accent" onClick={loadPlan}>
+              <Ico name="swap" size={13}/> โหลดแผนนี้
+            </button>
+          )}
+        </div>
+      }
+    >
+      {!years.length ? (
+        <div className="card rebalance-history-empty">
+          <div className="rebalance-history-empty-icon">%</div>
+          <b>ยังไม่มีประวัติแผนรายปี</b>
+          <span>กลับไปหน้า Rebalance ตั้งเป้าให้ครบ 100% แล้วกดบันทึกแผนปีนี้</span>
+          <button className="btn primary" onClick={onBack || (() => { location.hash = "#rebalance"; })}>
+            เปิดหน้า Rebalance
+          </button>
+        </div>
+      ) : (
+        <div className="rebalance-history-page">
+          <div className="rebalance-year-rail">
+            {years.map((year) => {
+              const item = yearPlans[year] || {};
+              return (
+                <button
+                  type="button"
+                  key={year}
+                  className={String(selectedYear) === String(year) ? "is-on" : ""}
+                  onClick={() => setSelectedYear(year)}
+                >
+                  <b>{year}</b>
+                  <span>{money(item.capitalTHB || 0)}</span>
+                  <small>{(item.assets || []).length || 0} สินทรัพย์</small>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="rebalance-history-main">
+            <div className="kpi-grid rebalance-history-kpis" style={{marginBottom:20}}>
+              <div className="kpi">
+                <div className="label">ปีแผน</div>
+                <div className="value">{selectedYear || "-"}</div>
+                <div className="delta" style={{color:"var(--muted)"}}>บันทึก {savedAt}</div>
+              </div>
+              <div className="kpi">
+                <div className="label">เงินทุนที่ตั้งไว้</div>
+                <div className="value">{money(plan?.capitalTHB || 0)}</div>
+                <div className="delta" style={{color:"var(--muted)"}}>ทุนประจำปีที่ล็อกไว้</div>
+              </div>
+              <div className="kpi">
+                <div className="label">ทุนที่ใช้ในพอร์ต</div>
+                <div className="value">{money(plan?.totalTHB || 0)}</div>
+                <div className="delta" style={{color:"var(--muted)"}}>มูลค่าพอร์ตตอนบันทึก</div>
+              </div>
+              <div className="kpi">
+                <div className="label">ซื้อเพิ่มได้</div>
+                <div className="value" style={{color:"var(--up)"}}>{money(plan?.buyPowerTHB || 0)}</div>
+                <div className="delta" style={{color:"var(--muted)"}}>เงินเหลือเทียบทุนปีนั้น</div>
+              </div>
+            </div>
+
+            <div className="rebalance-history-grid">
+              <div className="card rebalance-history-summary">
+                <div className="card-head" style={{marginBottom:12}}>
+                  <div>
+                    <div className="card-title">สรุปสัดส่วนแผน</div>
+                    <div className="card-sub">รวมเป้า {targetSum.toFixed(1)}% · ใช้ทุน {progressPct.toFixed(1)}%</div>
+                  </div>
+                </div>
+                <div className="rebalance-history-progress">
+                  <div className="rebalance-history-progress-fill" style={{width: `${Math.max(2, Math.min(100, progressPct)).toFixed(0)}%`}} />
+                </div>
+                <div className="rebalance-history-metrics">
+                  <div><span>ขาดซื้อรวม</span><b style={{color:"var(--up)"}}>{money(totalNeed)}</b></div>
+                  <div><span>เกินเป้ารวม</span><b style={{color: totalOver > 0 ? "var(--down)" : "var(--muted)"}}>{money(totalOver)}</b></div>
+                  <div><span>จำนวนสินทรัพย์</span><b>{assets.length} ตัว</b></div>
+                </div>
+                <div className="rebalance-history-callout">
+                  <b>รายการที่ควรเติมก่อน</b>
+                  {topNeed.length
+                    ? topNeed.map(a => <span key={a.ticker}>{a.ticker} ขาดอีก {money(a.buyNeedTHB)}</span>)
+                    : <span>แผนนี้ไม่มีรายการที่ขาดเป้า</span>}
+                </div>
+              </div>
+
+              <div className="card rebalance-history-actions">
+                <div className="card-title">จัดการแผนปีนี้</div>
+                <div className="card-sub" style={{marginBottom:12}}>โหลดกลับไปแก้ไขในหน้า Rebalance หรือลบเฉพาะปีนี้ได้</div>
+                <button className="btn primary" onClick={loadPlan}>
+                  <Ico name="swap" size={14}/> โหลดแผนนี้ไปแก้
+                </button>
+                <button className="btn" onClick={deletePlan}>
+                  <Ico name="x" size={14}/> ลบแผนปี {selectedYear}
+                </button>
+              </div>
+            </div>
+
+            <div className="card rebalance-history-assets">
+              <div className="card-head" style={{marginBottom:12}}>
+                <div>
+                  <div className="card-title">สินทรัพย์ในแผนปี {selectedYear}</div>
+                  <div className="card-sub">เทียบสัดส่วนตอนบันทึกกับเป้าหมายรายสินทรัพย์</div>
+                </div>
+              </div>
+              {assets.length === 0 ? (
+                <div className="rebalance-empty">แผนนี้ยังไม่มีรายการสินทรัพย์</div>
+              ) : (
+                <div className="rebalance-history-asset-list">
+                  {assets.map((asset) => {
+                    const currentPct = Number(asset.currentPct || 0);
+                    const targetPct = Number(asset.targetPct || 0);
+                    const need = Math.max(0, Number(asset.buyNeedTHB || 0));
+                    const over = Math.max(0, Number(asset.overTHB || 0));
+                    const status = need > 0 ? "ขาดเป้า" : over > 0 ? "เกินเป้า" : "พอดี";
+                    const statusClass = need > 0 ? "buy" : over > 0 ? "sell" : "hold";
+                    return (
+                      <div className="rebalance-history-asset" key={asset.ticker}>
+                        <div className="rebalance-history-asset-head">
+                          <div>
+                            <b>{asset.ticker}</b>
+                            <span>{asset.classKey || "asset"} · มูลค่า {money(asset.valueTHB || 0)}</span>
+                          </div>
+                          <em className={statusClass}>{status}</em>
+                        </div>
+                        <div className="rebalance-history-bars">
+                          <div>
+                            <span>ตอนบันทึก {currentPct.toFixed(1)}%</span>
+                            <div><i style={{width:`${Math.max(2, Math.min(100, currentPct)).toFixed(0)}%`}} /></div>
+                          </div>
+                          <div>
+                            <span>เป้าหมาย {targetPct.toFixed(1)}%</span>
+                            <div><i className="target" style={{width:`${Math.max(2, Math.min(100, targetPct)).toFixed(0)}%`}} /></div>
+                          </div>
+                        </div>
+                        <div className="rebalance-history-asset-foot">
+                          <span>ขาดอีก {money(need)}</span>
+                          <span>เกินเป้า {money(over)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </PageShell>
+  );
+}
+
 const PAGE_STYLES = `
 .page-shell { display: flex; flex-direction: column; gap: 0; }
 .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
@@ -2042,6 +2251,205 @@ const PAGE_STYLES = `
   line-height: 1.45;
   color: var(--muted);
 }
+.rebalance-history-page {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+.rebalance-year-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  top: 86px;
+}
+.rebalance-year-rail button {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 12px 14px;
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+}
+.rebalance-year-rail button.is-on {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--accent-soft), var(--surface));
+}
+.rebalance-year-rail b,
+.rebalance-year-rail span,
+.rebalance-year-rail small {
+  display: block;
+}
+.rebalance-year-rail b {
+  font-size: 18px;
+  font-family: var(--font-num);
+}
+.rebalance-year-rail span {
+  margin-top: 3px;
+  font-weight: 800;
+  color: var(--accent-ink);
+}
+.rebalance-year-rail small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.rebalance-history-main {
+  min-width: 0;
+}
+.rebalance-history-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(250px, .55fr);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.rebalance-history-progress {
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--line);
+}
+.rebalance-history-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--up));
+}
+.rebalance-history-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.rebalance-history-metrics div {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--surface-2);
+}
+.rebalance-history-metrics span,
+.rebalance-history-callout span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+.rebalance-history-metrics b {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-num);
+  font-size: 15px;
+}
+.rebalance-history-callout {
+  margin-top: 14px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--surface-2);
+}
+.rebalance-history-callout b {
+  display: block;
+  margin-bottom: 6px;
+}
+.rebalance-history-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-self: stretch;
+}
+.rebalance-history-actions .btn {
+  justify-content: center;
+}
+.rebalance-history-assets {
+  padding-bottom: 16px;
+}
+.rebalance-history-asset-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.rebalance-history-asset {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--surface);
+}
+.rebalance-history-asset-head,
+.rebalance-history-asset-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+.rebalance-history-asset-head b {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+.rebalance-history-asset-head span,
+.rebalance-history-asset-foot span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.rebalance-history-asset-head em {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+.rebalance-history-asset-head em.buy { background: var(--up-soft); color: var(--up); }
+.rebalance-history-asset-head em.sell { background: var(--down-soft); color: var(--down); }
+.rebalance-history-asset-head em.hold { background: var(--surface-2); color: var(--muted); }
+.rebalance-history-bars {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+.rebalance-history-bars span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.rebalance-history-bars div div {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--line);
+}
+.rebalance-history-bars i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+.rebalance-history-bars i.target {
+  background: var(--up);
+}
+.rebalance-history-empty {
+  display: grid;
+  gap: 10px;
+  place-items: center;
+  padding: 44px 20px;
+  text-align: center;
+}
+.rebalance-history-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 24px;
+  font-weight: 900;
+}
+.rebalance-history-empty span {
+  color: var(--muted);
+  font-size: 13px;
+}
 .rebalance-empty {
   padding: 18px 12px;
   text-align: center;
@@ -2053,6 +2461,15 @@ const PAGE_STYLES = `
 }
 @media (max-width: 1080px) {
   .rebalance-grid { grid-template-columns: 1fr; }
+  .rebalance-history-page { grid-template-columns: 1fr; }
+  .rebalance-year-rail {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .rebalance-year-rail button { min-width: 150px; }
+  .rebalance-history-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
   .rebalance-toolbar { grid-template-columns: 1fr; }
@@ -2068,6 +2485,9 @@ const PAGE_STYLES = `
     grid-column: 1 / -1;
     text-align: left;
   }
+  .rebalance-history-kpis { grid-template-columns: 1fr; }
+  .rebalance-history-metrics { grid-template-columns: 1fr; }
+  .rebalance-history-asset-list { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {
@@ -2259,4 +2679,4 @@ if (!document.getElementById("views-styles")) {
   document.head.appendChild(s);
 }
 
-Object.assign(window, { DCAView, EarnView, HistoryView, PortfolioView, BenchView, RebalanceView, PageShell });
+Object.assign(window, { DCAView, EarnView, HistoryView, PortfolioView, BenchView, RebalanceView, RebalanceHistoryView, PageShell });

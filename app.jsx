@@ -16,7 +16,7 @@ function applyAccent(key) {
   r.setProperty("--accent-soft", a.soft);
 }
 
-const APP_VIEW_KINDS = ["dashboard","portfolio","rebalance","dca","earn","history","tax","bench"];
+const APP_VIEW_KINDS = ["dashboard","portfolio","rebalance","rebalance-history","dca","earn","history","tax","bench"];
 const APP_ACTION_KINDS = ["add-tx","settings"];
 
 function hashKind() {
@@ -96,7 +96,7 @@ function App() {
   const onBack = () => goTo("dashboard");
 
   const navKinds = APP_VIEW_KINDS;
-  const activeNav = navKinds.includes(view.kind) ? view.kind : (view.kind === "detail" ? "portfolio" : "dashboard");
+  const activeNav = view.kind === "rebalance-history" ? "rebalance" : navKinds.includes(view.kind) ? view.kind : (view.kind === "detail" ? "portfolio" : "dashboard");
 
   // Find current asset state (may have changed since opening detail)
   const currentAsset = view.kind === "detail" && view.asset
@@ -147,6 +147,9 @@ function App() {
             ? <RebalanceView ccy={s.ccy}
                              onOpenAsset={onOpenAsset}
                              onAddDCA={openDcaModal}/>
+            : view.kind === "rebalance-history"
+            ? <RebalanceHistoryView ccy={s.ccy}
+                                    onBack={() => goTo("rebalance")}/>
             : view.kind === "dca"
             ? <DCAView ccy={s.ccy} onAddDCA={openDcaModal} onEditDCA={openEditDCA}/>
             : view.kind === "earn"
