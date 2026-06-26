@@ -468,32 +468,86 @@ async function handleCrypto(url, env) {
 }
 
 async function handleStocks(url, env) {
-  const symbols = (url.searchParams.get("symbols") || "").split(",").filter(Boolean);
+  const symbols = (url.searchParams.get("symbols") || "")
+    .split(",")
+    .map(sym => sym.trim().toUpperCase())
+    .filter(Boolean);
   if (symbols.length === 0) return json({});
   const cacheKey = `yf:${symbols.sort().join(",")}`;
   const cached = await cacheGet(env, cacheKey);
   if (cached) return json(cached);
   const results = await Promise.all(symbols.map(async (sym) => {
     try {
+      const headers = { "User-Agent": "Mozilla/5.0 SiamFolio/1.0" };
       const r = await fetch(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2d`,
-        { headers: { "User-Agent": "Mozilla/5.0 SiamFolio/1.0" } }
+        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1m&range=1d&includePrePost=true`,
+        { headers }
       );
       if (!r.ok) return [sym, null];
-      const data = await r.json();
-      const meta = data?.chart?.result?.[0]?.meta;
-      if (!meta || typeof meta.regularMarketPrice !== "number") return [sym, null];
-      const price = meta.regularMarketPrice;
-      const prev = meta.chartPreviousClose || meta.previousClose || price;
+      const chart = await r.json().catch(() => ({}));
+      const result = chart?.chart?.result?.[0] || {};
+      const meta = result?.meta;
+      if (!meta) return [sym, null];
+      const timestamps = Array.isArray(result.timestamp) ? result.timestamp : [];
+      const closes = Array.isArray(result.indicators?.quote?.[0]?.close) ? result.indicators.quote[0].close : [];
+      let latestClose = null;
+      let latestTime = null;
+      for (let i = closes.length - 1; i >= 0; i -= 1) {
+        const close = rawNumber(closes[i]);
+        const time = Number(timestamps[i]);
+        if (close !== null && Number.isFinite(time)) {
+          latestClose = close;
+          latestTime = time;
+          break;
+        }
+      }
+      const state = String(meta.marketState || "").toUpperCase();
+      const regular = rawNumber(meta.regularMarketPrice);
+      const pre = rawNumber(meta.preMarketPrice);
+      const post = rawNumber(meta.postMarketPrice);
+      const prev =
+        rawNumber(meta.chartPreviousClose) ??
+        rawNumber(meta.previousClose) ??
+        regular ??
+        latestClose ??
+        pre ??
+        post;
+      let price = latestClose ?? regular ?? pre ?? post ?? prev;
+      let session = stockSessionFromTime(meta, latestTime, state);
+      if (pre !== null && state.includes("PRE")) {
+        price = pre;
+        session = "pre";
+      } else if (post !== null && (state.includes("POST") || state.includes("CLOSED"))) {
+        price = post;
+        session = "post";
+      } else if (session === "latest" && regular !== null) {
+        session = state.includes("CLOSED") ? "close" : "regular";
+      } else if (regular !== null && state.includes("CLOSED") && latestClose === null) {
+        session = "close";
+      }
+      if (!Number.isFinite(price)) return [sym, null];
       const chg1d = prev > 0 ? ((price - prev) / prev) * 100 : 0;
-      return [sym, { price, chg1d, source: "yahoo", currency: meta.currency }];
+      const updatedAt = Number(latestTime || meta.regularMarketTime || meta.preMarketTime || meta.postMarketTime || 0) || null;
+      return [sym, {
+        price,
+        chg1d,
+        source: "yahoo",
+        currency: meta.currency,
+        marketState: state || "UNKNOWN",
+        session,
+        regularMarketPrice: regular,
+        preMarketPrice: pre,
+        postMarketPrice: post,
+        previousClose: prev,
+        updatedAt
+      }];
     } catch (_) {
       return [sym, null];
     }
   }));
   const out = {};
   for (const [sym, info] of results) if (info) out[sym] = info;
-  await cacheSet(env, cacheKey, out, 60);
+  await cacheSet(env, cacheKey, out, 30);
   return json(out);
 }
 
@@ -501,6 +555,24 @@ function rawNumber(value) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (value && typeof value.raw === "number" && Number.isFinite(value.raw)) return value.raw;
   return null;
+}
+
+function stockSessionFromTime(meta = {}, timestamp, marketState = "") {
+  const ts = Number(timestamp);
+  const periods = meta.currentTradingPeriod || {};
+  if (Number.isFinite(ts) && ts > 0) {
+    for (const [session, period] of Object.entries({ pre: periods.pre, regular: periods.regular, post: periods.post })) {
+      const start = Number(period?.start);
+      const end = Number(period?.end);
+      if (Number.isFinite(start) && Number.isFinite(end) && ts >= start && ts <= end) return session;
+    }
+  }
+  const state = String(marketState || "").toUpperCase();
+  if (state.includes("PRE")) return "pre";
+  if (state.includes("POST")) return "post";
+  if (state.includes("CLOSED")) return "close";
+  if (state.includes("REGULAR")) return "regular";
+  return "latest";
 }
 
 function normalizeDividendYield(value) {

@@ -2493,6 +2493,111 @@ body:before {
   color: #fff;
 }
 .project-link { right: 14px; top: 58px; bottom: auto; width: 310px; }
+.stock-price-panel {
+  right: 14px;
+  top: 58px;
+  width: 332px;
+  min-height: 238px;
+  border-color: rgba(255, 191, 78, .48);
+  background:
+    radial-gradient(circle at 92% 7%, rgba(255, 191, 78, .13), transparent 28%),
+    linear-gradient(180deg, rgba(7, 5, 6, .78), rgba(3, 3, 4, .92)),
+    url("assets/schedule-panel-bg.png") center / cover no-repeat;
+  box-shadow:
+    0 0 0 1px rgba(255, 191, 78, .10) inset,
+    0 16px 38px rgba(0, 0, 0, .45),
+    0 0 20px rgba(255, 35, 48, .12);
+}
+.stock-price-panel .window-bar {
+  color: #ffd36c;
+  border-bottom-color: rgba(255, 191, 78, .26);
+}
+.stock-price-body {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+.stock-price-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px;
+  gap: 6px;
+}
+.stock-price-form input {
+  min-width: 0;
+  height: 30px;
+  border: 1px solid rgba(255, 191, 78, .32);
+  background: rgba(4, 4, 5, .82);
+  color: #fff4d8;
+  padding: 0 8px;
+  font: 800 10px/1 var(--mono);
+  text-transform: uppercase;
+}
+.stock-price-form button {
+  height: 30px;
+  border: 1px solid rgba(255, 191, 78, .62);
+  background: linear-gradient(180deg, #ffd36c, #b27212);
+  color: #130b03;
+  font: 900 10px/1 var(--mono);
+  text-transform: uppercase;
+}
+.stock-price-note {
+  color: #cbbfba;
+  font: 700 9px/1.35 var(--mono);
+}
+.stock-price-list {
+  display: grid;
+  gap: 6px;
+  max-height: 148px;
+  overflow: auto;
+  padding-right: 2px;
+}
+.stock-price-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 1px solid rgba(255, 191, 78, .20);
+  background: rgba(5, 5, 6, .70);
+}
+.stock-price-name {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.stock-price-name b {
+  color: #fff4d8;
+  font: 900 13px/1 var(--mono);
+  letter-spacing: .03em;
+}
+.stock-price-name span {
+  color: #aa9f9d;
+  font: 700 9px/1 var(--mono);
+}
+.stock-price-value {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  white-space: nowrap;
+}
+.stock-price-value b {
+  color: #ffffff;
+  font: 900 14px/1 var(--mono);
+}
+.stock-price-value i {
+  font-style: normal;
+  font: 900 10px/1 var(--mono);
+}
+.stock-session {
+  color: #ffd36c;
+}
+.stock-live-empty {
+  padding: 12px 9px;
+  border: 1px dashed rgba(255, 191, 78, .28);
+  color: #cbbfba;
+  font: 800 10px/1.45 var(--mono);
+  text-align: center;
+}
 .line-link { right: 14px; bottom: 112px; width: 255px; }
 .team-chat { right: 14px; bottom: 14px; width: 255px; }
 .terminal { left: 14px; bottom: 14px; width: 300px; }
@@ -3185,6 +3290,7 @@ body:before {
       <div class="quick-action-rail" aria-label="Dashboard quick actions">
         <button type="button" data-panel-target="status-card-one">Schedule</button>
         <button type="button" data-panel-target="project-link">Music</button>
+        <button type="button" data-panel-target="stock-price-panel">Stocks</button>
      
       </div>
       <div class="panel-dock" id="panelDock" aria-label="Open or hide dashboard panels"></div>
@@ -3218,6 +3324,19 @@ body:before {
         <div class="window-bar"><span>LINE OA</span><span>Linked</span></div>
         <div class="window-body">
           <p>STATUS : Ready</p><p>Webhook : Active</p><p>Command : พอร์ต / dca</p><p>Last Update : <span class="time-inline">--:--:--</span></p>
+        </div>
+      </div>
+      <div class="floating stock-price-panel" data-drag-id="stock-price-panel" role="group" aria-label="Realtime stock prices">
+        <div class="window-bar"><span>Stock Live</span><span id="stockPriceStatus">Ready</span></div>
+        <div class="window-body stock-price-body">
+          <form class="stock-price-form" id="stockPriceForm">
+            <input id="stockSymbolsInput" type="text" maxlength="90" autocomplete="off" spellcheck="false" aria-label="Stock symbols">
+            <button id="stockPriceRefresh" type="submit">GET</button>
+          </form>
+          <div class="stock-price-note">หุ้นไทยใช้ .BK เช่น PTT.BK หรือพิมพ์ PTT ได้บางตัว | US แสดงก่อนเปิด/หลังปิดถ้ามีข้อมูล</div>
+          <div class="stock-price-list" id="stockPriceList">
+            <div class="stock-live-empty">กำลังรอราคา</div>
+          </div>
         </div>
       </div>
       <div class="floating project-link music-player" data-drag-id="project-link" role="group" aria-label="Music player">
@@ -3384,6 +3503,10 @@ body:before {
   const musicTitle = document.getElementById("musicTitle");
   const musicSubtitle = document.getElementById("musicSubtitle");
   const musicYoutubeHost = document.getElementById("musicYoutubeHost");
+  const stockPriceForm = document.getElementById("stockPriceForm");
+  const stockSymbolsInput = document.getElementById("stockSymbolsInput");
+  const stockPriceStatus = document.getElementById("stockPriceStatus");
+  const stockPriceList = document.getElementById("stockPriceList");
   const appointmentForm = document.getElementById("appointmentForm");
   const appointmentTitle = document.getElementById("appointmentTitle");
   const appointmentDate = document.getElementById("appointmentDate");
@@ -3397,8 +3520,11 @@ body:before {
   const HUD_TOTAL_MS_KEY = "siamfolio.dashboardDesign.hudTotalMs";
   const ANNUAL_GOAL_KEY = "siamfolio.dashboardDesign.annualGoalTHB";
   const MUSIC_URL_KEY = "siamfolio.dashboardDesign.musicUrl";
+  const STOCK_SYMBOLS_KEY = "siamfolio.dashboardDesign.stockSymbols.v1";
   const CRYPTO_WATCHLIST_KEY = "siamfolio.dashboardDesign.cryptoWatchlists.v1";
   const CRYPTO_PRICE_CACHE_KEY = "siamfolio.dashboardDesign.cryptoPriceCache.v1";
+  const DEFAULT_STOCK_SYMBOLS = ["NVDA", "AAPL", "MSFT", "PTT.BK", "CPALL.BK"];
+  const THAI_STOCK_HINTS = new Set(["PTT", "CPALL", "AOT", "ADVANC", "DELTA", "KBANK", "SCB", "BBL", "KTB", "SCC", "TRUE", "GULF", "CPN", "CRC", "BDMS", "BEM", "BTS", "MINT", "OR"]);
   const DEFAULT_CRYPTO_WATCHLISTS = {
     primary: ["BTC", "XAUT", "TRX"],
     secondary: ["ETH", "SOL", "BNB"]
@@ -3417,6 +3543,7 @@ body:before {
   let cryptoWatchlists = loadCryptoWatchlists();
   let cryptoPriceCache = loadCryptoPriceCache();
   let cryptoRefreshing = false;
+  let stockPriceRefreshing = false;
   let activeAgent = "portfolio";
   const history = [];
   const agents = {
@@ -3739,6 +3866,116 @@ body:before {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals
     })}`;
+  }
+  function formatStockPrice(value, currency = "USD") {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return "--";
+    const upper = String(currency || "USD").toUpperCase();
+    const symbol = upper === "THB" ? "\u0E3F" : upper === "USD" ? "$" : `${upper} `;
+    const decimals = n >= 100 ? 2 : n >= 1 ? 2 : 4;
+    return `${symbol}${n.toLocaleString("en-US", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    })}`;
+  }
+  function normalizeStockSymbol(value) {
+    const raw = String(value || "").trim().toUpperCase().replace(/[^A-Z0-9.^-]/g, "");
+    if (!raw) return "";
+    if (!raw.includes(".") && THAI_STOCK_HINTS.has(raw)) return `${raw}.BK`;
+    return raw.slice(0, 16);
+  }
+  function getStockSymbols() {
+    const source = stockSymbolsInput?.value || localStorage.getItem(STOCK_SYMBOLS_KEY) || DEFAULT_STOCK_SYMBOLS.join(", ");
+    const seen = new Set();
+    return String(source)
+      .split(/[,\s]+/)
+      .map(normalizeStockSymbol)
+      .filter(symbol => {
+        if (!symbol || seen.has(symbol)) return false;
+        seen.add(symbol);
+        return true;
+      })
+      .slice(0, 8);
+  }
+  function stockSessionText(data = {}) {
+    const session = String(data.session || "").toLowerCase();
+    if (session === "pre") return "ก่อนเปิดตลาด";
+    if (session === "post") return "หลังปิดตลาด";
+    if (session === "regular") return "ตลาดเปิด";
+    if (session === "close") return "ปิดตลาด";
+    return data.marketState ? String(data.marketState) : "ล่าสุด";
+  }
+  function stockTimeText(timestamp) {
+    const ts = Number(timestamp);
+    if (!Number.isFinite(ts) || ts <= 0) return "";
+    return new Date(ts * 1000).toLocaleTimeString("th-TH", {
+      timeZone: "Asia/Bangkok",
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+  function renderStockPrices(prices = {}, symbols = getStockSymbols(), status = "") {
+    if (!stockPriceList) return;
+    if (!symbols.length) {
+      stockPriceList.innerHTML = `<div class="stock-live-empty">ใส่ Symbol หุ้นก่อน เช่น NVDA, PTT.BK</div>`;
+      return;
+    }
+    stockPriceList.innerHTML = symbols.map(symbol => {
+      const data = prices?.[symbol] || prices?.[symbol.toUpperCase()] || {};
+      const price = Number(data.price);
+      const chg = Number(data.chg1d);
+      const hasPrice = Number.isFinite(price);
+      const hasChange = Number.isFinite(chg);
+      const session = hasPrice ? stockSessionText(data) : (status || "รอราคา");
+      const time = stockTimeText(data.updatedAt);
+      const changeClass = hasChange && chg < 0 ? "negative" : "positive";
+      const changeText = hasChange ? fmtPct(chg) : "--";
+      return `
+        <div class="stock-price-row">
+          <span class="stock-price-name">
+            <b>${escapeHtml(symbol)}</b>
+            <span><i class="stock-session">${escapeHtml(session)}</i>${time ? ` · ${escapeHtml(time)} น.` : ""}</span>
+          </span>
+          <span class="stock-price-value">
+            <b>${hasPrice ? formatStockPrice(price, data.currency) : "--"}</b>
+            <i class="${changeClass}">${changeText}</i>
+          </span>
+        </div>
+      `;
+    }).join("");
+  }
+  async function fetchStockPrices(symbols) {
+    if (!apiUrl || !symbols.length) return {};
+    const response = await fetch(`${apiUrl}/api/prices/stocks?symbols=${encodeURIComponent(symbols.join(","))}`);
+    if (!response.ok) throw new Error(`stock prices ${response.status}`);
+    return await response.json();
+  }
+  async function refreshStockPrices(force = false) {
+    if (stockPriceRefreshing) return;
+    const symbols = getStockSymbols();
+    if (!symbols.length) return renderStockPrices({}, [], "");
+    if (stockSymbolsInput) stockSymbolsInput.value = symbols.join(", ");
+    if (force) localStorage.setItem(STOCK_SYMBOLS_KEY, symbols.join(", "));
+    stockPriceRefreshing = true;
+    if (stockPriceStatus) stockPriceStatus.textContent = apiUrl ? "Loading" : "API Off";
+    renderStockPrices({}, symbols, apiUrl ? "กำลังดึงราคา" : "ยังไม่ได้ตั้งค่า API");
+    try {
+      const prices = await fetchStockPrices(symbols);
+      renderStockPrices(prices, symbols, "ไม่พบราคา");
+      if (stockPriceStatus) stockPriceStatus.textContent = "Live";
+    } catch (_) {
+      renderStockPrices({}, symbols, "ดึงราคาไม่ได้");
+      if (stockPriceStatus) stockPriceStatus.textContent = "Error";
+    } finally {
+      stockPriceRefreshing = false;
+    }
+  }
+  function initStockPricePanel() {
+    if (!stockSymbolsInput) return;
+    stockSymbolsInput.value = localStorage.getItem(STOCK_SYMBOLS_KEY) || DEFAULT_STOCK_SYMBOLS.join(", ");
+    renderStockPrices({}, getStockSymbols(), "กำลังรอราคา");
+    refreshStockPrices(false);
   }
   function normalizeCryptoSymbol(value) {
     return String(value || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
@@ -4325,6 +4562,7 @@ body:before {
       "status-card-one": '[data-drag-id="status-card-one"]',
       "status-card-two": ".status-card.two",
       "project-link": '[data-drag-id="project-link"]',
+      "stock-price-panel": '[data-drag-id="stock-price-panel"]',
       "team-chat": ".team-chat",
       terminal: ".terminal"
     };
@@ -4349,6 +4587,7 @@ body:before {
       { transform: "translateY(-7px) scale(.98)", boxShadow: "0 0 0 rgba(255,40,50,0)" },
       { transform: "translateY(0) scale(1)", boxShadow: "0 0 34px rgba(255,40,50,.38)" }
     ], { duration: 340, easing: "ease-out" });
+    if (target === "stock-price-panel") refreshStockPrices(false);
   }
   function formatMusicTime(seconds) {
     const safe = Math.max(0, Number(seconds) || 0);
@@ -4637,6 +4876,7 @@ body:before {
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
     const minPanelSize = panel => {
       if (panel.classList.contains("music-player")) return { w: 270, h: 190 };
+      if (panel.classList.contains("stock-price-panel")) return { w: 300, h: 210 };
       if (panel.classList.contains("terminal")) return { w: 260, h: 112 };
       if (panel.classList.contains("appointment-card")) return { w: 330, h: 330 };
       if (panel.classList.contains("status-card")) return { w: 220, h: 112 };
@@ -4857,6 +5097,10 @@ body:before {
   document.querySelectorAll("[data-panel-target]").forEach(button => {
     button.addEventListener("click", () => showQuickPanel(button.dataset.panelTarget));
   });
+  stockPriceForm?.addEventListener("submit", event => {
+    event.preventDefault();
+    refreshStockPrices(true);
+  });
   annualGoalSetBtn?.addEventListener("click", setAnnualGoalTarget);
   musicOpenDashboard?.addEventListener("click", () => openWithDelay("./index.html#dashboard", "กำลังเปิด DCA-Portfolio"));
   musicPlayBtn?.addEventListener("click", toggleMusic);
@@ -4905,6 +5149,7 @@ body:before {
   updateClock();
   updateHudLevel();
   renderAllCryptoWatchlists("loading");
+  initStockPricePanel();
   initMusicPlayer();
   applyProfile();
   initAppointments();
@@ -4925,6 +5170,7 @@ body:before {
   setInterval(updateClock, 1000);
   setInterval(updateHudLevel, 1000);
   setInterval(refreshWalletSummary, 60 * 1000);
+  setInterval(refreshStockPrices, 30 * 1000);
   setInterval(refreshCryptoWatchlists, 60 * 1000);
 })();
 </script>
