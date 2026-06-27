@@ -1,0 +1,15 @@
+{
+  "name": "mexc-launchpad-alert",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MEXC Launchpad activity monitor with LINE alerts.",
+  "scripts": {
+    "start": "node src/index.js",
+    "once": "node src/index.js --once",
+    "once:notify-existing": "node src/index.js --once --notify-existing"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
