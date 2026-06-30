@@ -923,8 +923,8 @@ select {
 
 .asset-table { padding: 4px 20px 20px; }
 .asset-row {
-  grid-template-columns: 36px minmax(0, 1.35fr) 112px 112px 70px;
-  min-height: 46px;
+  grid-template-columns: 40px minmax(0, 1.35fr) 112px 112px 70px;
+  min-height: 50px;
   padding: 3px 2px;
   border-left: 2px solid transparent;
   border-radius: 10px;
@@ -968,12 +968,12 @@ select {
   font-weight: 800;
 }
 .asset-icon {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--dot, var(--gold)), transparent 42%);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--dot, var(--gold));
   background:
     radial-gradient(circle at 50% 12%, color-mix(in srgb, var(--dot, var(--gold)), transparent 70%), transparent 58%),
@@ -982,14 +982,36 @@ select {
   overflow: hidden;
 }
 .asset-icon img {
-  width: 22px;
-  height: 22px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  padding: 4px;
+  border-radius: inherit;
+  background: rgba(255,255,255,.96);
   filter: drop-shadow(0 0 8px color-mix(in srgb, var(--dot, var(--gold)), transparent 62%));
 }
+.asset-type-crypto .asset-icon,
+.asset-type-gold .asset-icon {
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(255,255,255,.16), transparent 38%),
+    color-mix(in srgb, var(--dot, var(--gold)), #0d0b08 74%);
+}
+.asset-type-crypto .asset-icon img,
+.asset-type-gold .asset-icon img {
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  object-fit: cover;
+}
+.asset-type-stocks .asset-icon {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,255,255,.035)),
+    color-mix(in srgb, var(--dot, var(--gold)), #0d0b08 80%);
+}
 .asset-icon svg {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   stroke-width: 2.15;
 }
 .asset-dot {
