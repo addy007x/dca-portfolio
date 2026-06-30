@@ -15,7 +15,8 @@
   const storageKeys = {
     transactions: "siamfolio.dashboard.transactions.v1",
     categories: "siamfolio.dashboard.categories.v1",
-    portfolio: "siamfolio.v1"
+    portfolio: "siamfolio.v1",
+    layout: "siamfolio.dashboard.layout.v1"
   };
 
   const assets = [
@@ -97,6 +98,7 @@
   let activeAssetFilter = "all";
   let editingTransactionId = null;
   let reportFilter = "all";
+  let selectedAssetTxTicker = "";
   const monthBaseline = [
     { key: "2026-01", label: "ม.ค. 2026", income: 38000, expense: 15500 },
     { key: "2026-02", label: "ก.พ. 2026", income: 40000, expense: 19800 },
@@ -216,6 +218,11 @@
     return null;
   }
 
+  function savePortfolioStore(store) {
+    localStorage.setItem(storageKeys.portfolio, JSON.stringify(store));
+    window.dispatchEvent(new CustomEvent("siamfolio:portfolio-updated", { detail: store }));
+  }
+
   function assetValueTHB(asset, fx) {
     const value = Number(asset.qty || 0) * Number(asset.price || 0);
     return asset.ccy === "THB" ? value : value * fx;
@@ -256,6 +263,48 @@
       const type = normalizeAssetType(asset);
       return { ...asset, type, icon: assetIconName({ ...asset, type }), logoUrl: assetLogoUrl({ ...asset, type }) };
     });
+  }
+
+  function getRawPortfolioHoldings() {
+    const store = loadPortfolioStore();
+    const holdings = (store?.holdings || [])
+      .filter(asset => Number(asset.qty || 0) > 0)
+      .map(asset => {
+        const type = normalizeAssetType(asset);
+        return {
+          ...asset,
+          ticker: asset.ticker || asset.symbol || "-",
+          name: asset.name || asset.ticker || asset.symbol || "Asset",
+          type,
+          color: assetColors[asset.classKey] || assetColors[asset.type] || assetColors[type] || "#d8b45f",
+          icon: assetIconName({ ...asset, type }),
+          logoUrl: asset.logoUrl || asset.iconUrl || asset.image || assetLogoUrl({ ...asset, type }),
+          qty: Number(asset.qty || 0),
+          price: Number(asset.price || asset.costAvg || 0),
+          costAvg: Number(asset.costAvg || asset.price || 0),
+          ccy: asset.ccy || "USD"
+        };
+      })
+      .sort((a, b) => String(a.ticker).localeCompare(String(b.ticker)));
+
+    return { store, holdings };
+  }
+
+  function applyDashboardPortfolioTx(holding, tx) {
+    const qty = Number(tx.qty || 0);
+    const price = Number(tx.pricePerUnit || 0);
+    const oldQty = Number(holding.qty || 0);
+    const oldCost = Number(holding.costAvg || price || 0);
+    const newQty = oldQty + qty;
+    let newCost = oldCost;
+    if (qty > 0) {
+      newCost = ((oldQty * oldCost) + (qty * price)) / Math.max(newQty, 0.0001);
+    }
+    return { ...holding, qty: Math.max(0, newQty), costAvg: newCost };
+  }
+
+  function makePortfolioTransactionId() {
+    return `tx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
   function formatDate(dateString) {
@@ -378,14 +427,19 @@
   function renderPortfolioLegend() {
     const target = document.getElementById("portfolioLegend");
     if (!target) return;
-    target.innerHTML = assets.map(asset => `
+    const rows = getHeldAssets();
+    const total = rows.reduce((sum, asset) => sum + Number(asset.value || 0), 0);
+    target.innerHTML = rows.map(asset => {
+      const share = total > 0 ? (Number(asset.value || 0) / total) * 100 : Number(asset.share || 0);
+      return `
       <div class="allocation-row" style="--dot:${asset.color}">
         <span></span>
-        <b>${asset.symbol}</b>
-        <i><b style="width:${asset.share * 4}%"></b></i>
-        <em>${asset.share}%</em>
+        <b>${escapeHTML(asset.symbol)}</b>
+        <i><b style="width:${Math.min(100, share)}%"></b></i>
+        <em>${share.toFixed(0)}%</em>
       </div>
-    `).join("");
+    `;
+    }).join("");
   }
 
   function renderAssets() {
@@ -531,6 +585,142 @@
     renderDashboardData();
     renderReportRows();
     showToast("ลบรายการแล้ว");
+  }
+
+  function renderAssetTxAssets() {
+    const target = document.getElementById("assetTxAssetList");
+    if (!target) return;
+    const { holdings } = getRawPortfolioHoldings();
+    if (!holdings.length) {
+      selectedAssetTxTicker = "";
+      target.innerHTML = `
+        <div class="asset-tx-empty">
+          <i data-lucide="wallet-cards"></i>
+          <b>ยังไม่มีสินทรัพย์ที่ถืออยู่</b>
+          <span>เพิ่มสินทรัพย์ในหน้าพอร์ตก่อน แล้วกลับมาบันทึกธุรกรรมจากเมนูนี้</span>
+        </div>
+      `;
+      document.getElementById("assetTxSubmit")?.setAttribute("disabled", "disabled");
+      refreshModalIcons();
+      return;
+    }
+
+    if (!holdings.some(asset => asset.ticker === selectedAssetTxTicker)) {
+      selectedAssetTxTicker = holdings[0].ticker;
+    }
+
+    document.getElementById("assetTxSubmit")?.removeAttribute("disabled");
+    target.innerHTML = holdings.map(asset => `
+      <button class="asset-tx-option${asset.ticker === selectedAssetTxTicker ? " active" : ""}" type="button" data-asset-ticker="${escapeHTML(asset.ticker)}" style="--dot:${asset.color}">
+        <span class="asset-icon">
+          ${asset.logoUrl ? `<img src="${escapeHTML(asset.logoUrl)}" alt="${escapeHTML(asset.ticker)}" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">` : ""}
+          <i data-lucide="${asset.icon || "landmark"}" ${asset.logoUrl ? "hidden" : ""}></i>
+        </span>
+        <span>
+          <b>${escapeHTML(asset.ticker)}</b>
+          <small>${escapeHTML(asset.name)} · ถือ ${number.format(asset.qty)} หน่วย</small>
+        </span>
+        <em>${asset.ccy === "THB" ? shortTHB(asset.price) : USD.format(asset.price)}</em>
+      </button>
+    `).join("");
+    refreshModalIcons();
+  }
+
+  function getSelectedAssetTxHolding() {
+    const { holdings } = getRawPortfolioHoldings();
+    return holdings.find(asset => asset.ticker === selectedAssetTxTicker) || holdings[0] || null;
+  }
+
+  function syncAssetTxFieldsFromAsset() {
+    const asset = getSelectedAssetTxHolding();
+    const price = document.getElementById("assetTxPrice");
+    const ccy = document.getElementById("assetTxCcy");
+    const mark = document.getElementById("assetTxCurrencyMark");
+    if (!asset) return updateAssetTxTotal();
+    if (price && (!price.value || Number(price.value) <= 0)) price.value = asset.price ? String(asset.price) : "";
+    if (ccy) ccy.value = asset.ccy === "THB" ? "THB" : "USD";
+    if (mark) mark.textContent = asset.ccy === "THB" ? "฿" : "$";
+    updateAssetTxTotal();
+  }
+
+  function updateAssetTxTotal() {
+    const qty = Number(document.getElementById("assetTxQty")?.value || 0);
+    const price = Number(document.getElementById("assetTxPrice")?.value || 0);
+    const ccy = document.getElementById("assetTxCcy")?.value || "USD";
+    const mark = document.getElementById("assetTxCurrencyMark");
+    const output = document.getElementById("assetTxTotal");
+    if (mark) mark.textContent = ccy === "THB" ? "฿" : "$";
+    if (output) output.textContent = ccy === "THB" ? shortTHB(qty * price) : USD.format(qty * price);
+  }
+
+  function openAssetTransactionModal() {
+    const overlay = document.getElementById("assetTxOverlay");
+    if (!overlay) return;
+    const form = document.getElementById("assetTxForm");
+    form?.reset();
+    const date = document.getElementById("assetTxDate");
+    if (date) date.value = todayISO();
+    const { holdings } = getRawPortfolioHoldings();
+    selectedAssetTxTicker = selectedAssetTxTicker || holdings[0]?.ticker || "";
+    renderAssetTxAssets();
+    syncAssetTxFieldsFromAsset();
+    overlay.hidden = false;
+    setTimeout(() => document.getElementById("assetTxQty")?.focus(), 60);
+  }
+
+  function closeAssetTransactionModal() {
+    const overlay = document.getElementById("assetTxOverlay");
+    if (overlay) overlay.hidden = true;
+  }
+
+  function submitAssetTransaction(event) {
+    event.preventDefault();
+    const store = loadPortfolioStore();
+    const asset = getSelectedAssetTxHolding();
+    if (!store || !asset) return showToast("ยังไม่มีสินทรัพย์ในพอร์ตให้บันทึก");
+
+    const kind = document.getElementById("assetTxKind")?.value || "buy";
+    const date = document.getElementById("assetTxDate")?.value;
+    const qtyAbs = Number(document.getElementById("assetTxQty")?.value || 0);
+    const price = Number(document.getElementById("assetTxPrice")?.value || 0);
+    const ccy = document.getElementById("assetTxCcy")?.value || asset.ccy || "USD";
+    const note = document.getElementById("assetTxNote")?.value.trim();
+    const fx = Number(store.fx || 35.8);
+
+    if (!date) return showToast("กรุณาเลือกวันที่");
+    if (!qtyAbs || qtyAbs <= 0) return showToast("กรุณาใส่จำนวนหน่วย");
+    if (!price || price <= 0) return showToast("กรุณาใส่ราคาต่อหน่วย");
+    if (kind === "sell" && qtyAbs > Number(asset.qty || 0)) return showToast("จำนวนขายมากกว่าที่ถืออยู่");
+
+    const signedQty = kind === "sell" ? -Math.abs(qtyAbs) : Math.abs(qtyAbs);
+    const gross = qtyAbs * price;
+    const tx = {
+      id: makePortfolioTransactionId(),
+      ticker: asset.ticker,
+      kind,
+      date,
+      qty: signedQty,
+      pricePerUnit: price,
+      valUSD: ccy === "THB" ? gross / fx : gross,
+      ccy,
+      note: note || `${kind === "sell" ? "ขาย" : "ซื้อ"} ${asset.ticker}`
+    };
+
+    const nextStore = {
+      ...store,
+      transactions: [tx, ...(store.transactions || [])],
+      holdings: (store.holdings || []).map(holding => (
+        (holding.ticker || holding.symbol) === asset.ticker
+          ? applyDashboardPortfolioTx(holding, tx)
+          : holding
+      ))
+    };
+
+    savePortfolioStore(nextStore);
+    renderPortfolioLegend();
+    renderAssets();
+    closeAssetTransactionModal();
+    showToast(`บันทึกธุรกรรม ${asset.ticker} แล้ว`);
   }
 
   function renderGoals() {
@@ -974,6 +1164,7 @@
         const href = item.getAttribute("href");
         if (href === "#income") return openEntryModal("income");
         if (href === "#expense") return openEntryModal("expense");
+        if (href === "#portfolio") return openAssetTransactionModal();
         if (href === "#report") return openReportModal();
         showToast(`เลือก ${item.dataset.section || item.textContent.trim()}`);
       });
@@ -996,6 +1187,24 @@
     document.getElementById("reportOverlay")?.addEventListener("click", event => {
       if (event.target.id === "reportOverlay") closeReportModal();
     });
+    document.getElementById("assetTxClose")?.addEventListener("click", closeAssetTransactionModal);
+    document.getElementById("assetTxCancel")?.addEventListener("click", closeAssetTransactionModal);
+    document.getElementById("assetTxForm")?.addEventListener("submit", submitAssetTransaction);
+    document.getElementById("assetTxOverlay")?.addEventListener("click", event => {
+      if (event.target.id === "assetTxOverlay") closeAssetTransactionModal();
+    });
+    document.getElementById("assetTxAssetList")?.addEventListener("click", event => {
+      const button = event.target.closest("[data-asset-ticker]");
+      if (!button) return;
+      selectedAssetTxTicker = button.dataset.assetTicker;
+      document.getElementById("assetTxPrice").value = "";
+      renderAssetTxAssets();
+      syncAssetTxFieldsFromAsset();
+    });
+    ["assetTxQty", "assetTxPrice", "assetTxCcy"].forEach(id => {
+      document.getElementById(id)?.addEventListener("input", updateAssetTxTotal);
+      document.getElementById(id)?.addEventListener("change", updateAssetTxTotal);
+    });
     document.querySelectorAll("[data-report-filter]").forEach(button => {
       button.addEventListener("click", () => {
         reportFilter = button.dataset.reportFilter || "all";
@@ -1013,6 +1222,7 @@
       if (event.key === "Escape") {
         closeEntryModal();
         closeReportModal();
+        closeAssetTransactionModal();
       }
     });
   }
@@ -1029,12 +1239,16 @@
     renderDashboardData();
     bindActions();
     if (window.lucide) window.lucide.createIcons();
-    if (["#income", "#expense", "#report"].includes(window.location.hash)) {
+    if (["#income", "#expense", "#portfolio", "#report"].includes(window.location.hash)) {
       document.querySelectorAll(".side-menu a").forEach(link => {
         link.classList.toggle("active", link.getAttribute("href") === window.location.hash);
       });
       if (window.location.hash === "#report") {
         window.setTimeout(openReportModal, 120);
+        return;
+      }
+      if (window.location.hash === "#portfolio") {
+        window.setTimeout(openAssetTransactionModal, 120);
         return;
       }
       const type = window.location.hash === "#income" ? "income" : "expense";

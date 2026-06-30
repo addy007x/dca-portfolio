@@ -344,6 +344,95 @@
     </section>
   </div>
 
+  <div class="entry-overlay asset-tx-overlay" id="assetTxOverlay" hidden>
+    <section class="entry-modal asset-tx-modal" role="dialog" aria-modal="true" aria-labelledby="assetTxTitle">
+      <button class="entry-close" type="button" id="assetTxClose" aria-label="ปิดหน้าต่างเพิ่มธุรกรรมพอร์ต">
+        <i data-lucide="x"></i>
+      </button>
+
+      <form class="entry-form asset-tx-form" id="assetTxForm">
+        <header class="entry-head asset-tx-head">
+          <span class="entry-head-icon"><i data-lucide="chart-no-axes-combined"></i></span>
+          <div>
+            <h2 id="assetTxTitle">เพิ่มธุรกรรมสินทรัพย์</h2>
+            <p>เลือกสินทรัพย์ที่ถืออยู่ในพอร์ต แล้วบันทึกซื้อหรือขาย</p>
+          </div>
+        </header>
+
+        <section class="asset-tx-section">
+          <div class="entry-section-head">
+            <span>สินทรัพย์ในพอร์ต</span>
+          </div>
+          <div class="asset-tx-picker" id="assetTxAssetList"></div>
+        </section>
+
+        <div class="entry-fields asset-tx-fields">
+          <label>
+            <span>ประเภท</span>
+            <div class="entry-input">
+              <i data-lucide="repeat-2"></i>
+              <select id="assetTxKind" name="kind" required>
+                <option value="buy">ซื้อเพิ่ม</option>
+                <option value="sell">ขายออก</option>
+              </select>
+            </div>
+          </label>
+          <label>
+            <span>วันที่</span>
+            <div class="entry-input">
+              <i data-lucide="calendar-days"></i>
+              <input id="assetTxDate" name="date" type="date" required>
+            </div>
+          </label>
+          <label>
+            <span>จำนวนหน่วย</span>
+            <div class="entry-input">
+              <i data-lucide="hash"></i>
+              <input id="assetTxQty" name="qty" type="number" min="0" step="0.00000001" inputmode="decimal" placeholder="0" required>
+            </div>
+          </label>
+          <label>
+            <span>ราคาต่อหน่วย</span>
+            <div class="entry-input">
+              <b id="assetTxCurrencyMark">$</b>
+              <input id="assetTxPrice" name="price" type="number" min="0" step="0.00000001" inputmode="decimal" placeholder="0.00" required>
+            </div>
+          </label>
+          <label>
+            <span>สกุลเงิน</span>
+            <div class="entry-input">
+              <i data-lucide="banknote"></i>
+              <select id="assetTxCcy" name="ccy" required>
+                <option value="USD">USD</option>
+                <option value="THB">THB</option>
+              </select>
+            </div>
+          </label>
+          <label>
+            <span>มูลค่ารวม</span>
+            <div class="entry-input asset-tx-total">
+              <i data-lucide="calculator"></i>
+              <output id="assetTxTotal">0.00</output>
+            </div>
+          </label>
+        </div>
+
+        <label class="entry-note">
+          <span>หมายเหตุ</span>
+          <textarea id="assetTxNote" name="note" rows="3" placeholder="เช่น ซื้อถัวเพิ่ม, ขายทำกำไร, ปรับพอร์ต"></textarea>
+        </label>
+
+        <footer class="entry-actions">
+          <button class="entry-cancel" type="button" id="assetTxCancel">ยกเลิก</button>
+          <button class="entry-submit" type="submit" id="assetTxSubmit">
+            <i data-lucide="save"></i>
+            บันทึกธุรกรรมพอร์ต
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
