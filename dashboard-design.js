@@ -219,8 +219,21 @@
   }
 
   function savePortfolioStore(store) {
-    localStorage.setItem(storageKeys.portfolio, JSON.stringify(store));
+    const value = JSON.stringify(store);
+    localStorage.setItem(storageKeys.portfolio, value);
+    try {
+      window.dispatchEvent(new StorageEvent("storage", {
+        key: storageKeys.portfolio,
+        oldValue: null,
+        newValue: value,
+        storageArea: localStorage,
+        url: window.location.href
+      }));
+    } catch (error) {
+      console.warn("Cannot dispatch storage event", error);
+    }
     window.dispatchEvent(new CustomEvent("siamfolio:portfolio-updated", { detail: store }));
+    window.dispatchEvent(new CustomEvent("siamfolio.sync", { detail: { ok: true, local: true, source: "dashboard-design" } }));
   }
 
   function assetValueTHB(asset, fx) {
@@ -706,17 +719,20 @@
       note: note || `${kind === "sell" ? "ขาย" : "ซื้อ"} ${asset.ticker}`
     };
 
-    const nextStore = {
-      ...store,
-      transactions: [tx, ...(store.transactions || [])],
-      holdings: (store.holdings || []).map(holding => (
-        (holding.ticker || holding.symbol) === asset.ticker
-          ? applyDashboardPortfolioTx(holding, tx)
-          : holding
-      ))
-    };
-
-    savePortfolioStore(nextStore);
+    if (typeof window.addTransaction === "function") {
+      window.addTransaction(tx);
+    } else {
+      const nextStore = {
+        ...store,
+        transactions: [tx, ...(store.transactions || [])],
+        holdings: (store.holdings || []).map(holding => (
+          (holding.ticker || holding.symbol) === asset.ticker
+            ? applyDashboardPortfolioTx(holding, tx)
+            : holding
+        ))
+      };
+      savePortfolioStore(nextStore);
+    }
     renderPortfolioLegend();
     renderAssets();
     closeAssetTransactionModal();
