@@ -7,6 +7,7 @@
 //   const { holdings, addHolding } = useHoldings();
 
 const STORE_KEY = "siamfolio.v1";
+const PENDING_TX_KEY = "siamfolio.pendingTransactions.v1";
 const STORE_VERSION = 2;
 
 // ─────── ID generator ───────
@@ -100,11 +101,11 @@ function loadStore() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed.version === STORE_VERSION) {
-        return {
+        return consumePendingTransactions({
           ...parsed,
           dca: normalizeDCAList(parsed.dca),
           settings: { ...buildSeed().settings, ...(parsed.settings || {}) },
-        };
+        });
       }
       // v1 → v2 migration: keep holdings/tx/earn, clear seeded DCAs
       if (parsed.version === 1) {
@@ -115,7 +116,7 @@ function loadStore() {
           settings: { ...buildSeed().settings, ...(parsed.settings || {}) },
         };
         saveStore(migrated);
-        return migrated;
+        return consumePendingTransactions(migrated);
       }
     }
   } catch (e) {
@@ -123,7 +124,7 @@ function loadStore() {
   }
   const seed = buildSeed();
   saveStore(seed);
-  return seed;
+  return consumePendingTransactions(seed);
 }
 
 function saveStore(s) {
@@ -132,6 +133,47 @@ function saveStore(s) {
   } catch (e) {
     console.error("Store save failed:", e);
   }
+}
+
+function readPendingTransactions() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PENDING_TX_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.warn("Pending transaction load failed:", e);
+    return [];
+  }
+}
+
+function consumePendingTransactions(store, shouldSave = true) {
+  const pending = readPendingTransactions();
+  if (!pending.length) return store;
+  let changed = false;
+  let next = {
+    ...store,
+    transactions: Array.isArray(store.transactions) ? store.transactions : [],
+    holdings: Array.isArray(store.holdings) ? store.holdings : [],
+  };
+
+  pending.slice().reverse().forEach(tx => {
+    if (!tx?.ticker || !tx?.kind) return;
+    const normalized = { ...tx, id: tx.id || makeId("tx") };
+    const exists = next.transactions.some(item => item.id === normalized.id);
+    if (exists) return;
+    next = {
+      ...next,
+      transactions: [normalized, ...next.transactions],
+      holdings: next.holdings.map(h => h.ticker === normalized.ticker ? applyTxToHolding(h, normalized) : h),
+    };
+    changed = true;
+  });
+
+  try {
+    localStorage.removeItem(PENDING_TX_KEY);
+  } catch (_) {}
+
+  if (changed && shouldSave) saveStore(next);
+  return changed ? next : store;
 }
 
 // ─────── Pub/sub ───────
@@ -164,6 +206,15 @@ function updateStore(updater) {
 }
 
 // React hook — subscribes to all changes
+function ingestPendingTransactions() {
+  if (!readPendingTransactions().length) return;
+  updateStore(s => consumePendingTransactions(s, false));
+}
+
+window.addEventListener("storage", event => {
+  if (event.key === PENDING_TX_KEY) ingestPendingTransactions();
+});
+
 function useStore() {
   const [s, setS] = React.useState(() => _ensureLoaded());
   React.useEffect(() => {

@@ -16,7 +16,8 @@
     transactions: "siamfolio.dashboard.transactions.v1",
     categories: "siamfolio.dashboard.categories.v1",
     portfolio: "siamfolio.v1",
-    layout: "siamfolio.dashboard.layout.v1"
+    layout: "siamfolio.dashboard.layout.v1",
+    pendingPortfolioTransactions: "siamfolio.pendingTransactions.v1"
   };
 
   const assets = [
@@ -234,6 +235,19 @@
     }
     window.dispatchEvent(new CustomEvent("siamfolio:portfolio-updated", { detail: store }));
     window.dispatchEvent(new CustomEvent("siamfolio.sync", { detail: { ok: true, local: true, source: "dashboard-design" } }));
+  }
+
+  function enqueuePortfolioTransaction(tx) {
+    try {
+      const pending = JSON.parse(localStorage.getItem(storageKeys.pendingPortfolioTransactions) || "[]");
+      const list = Array.isArray(pending) ? pending : [];
+      if (!list.some(item => item.id === tx.id)) {
+        localStorage.setItem(storageKeys.pendingPortfolioTransactions, JSON.stringify([tx, ...list].slice(0, 100)));
+      }
+    } catch (error) {
+      console.warn("Cannot queue portfolio transaction", error);
+      localStorage.setItem(storageKeys.pendingPortfolioTransactions, JSON.stringify([tx]));
+    }
   }
 
   function assetValueTHB(asset, fx) {
@@ -722,6 +736,7 @@
     if (typeof window.addTransaction === "function") {
       window.addTransaction(tx);
     } else {
+      enqueuePortfolioTransaction(tx);
       const nextStore = {
         ...store,
         transactions: [tx, ...(store.transactions || [])],
