@@ -95,6 +95,8 @@
   let modalMode = "income";
   let selectedCategoryId = categories.income[0].id;
   let activeAssetFilter = "all";
+  let editingTransactionId = null;
+  let reportFilter = "all";
   const monthBaseline = [
     { key: "2026-01", label: "ม.ค. 2026", income: 38000, expense: 15500 },
     { key: "2026-02", label: "ก.พ. 2026", income: 40000, expense: 19800 },
@@ -453,6 +455,84 @@
     `).join("");
   }
 
+  function renderReportRows() {
+    const target = document.getElementById("reportList");
+    if (!target) return;
+    const incomeTotal = totalByType("income");
+    const expenseTotal = totalByType("expense");
+    const incomeEl = document.getElementById("reportIncomeTotal");
+    const expenseEl = document.getElementById("reportExpenseTotal");
+    const balanceEl = document.getElementById("reportBalanceTotal");
+    if (incomeEl) incomeEl.textContent = shortTHB(incomeTotal);
+    if (expenseEl) expenseEl.textContent = shortTHB(expenseTotal);
+    if (balanceEl) balanceEl.textContent = shortTHB(incomeTotal - expenseTotal);
+
+    const rows = transactions
+      .filter(item => reportFilter === "all" || item.type === reportFilter)
+      .sort((a, b) => `${b.date}${b.id}`.localeCompare(`${a.date}${a.id}`));
+
+    if (!rows.length) {
+      target.innerHTML = `
+        <div class="report-empty">
+          <i data-lucide="inbox"></i>
+          <b>ยังไม่มีรายการในรายงานนี้</b>
+          <span>เพิ่มรายรับหรือรายจ่าย แล้วข้อมูลจะแสดงที่นี่</span>
+        </div>
+      `;
+      refreshModalIcons();
+      return;
+    }
+
+    target.innerHTML = rows.map(item => {
+      const category = getCategory(item.type, item.categoryId);
+      return `
+        <article class="report-row ${item.type}">
+          <span class="report-type"><i data-lucide="${item.type === "income" ? "arrow-down-left" : "arrow-up-right"}"></i></span>
+          <div>
+            <strong>${escapeHTML(item.note || category.name)}</strong>
+            <small>${formatDate(item.date)} · ${escapeHTML(category.name)} · ${item.type === "income" ? "รายรับ" : "รายจ่าย"}</small>
+          </div>
+          <b>${item.type === "income" ? "+" : "-"}${shortTHB(item.amount)}</b>
+          <div class="report-actions">
+            <button type="button" data-edit-transaction="${escapeHTML(item.id)}" title="แก้ไข"><i data-lucide="pencil"></i></button>
+            <button type="button" data-delete-transaction="${escapeHTML(item.id)}" title="ลบ"><i data-lucide="trash-2"></i></button>
+          </div>
+        </article>
+      `;
+    }).join("");
+    refreshModalIcons();
+  }
+
+  function openReportModal() {
+    const overlay = document.getElementById("reportOverlay");
+    if (!overlay) return;
+    overlay.hidden = false;
+    renderReportRows();
+  }
+
+  function closeReportModal() {
+    const overlay = document.getElementById("reportOverlay");
+    if (overlay) overlay.hidden = true;
+  }
+
+  function editTransaction(transactionId) {
+    const item = transactions.find(entry => entry.id === transactionId);
+    if (!item) return showToast("ไม่พบรายการที่ต้องการแก้ไข");
+    closeReportModal();
+    openEntryModal(item.type, item.id);
+  }
+
+  function deleteTransaction(transactionId) {
+    const item = transactions.find(entry => entry.id === transactionId);
+    if (!item) return showToast("ไม่พบรายการที่ต้องการลบ");
+    if (!window.confirm(`ลบรายการ "${item.note || getCategory(item.type, item.categoryId).name}" ใช่ไหม?`)) return;
+    transactions = transactions.filter(entry => entry.id !== transactionId);
+    saveTransactions();
+    renderDashboardData();
+    renderReportRows();
+    showToast("ลบรายการแล้ว");
+  }
+
   function renderGoals() {
     const target = document.getElementById("goalList");
     if (!target) return;
@@ -567,9 +647,11 @@
     if (window.lucide) window.lucide.createIcons();
   }
 
-  function openEntryModal(type) {
+  function openEntryModal(type, transactionId = null) {
     modalMode = type;
-    selectedCategoryId = (categories[type] || [])[0]?.id || "";
+    editingTransactionId = transactionId;
+    const editingItem = transactionId ? transactions.find(item => item.id === transactionId) : null;
+    selectedCategoryId = editingItem?.categoryId || (categories[type] || [])[0]?.id || "";
     const overlay = document.getElementById("entryOverlay");
     const modal = document.getElementById("entryModal");
     const title = document.getElementById("entryModalTitle");
@@ -578,21 +660,22 @@
     const date = document.getElementById("entryDate");
     const note = document.getElementById("entryNote");
     const submit = document.getElementById("entrySubmit");
-    const manage = document.getElementById("categoryManager");
     const headIcon = modal?.querySelector(".entry-head-icon i");
 
     modal?.classList.toggle("expense-mode", type === "expense");
-    if (title) title.textContent = type === "income" ? "เพิ่มรายการรายรับ" : "เพิ่มรายการรายจ่าย";
-    if (subtitle) subtitle.textContent = type === "income" ? "บันทึกรายรับของคุณ" : "บันทึกรายจ่ายของคุณ";
-    if (submit) submit.innerHTML = `<i data-lucide="save"></i>${type === "income" ? "บันทึกรายรับ" : "บันทึกรายจ่าย"}`;
+    if (title) title.textContent = editingItem
+      ? (type === "income" ? "แก้ไขรายการรายรับ" : "แก้ไขรายการรายจ่าย")
+      : (type === "income" ? "เพิ่มรายการรายรับ" : "เพิ่มรายการรายจ่าย");
+    if (subtitle) subtitle.textContent = editingItem
+      ? "ปรับรายละเอียดรายการที่บันทึกไว้"
+      : (type === "income" ? "บันทึกรายรับของคุณ" : "บันทึกรายจ่ายของคุณ");
+    if (submit) submit.innerHTML = `<i data-lucide="save"></i>${editingItem ? "บันทึกการแก้ไข" : (type === "income" ? "บันทึกรายรับ" : "บันทึกรายจ่าย")}`;
     if (headIcon) headIcon.setAttribute("data-lucide", type === "income" ? "wallet-cards" : "credit-card");
-    if (amount) amount.value = "";
-    if (date) date.value = todayISO();
-    if (note) note.value = "";
-    if (manage) manage.hidden = true;
+    if (amount) amount.value = editingItem ? String(editingItem.amount || "") : "";
+    if (date) date.value = editingItem?.date || todayISO();
+    if (note) note.value = editingItem?.note || "";
 
     renderCategoryGrid();
-    renderCategoryList();
     if (overlay) overlay.hidden = false;
     refreshModalIcons();
     setTimeout(() => amount?.focus(), 60);
@@ -601,6 +684,7 @@
   function closeEntryModal() {
     const overlay = document.getElementById("entryOverlay");
     if (overlay) overlay.hidden = true;
+    editingTransactionId = null;
   }
 
   function addCategory() {
@@ -650,6 +734,7 @@
 
   function submitEntry(event) {
     event.preventDefault();
+    const wasEditing = Boolean(editingTransactionId);
     const amount = Number(document.getElementById("entryAmount")?.value || 0);
     const date = document.getElementById("entryDate")?.value;
     const note = document.getElementById("entryNote")?.value.trim();
@@ -657,18 +742,24 @@
     if (!date) return showToast("กรุณาเลือกวันที่");
     if (!selectedCategoryId) return showToast("กรุณาเลือกหมวดหมู่");
 
-    transactions.unshift({
-      id: `${modalMode}-${Date.now()}`,
+    const nextItem = {
+      id: editingTransactionId || `${modalMode}-${Date.now()}`,
       type: modalMode,
       date,
       categoryId: selectedCategoryId,
       note: note || getCategory(modalMode, selectedCategoryId).name,
       amount
-    });
+    };
+    if (editingTransactionId) {
+      transactions = transactions.map(item => item.id === editingTransactionId ? nextItem : item);
+    } else {
+      transactions.unshift(nextItem);
+    }
     saveTransactions();
     renderDashboardData();
+    renderReportRows();
     closeEntryModal();
-    showToast(modalMode === "income" ? "บันทึกรายรับแล้ว" : "บันทึกรายจ่ายแล้ว");
+    showToast(wasEditing ? "บันทึกการแก้ไขแล้ว" : (modalMode === "income" ? "บันทึกรายรับแล้ว" : "บันทึกรายจ่ายแล้ว"));
   }
 
   function renderDashboardData() {
@@ -883,6 +974,7 @@
         const href = item.getAttribute("href");
         if (href === "#income") return openEntryModal("income");
         if (href === "#expense") return openEntryModal("expense");
+        if (href === "#report") return openReportModal();
         showToast(`เลือก ${item.dataset.section || item.textContent.trim()}`);
       });
     });
@@ -890,19 +982,6 @@
     document.getElementById("entryClose")?.addEventListener("click", closeEntryModal);
     document.getElementById("entryCancel")?.addEventListener("click", closeEntryModal);
     document.getElementById("entryForm")?.addEventListener("submit", submitEntry);
-    document.getElementById("categoryManageToggle")?.addEventListener("click", () => {
-      const manager = document.getElementById("categoryManager");
-      if (manager) manager.hidden = !manager.hidden;
-      renderCategoryList();
-      refreshModalIcons();
-    });
-    document.getElementById("addCategoryBtn")?.addEventListener("click", addCategory);
-    document.getElementById("categoryName")?.addEventListener("keydown", event => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        addCategory();
-      }
-    });
     document.getElementById("categoryGrid")?.addEventListener("click", event => {
       const button = event.target.closest("[data-category-id]");
       if (!button) return;
@@ -910,16 +989,31 @@
       renderCategoryGrid();
       refreshModalIcons();
     });
-    document.getElementById("categoryList")?.addEventListener("click", event => {
-      const button = event.target.closest("[data-delete-category]");
-      if (!button || button.disabled) return;
-      deleteCategory(button.dataset.deleteCategory);
-    });
     document.getElementById("entryOverlay")?.addEventListener("click", event => {
       if (event.target.id === "entryOverlay") closeEntryModal();
     });
+    document.getElementById("reportClose")?.addEventListener("click", closeReportModal);
+    document.getElementById("reportOverlay")?.addEventListener("click", event => {
+      if (event.target.id === "reportOverlay") closeReportModal();
+    });
+    document.querySelectorAll("[data-report-filter]").forEach(button => {
+      button.addEventListener("click", () => {
+        reportFilter = button.dataset.reportFilter || "all";
+        document.querySelectorAll("[data-report-filter]").forEach(item => item.classList.toggle("active", item === button));
+        renderReportRows();
+      });
+    });
+    document.getElementById("reportList")?.addEventListener("click", event => {
+      const editButton = event.target.closest("[data-edit-transaction]");
+      if (editButton) return editTransaction(editButton.dataset.editTransaction);
+      const deleteButton = event.target.closest("[data-delete-transaction]");
+      if (deleteButton) return deleteTransaction(deleteButton.dataset.deleteTransaction);
+    });
     document.addEventListener("keydown", event => {
-      if (event.key === "Escape") closeEntryModal();
+      if (event.key === "Escape") {
+        closeEntryModal();
+        closeReportModal();
+      }
     });
   }
 
@@ -935,11 +1029,15 @@
     renderDashboardData();
     bindActions();
     if (window.lucide) window.lucide.createIcons();
-    if (window.location.hash === "#income" || window.location.hash === "#expense") {
-      const type = window.location.hash === "#income" ? "income" : "expense";
+    if (["#income", "#expense", "#report"].includes(window.location.hash)) {
       document.querySelectorAll(".side-menu a").forEach(link => {
         link.classList.toggle("active", link.getAttribute("href") === window.location.hash);
       });
+      if (window.location.hash === "#report") {
+        window.setTimeout(openReportModal, 120);
+        return;
+      }
+      const type = window.location.hash === "#income" ? "income" : "expense";
       window.setTimeout(() => openEntryModal(type), 120);
     }
   }
