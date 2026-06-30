@@ -941,9 +941,15 @@ select {
   font-weight: 900;
   text-align: right;
 }
+.asset-row em.expense {
+  color: var(--bad);
+}
 .asset-row .gain {
   color: var(--good);
   text-align: right;
+}
+.asset-row .gain.loss {
+  color: var(--bad);
 }
 .asset-row small {
   display: block;

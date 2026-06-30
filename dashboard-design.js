@@ -14,7 +14,8 @@
   const shortTHB = value => THB.format(value).replace("THB", "").trim();
   const storageKeys = {
     transactions: "siamfolio.dashboard.transactions.v1",
-    categories: "siamfolio.dashboard.categories.v1"
+    categories: "siamfolio.dashboard.categories.v1",
+    portfolio: "siamfolio.v1"
   };
 
   const assets = [
@@ -102,6 +103,14 @@
     { key: "2026-06", label: "มิ.ย. 2026", income: 0, expense: 0 }
   ];
 
+  const assetColors = {
+    crypto: "#d8b45f",
+    us: "#7bb7ff",
+    th: "#6ee7a5",
+    gold: "#f2d48a",
+    fund: "#a78bfa"
+  };
+
   function cloneDefaultCategories() {
     return JSON.parse(JSON.stringify(defaultCategories));
   }
@@ -132,6 +141,51 @@
 
   function saveTransactions() {
     localStorage.setItem(storageKeys.transactions, JSON.stringify(transactions));
+  }
+
+  function loadPortfolioStore() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKeys.portfolio));
+      if (saved && Array.isArray(saved.holdings)) return saved;
+    } catch (error) {
+      console.warn("Cannot load portfolio store", error);
+    }
+    return null;
+  }
+
+  function assetValueTHB(asset, fx) {
+    const value = Number(asset.qty || 0) * Number(asset.price || 0);
+    return asset.ccy === "THB" ? value : value * fx;
+  }
+
+  function assetPnlTHB(asset, fx) {
+    const pnl = Number(asset.qty || 0) * (Number(asset.price || 0) - Number(asset.costAvg || 0));
+    return asset.ccy === "THB" ? pnl : pnl * fx;
+  }
+
+  function getHeldAssets() {
+    const store = loadPortfolioStore();
+    const fx = Number(store?.fx || 35.8);
+    const holdings = (store?.holdings || [])
+      .filter(asset => Number(asset.qty || 0) > 0)
+      .map(asset => {
+        const value = assetValueTHB(asset, fx);
+        const pnl = assetPnlTHB(asset, fx);
+        const cost = Math.max(1, Number(asset.qty || 0) * Number(asset.costAvg || 0) * (asset.ccy === "THB" ? 1 : fx));
+        return {
+          symbol: asset.ticker || asset.symbol || "-",
+          name: asset.name || asset.ticker || "Asset",
+          color: assetColors[asset.classKey] || assetColors[asset.type] || "#d8b45f",
+          qty: Number(asset.qty || 0),
+          value,
+          pnl,
+          pct: (pnl / cost) * 100
+        };
+      })
+      .sort((a, b) => b.value - a.value);
+
+    if (holdings.length) return holdings;
+    return assets;
   }
 
   function formatDate(dateString) {
@@ -267,13 +321,16 @@
   function renderAssets() {
     const target = document.getElementById("assetTable");
     if (!target) return;
-    target.innerHTML = assets.map(asset => `
+    const heldAssets = getHeldAssets();
+    const subtitle = document.querySelector(".asset-table-panel .panel-head p");
+    if (subtitle) subtitle.textContent = `${heldAssets.length} สินทรัพย์ที่ถืออยู่ในพอร์ตของฉัน`;
+    target.innerHTML = heldAssets.map(asset => `
       <div class="asset-row">
         <span class="asset-dot" style="--dot:${asset.color}">${asset.symbol.slice(0, 1)}</span>
-        <div><strong>${asset.name}</strong><small>${asset.symbol}</small></div>
+        <div><strong>${asset.name}</strong><small>${asset.qty ? `${asset.symbol} · ${number.format(asset.qty)} หน่วย` : asset.symbol}</small></div>
         <b>${shortTHB(asset.value)}</b>
-        <em>+${shortTHB(asset.pnl)}</em>
-        <strong class="gain">+${asset.pct.toFixed(2)}%</strong>
+        <em class="${asset.pnl >= 0 ? "income" : "expense"}">${asset.pnl >= 0 ? "+" : ""}${shortTHB(asset.pnl)}</em>
+        <strong class="gain ${asset.pnl >= 0 ? "" : "loss"}">${asset.pnl >= 0 ? "+" : ""}${asset.pct.toFixed(2)}%</strong>
       </div>
     `).join("");
   }
