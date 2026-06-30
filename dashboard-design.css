@@ -923,10 +923,19 @@ select {
 
 .asset-table { padding: 4px 20px 20px; }
 .asset-row {
-  grid-template-columns: 28px 1fr 110px 112px 62px;
-  min-height: 36px;
+  grid-template-columns: 36px minmax(0, 1.35fr) 112px 112px 70px;
+  min-height: 46px;
+  padding: 3px 2px;
+  border-left: 2px solid transparent;
+  border-radius: 10px;
   color: var(--muted);
   font-size: 12px;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+.asset-row:hover {
+  border-left-color: var(--dot, var(--gold));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--dot, var(--gold)), transparent 92%), rgba(255,255,255,.018));
+  transform: translateX(2px);
 }
 .asset-row.header {
   color: var(--gold-2);
@@ -958,6 +967,31 @@ select {
   font-size: 10px;
   font-weight: 800;
 }
+.asset-icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--dot, var(--gold)), transparent 42%);
+  border-radius: 10px;
+  color: var(--dot, var(--gold));
+  background:
+    radial-gradient(circle at 50% 12%, color-mix(in srgb, var(--dot, var(--gold)), transparent 70%), transparent 58%),
+    rgba(255,255,255,.025);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--dot, var(--gold)), transparent 74%);
+  overflow: hidden;
+}
+.asset-icon img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--dot, var(--gold)), transparent 62%));
+}
+.asset-icon svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 2.15;
+}
 .asset-dot {
   width: 22px;
   height: 22px;
@@ -969,6 +1003,33 @@ select {
   font-size: 11px;
   font-weight: 900;
   box-shadow: 0 0 18px color-mix(in srgb, var(--dot), transparent 58%);
+}
+.asset-empty {
+  min-height: 134px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 1px dashed var(--line-soft);
+  border-radius: 14px;
+  color: var(--muted);
+  background: rgba(255,255,255,.018);
+  text-align: center;
+}
+.asset-empty svg {
+  width: 28px;
+  height: 28px;
+  color: var(--gold-2);
+}
+.asset-empty b {
+  color: var(--text);
+  font-size: 14px;
+}
+.asset-empty span {
+  max-width: 260px;
+  color: var(--muted-2);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .filter-pills {
@@ -985,12 +1046,15 @@ select {
   padding: 0 11px;
   font-size: 12px;
   font-weight: 800;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
 }
 .filter-pills button.active,
 .filter-pills button:hover {
   color: #111;
   border-color: var(--gold);
   background: linear-gradient(135deg, var(--gold-2), var(--gold));
+  box-shadow: 0 0 18px rgba(216,180,95,.22);
 }
 
 .goal-card {
@@ -1701,7 +1765,7 @@ select {
     padding: 24px;
   }
   .stat-card { grid-column: 1; }
-  .asset-row { grid-template-columns: 28px 1fr 92px; }
+  .asset-row { grid-template-columns: 34px minmax(0, 1fr) 92px; }
   .asset-row > :nth-child(4),
   .asset-row > :nth-child(5) { display: none; }
 }

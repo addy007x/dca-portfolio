@@ -94,6 +94,7 @@
   let transactions = loadTransactions();
   let modalMode = "income";
   let selectedCategoryId = categories.income[0].id;
+  let activeAssetFilter = "all";
   const monthBaseline = [
     { key: "2026-01", label: "ม.ค. 2026", income: 38000, expense: 15500 },
     { key: "2026-02", label: "ก.พ. 2026", income: 40000, expense: 19800 },
@@ -110,6 +111,66 @@
     gold: "#f2d48a",
     fund: "#a78bfa"
   };
+
+  function normalizeAssetType(asset = {}) {
+    const rawType = String(asset.classKey || asset.type || asset.category || "").toLowerCase();
+    const symbol = String(asset.ticker || asset.symbol || "").toUpperCase();
+    if (rawType.includes("crypto") || ["BTC", "TRX", "ETH", "SOL", "BNB", "XRP", "ADA"].includes(symbol)) return "crypto";
+    if (rawType.includes("gold") || ["XAUT", "GOLD"].includes(symbol)) return "gold";
+    return "stocks";
+  }
+
+  function assetIconName(asset = {}) {
+    const symbol = String(asset.ticker || asset.symbol || "").toUpperCase();
+    const type = asset.type || normalizeAssetType(asset);
+    if (symbol === "BTC") return "bitcoin";
+    if (type === "crypto") return "coins";
+    if (type === "gold") return "gem";
+    if (["TSM", "NVDA", "GOOGL", "LLY"].includes(symbol)) return "chart-line";
+    return "landmark";
+  }
+
+  const cryptoLogoBase = "https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/";
+  const cryptoLogoMap = {
+    BTC: `${cryptoLogoBase}btc.svg`,
+    ETH: `${cryptoLogoBase}eth.svg`,
+    SOL: `${cryptoLogoBase}sol.svg`,
+    ADA: `${cryptoLogoBase}ada.svg`,
+    XRP: `${cryptoLogoBase}xrp.svg`,
+    DOGE: `${cryptoLogoBase}doge.svg`,
+    MATIC: `${cryptoLogoBase}matic.svg`,
+    BNB: `${cryptoLogoBase}bnb.svg`,
+    AVAX: `${cryptoLogoBase}avax.svg`,
+    LINK: `${cryptoLogoBase}link.svg`,
+    DOT: `${cryptoLogoBase}dot.svg`,
+    TRX: `${cryptoLogoBase}trx.svg`,
+    LTC: `${cryptoLogoBase}ltc.svg`,
+    UNI: `${cryptoLogoBase}uni.svg`,
+    ATOM: `${cryptoLogoBase}atom.svg`,
+    NEAR: `${cryptoLogoBase}near.svg`,
+    FIL: `${cryptoLogoBase}fil.svg`,
+    XAUT: "https://coin-images.coingecko.com/coins/images/10481/small/logo.png"
+  };
+
+  function assetLogoUrl(asset = {}) {
+    const symbol = String(asset.ticker || asset.symbol || "").toUpperCase();
+    const type = asset.type || normalizeAssetType(asset);
+    if (!symbol || symbol === "-") return "";
+    if (type === "crypto" || type === "gold") {
+      return cryptoLogoMap[symbol] || `${cryptoLogoBase}${symbol.toLowerCase()}.svg`;
+    }
+    return `https://assets.parqet.com/logos/symbol/${symbol.replace(/\.[A-Z]+$/i, "")}`;
+  }
+
+  function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    }[char]));
+  }
 
   function cloneDefaultCategories() {
     return JSON.parse(JSON.stringify(defaultCategories));
@@ -172,10 +233,14 @@
         const value = assetValueTHB(asset, fx);
         const pnl = assetPnlTHB(asset, fx);
         const cost = Math.max(1, Number(asset.qty || 0) * Number(asset.costAvg || 0) * (asset.ccy === "THB" ? 1 : fx));
+        const type = normalizeAssetType(asset);
         return {
           symbol: asset.ticker || asset.symbol || "-",
           name: asset.name || asset.ticker || "Asset",
-          color: assetColors[asset.classKey] || assetColors[asset.type] || "#d8b45f",
+          color: assetColors[asset.classKey] || assetColors[asset.type] || assetColors[type] || "#d8b45f",
+          type,
+          icon: assetIconName({ ...asset, type }),
+          logoUrl: asset.logoUrl || asset.iconUrl || asset.image || assetLogoUrl({ ...asset, type }),
           qty: Number(asset.qty || 0),
           value,
           pnl,
@@ -185,7 +250,10 @@
       .sort((a, b) => b.value - a.value);
 
     if (holdings.length) return holdings;
-    return assets;
+    return assets.map(asset => {
+      const type = normalizeAssetType(asset);
+      return { ...asset, type, icon: assetIconName({ ...asset, type }), logoUrl: assetLogoUrl({ ...asset, type }) };
+    });
   }
 
   function formatDate(dateString) {
@@ -321,18 +389,51 @@
   function renderAssets() {
     const target = document.getElementById("assetTable");
     if (!target) return;
-    const heldAssets = getHeldAssets();
+    const allAssets = getHeldAssets();
+    const heldAssets = activeAssetFilter === "all"
+      ? allAssets
+      : allAssets.filter(asset => asset.type === activeAssetFilter);
     const subtitle = document.querySelector(".asset-table-panel .panel-head p");
-    if (subtitle) subtitle.textContent = `${heldAssets.length} สินทรัพย์ที่ถืออยู่ในพอร์ตของฉัน`;
+    if (subtitle) subtitle.textContent = `${allAssets.length} สินทรัพย์ที่ถืออยู่ · แสดง ${heldAssets.length} รายการ`;
+    if (!heldAssets.length) {
+      target.innerHTML = `
+        <div class="asset-empty">
+          <i data-lucide="search-x"></i>
+          <b>ไม่พบสินทรัพย์ในหมวดนี้</b>
+          <span>ลองเลือกหมวดอื่น หรือเพิ่มสินทรัพย์ในพอร์ตของคุณ</span>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+    const typeLabels = { crypto: "คริปโต", stocks: "หุ้น", gold: "ทอง" };
     target.innerHTML = heldAssets.map(asset => `
-      <div class="asset-row">
-        <span class="asset-dot" style="--dot:${asset.color}">${asset.symbol.slice(0, 1)}</span>
-        <div><strong>${asset.name}</strong><small>${asset.qty ? `${asset.symbol} · ${number.format(asset.qty)} หน่วย` : asset.symbol}</small></div>
+      <div class="asset-row asset-type-${asset.type}" style="--dot:${asset.color}">
+        <span class="asset-icon">
+          ${asset.logoUrl ? `<img src="${escapeHTML(asset.logoUrl)}" alt="${escapeHTML(asset.symbol)}" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">` : ""}
+          <i data-lucide="${asset.icon || "landmark"}" ${asset.logoUrl ? "hidden" : ""}></i>
+        </span>
+        <div><strong>${escapeHTML(asset.name)}</strong><small>${escapeHTML(asset.symbol)} · ${typeLabels[asset.type] || "สินทรัพย์"}${asset.qty ? ` · ${number.format(asset.qty)} หน่วย` : ""}</small></div>
         <b>${shortTHB(asset.value)}</b>
         <em class="${asset.pnl >= 0 ? "income" : "expense"}">${asset.pnl >= 0 ? "+" : ""}${shortTHB(asset.pnl)}</em>
         <strong class="gain ${asset.pnl >= 0 ? "" : "loss"}">${asset.pnl >= 0 ? "+" : ""}${asset.pct.toFixed(2)}%</strong>
       </div>
     `).join("");
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function bindAssetFilters() {
+    const buttons = document.querySelectorAll(".asset-table-panel .filter-pills button");
+    if (!buttons.length) return;
+    const filters = ["all", "crypto", "stocks", "gold"];
+    buttons.forEach((button, index) => {
+      button.dataset.assetFilter = filters[index] || "all";
+      button.addEventListener("click", () => {
+        activeAssetFilter = button.dataset.assetFilter;
+        buttons.forEach(item => item.classList.toggle("active", item === button));
+        renderAssets();
+      });
+    });
   }
 
   function renderRecent(id, type) {
@@ -826,6 +927,7 @@
     updateClock();
     window.setInterval(updateClock, 1000);
     renderPortfolioLegend();
+    bindAssetFilters();
     renderAssets();
     renderGoals();
     renderDividends();
