@@ -10,6 +10,8 @@
     maximumFractionDigits: 2
   });
   const number = new Intl.NumberFormat("en-US");
+  const PRICE_REFRESH_MS = 60 * 1000;
+  const PRICE_API_FALLBACK = "https://siamfolio-api.kingbooms5678.workers.dev";
 
   const shortTHB = value => THB.format(value).replace("THB", "").trim();
   const compactTHB = value => {
@@ -121,6 +123,8 @@
   let financialGoals = loadFinancialGoals();
   let editingGoalId = null;
   let selectedGoalIcon = "target";
+  let priceRefreshBusy = false;
+  let lastPriceRefreshAt = 0;
   const monthBaseline = [
     { key: "2026-01", label: "ม.ค. 2026", income: 38000, expense: 15500 },
     { key: "2026-02", label: "ก.พ. 2026", income: 40000, expense: 19800 },
@@ -336,6 +340,9 @@
           icon: assetIconName({ ...asset, type }),
           logoUrl: asset.logoUrl || asset.iconUrl || asset.image || assetLogoUrl({ ...asset, type }),
           qty: Number(asset.qty || 0),
+          price: Number(asset.price || asset.costAvg || 0),
+          ccy: asset.ccy || "USD",
+          priceUpdatedAt: Number(asset.priceUpdatedAt || store?.pricesUpdatedAt || 0),
           value,
           pnl,
           pct: (pnl / cost) * 100
@@ -494,6 +501,117 @@
 
   function getDashboardAuthApiUrl() {
     return (window.AUTH_CONFIG?.apiUrl || "").replace(/\/$/, "");
+  }
+
+  function getPriceApiBase() {
+    return getDashboardAuthApiUrl() || PRICE_API_FALLBACK;
+  }
+
+  function normalizePriceSymbol(asset = {}) {
+    return String(asset.ticker || asset.symbol || "")
+      .trim()
+      .toUpperCase()
+      .replace(/-USD$/, "");
+  }
+
+  function priceGroupForAsset(asset = {}) {
+    const type = normalizeAssetType(asset);
+    if (type === "crypto" || type === "gold") return "crypto";
+    return "stocks";
+  }
+
+  function extractPriceValue(priceData) {
+    if (typeof priceData === "number") return priceData;
+    if (!priceData || typeof priceData !== "object") return NaN;
+    return Number(
+      priceData.price ??
+      priceData.regularMarketPrice ??
+      priceData.value ??
+      priceData.last ??
+      priceData.close ??
+      priceData.bid ??
+      priceData.ask
+    );
+  }
+
+  function pickPrice(prices, symbol) {
+    const clean = String(symbol || "").toUpperCase().replace(/-USD$/, "");
+    if (!prices || !clean) return NaN;
+    const direct = prices[clean] ?? prices[`${clean}-USD`] ?? prices[clean.replace(".BK", "")];
+    const directPrice = extractPriceValue(direct);
+    if (Number.isFinite(directPrice) && directPrice > 0) return directPrice;
+    const found = Object.entries(prices).find(([key]) => {
+      const normalized = String(key).toUpperCase().replace(/-USD$/, "");
+      return normalized === clean || normalized.replace(".BK", "") === clean.replace(".BK", "");
+    });
+    return extractPriceValue(found?.[1]);
+  }
+
+  async function fetchPriceGroup(group, symbols) {
+    if (!symbols.length) return {};
+    const endpoint = group === "crypto" ? "crypto" : "stocks";
+    const response = await fetch(`${getPriceApiBase()}/api/prices/${endpoint}?symbols=${encodeURIComponent(symbols.join(","))}`);
+    if (!response.ok) throw new Error(`price api ${response.status}`);
+    const json = await response.json();
+    return json.prices || json || {};
+  }
+
+  async function fetchLatestPortfolioPrices(holdings) {
+    const grouped = holdings.reduce((sum, asset) => {
+      const symbol = normalizePriceSymbol(asset);
+      if (!symbol) return sum;
+      const group = priceGroupForAsset(asset);
+      sum[group].add(symbol);
+      return sum;
+    }, { crypto: new Set(), stocks: new Set() });
+    const [cryptoResult, stockResult] = await Promise.allSettled([
+      fetchPriceGroup("crypto", Array.from(grouped.crypto)),
+      fetchPriceGroup("stocks", Array.from(grouped.stocks))
+    ]);
+    const cryptoPrices = cryptoResult.status === "fulfilled" ? cryptoResult.value : {};
+    const stockPrices = stockResult.status === "fulfilled" ? stockResult.value : {};
+    if (cryptoResult.status === "rejected") console.warn("Crypto price refresh skipped", cryptoResult.reason);
+    if (stockResult.status === "rejected") console.warn("Stock price refresh skipped", stockResult.reason);
+    return { crypto: cryptoPrices, stocks: stockPrices };
+  }
+
+  async function refreshLivePortfolioPrices() {
+    if (priceRefreshBusy) return false;
+    const store = loadPortfolioStore();
+    const holdings = (store?.holdings || []).filter(asset => Number(asset.qty || 0) > 0);
+    if (!store || !holdings.length) return false;
+
+    priceRefreshBusy = true;
+    try {
+      const priceGroups = await fetchLatestPortfolioPrices(holdings);
+      let changed = false;
+      const now = Date.now();
+      const nextHoldings = (store.holdings || []).map(asset => {
+        const symbol = normalizePriceSymbol(asset);
+        const group = priceGroupForAsset(asset);
+        const latestPrice = pickPrice(priceGroups[group], symbol);
+        if (!Number.isFinite(latestPrice) || latestPrice <= 0) return asset;
+        const oldPrice = Number(asset.price || 0);
+        if (Math.abs(oldPrice - latestPrice) > 0.000001 || !asset.priceUpdatedAt) changed = true;
+        return {
+          ...asset,
+          price: latestPrice,
+          priceUpdatedAt: now
+        };
+      });
+      lastPriceRefreshAt = now;
+      if (changed) {
+        savePortfolioStore({ ...store, holdings: nextHoldings, pricesUpdatedAt: now });
+      } else {
+        refreshPortfolioDrivenData();
+      }
+      return true;
+    } catch (error) {
+      console.warn("Cannot refresh portfolio prices", error);
+      return false;
+    } finally {
+      priceRefreshBusy = false;
+    }
   }
 
   async function dashboardAuthFetch(path, options = {}) {
@@ -696,15 +814,39 @@
     }).join("");
   }
 
+  function formatAssetPrice(asset = {}) {
+    const price = Number(asset.price || 0);
+    const ccy = asset.ccy || "USD";
+    if (!price) return "รอราคา";
+    if (ccy === "THB") return `฿${number.format(Number(price.toFixed(2)))}`;
+    return `$${number.format(Number(price.toFixed(price >= 100 ? 2 : 4)))}`;
+  }
+
+  function formatPriceUpdatedAt(timestamp) {
+    const at = Number(timestamp || lastPriceRefreshAt || 0);
+    if (!at) return "ยังไม่ดึงราคา";
+    return new Date(at).toLocaleTimeString("th-TH", {
+      timeZone: "Asia/Bangkok",
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
   function renderAssets() {
     const target = document.getElementById("assetTable");
     if (!target) return;
     const allAssets = getHeldAssets();
+    const isLiveView = activeAssetFilter === "live";
     const heldAssets = activeAssetFilter === "all"
       ? allAssets
-      : allAssets.filter(asset => asset.type === activeAssetFilter);
+      : isLiveView
+        ? allAssets.filter(asset => ["crypto", "stocks", "gold"].includes(asset.type))
+        : allAssets.filter(asset => asset.type === activeAssetFilter);
     const subtitle = document.querySelector(".asset-table-panel .panel-head p");
-    if (subtitle) subtitle.textContent = `${allAssets.length} สินทรัพย์ที่ถืออยู่ · แสดง ${heldAssets.length} รายการ`;
+    if (subtitle) subtitle.textContent = isLiveView
+      ? `ดูราคาคริปโต/หุ้นแบบ Live · อัปเดตทุก 1 นาที · ล่าสุด ${formatPriceUpdatedAt()}`
+      : `${allAssets.length} สินทรัพย์ที่ถืออยู่ · แสดง ${heldAssets.length} รายการ`;
     if (!heldAssets.length) {
       target.innerHTML = `
         <div class="asset-empty">
@@ -718,12 +860,15 @@
     }
     const typeLabels = { crypto: "คริปโต", stocks: "หุ้น", gold: "ทอง" };
     target.innerHTML = heldAssets.map(asset => `
-      <div class="asset-row asset-type-${asset.type}" style="--dot:${asset.color}">
+      <div class="asset-row asset-type-${asset.type}${isLiveView ? " is-live" : ""}" style="--dot:${asset.color}">
         <span class="asset-icon">
           ${asset.logoUrl ? `<img src="${escapeHTML(asset.logoUrl)}" alt="${escapeHTML(asset.symbol)}" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">` : ""}
           <i data-lucide="${asset.icon || "landmark"}" ${asset.logoUrl ? "hidden" : ""}></i>
         </span>
-        <div><strong>${escapeHTML(asset.name)}</strong><small>${escapeHTML(asset.symbol)} · ${typeLabels[asset.type] || "สินทรัพย์"}${asset.qty ? ` · ${number.format(asset.qty)} หน่วย` : ""}</small></div>
+        <div>
+          <strong>${escapeHTML(asset.name)}</strong>
+          <small>${escapeHTML(asset.symbol)} · ${typeLabels[asset.type] || "สินทรัพย์"} · ราคา ${formatAssetPrice(asset)}${asset.qty ? ` · ${number.format(asset.qty)} หน่วย` : ""}</small>
+        </div>
         <b>${shortTHB(asset.value)}</b>
         <em class="${asset.pnl >= 0 ? "income" : "expense"}">${asset.pnl >= 0 ? "+" : ""}${shortTHB(asset.pnl)}</em>
         <strong class="gain ${asset.pnl >= 0 ? "" : "loss"}">${asset.pnl >= 0 ? "+" : ""}${asset.pct.toFixed(2)}%</strong>
@@ -735,13 +880,14 @@
   function bindAssetFilters() {
     const buttons = document.querySelectorAll(".asset-table-panel .filter-pills button");
     if (!buttons.length) return;
-    const filters = ["all", "crypto", "stocks", "gold"];
+    const filters = ["all", "crypto", "stocks", "live"];
     buttons.forEach((button, index) => {
       button.dataset.assetFilter = filters[index] || "all";
       button.addEventListener("click", () => {
         activeAssetFilter = button.dataset.assetFilter;
         buttons.forEach(item => item.classList.toggle("active", item === button));
         renderAssets();
+        if (activeAssetFilter === "live") refreshLivePortfolioPrices();
       });
     });
   }
@@ -1725,6 +1871,8 @@
   function init() {
     updateClock();
     window.setInterval(updateClock, 1000);
+    window.setTimeout(refreshLivePortfolioPrices, 700);
+    window.setInterval(refreshLivePortfolioPrices, PRICE_REFRESH_MS);
     renderPortfolioLegend();
     bindAssetFilters();
     renderAssets();
