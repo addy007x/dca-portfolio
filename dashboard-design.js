@@ -12,6 +12,15 @@
   const number = new Intl.NumberFormat("en-US");
 
   const shortTHB = value => THB.format(value).replace("THB", "").trim();
+  const compactTHB = value => {
+    const amount = Number(value || 0);
+    const abs = Math.abs(amount);
+    const clean = raw => raw.replace(/\.0$/, "").replace(/(\.\d)0$/, "$1");
+    if (abs >= 1_000_000) return `${clean((amount / 1_000_000).toFixed(2))}M THB`;
+    if (abs >= 1_000) return `${clean((amount / 1_000).toFixed(1))}K THB`;
+    return `${number.format(Math.round(amount))} THB`;
+  };
+  const signedCompactTHB = value => `${Number(value || 0) >= 0 ? "+" : "-"}${compactTHB(Math.abs(value))}`;
   const storageKeys = {
     transactions: "siamfolio.dashboard.transactions.v1",
     categories: "siamfolio.dashboard.categories.v1",
@@ -293,6 +302,29 @@
       const type = normalizeAssetType(asset);
       return { ...asset, type, icon: assetIconName({ ...asset, type }), logoUrl: assetLogoUrl({ ...asset, type }) };
     });
+  }
+
+  function getPortfolioStatsFromStore() {
+    const store = loadPortfolioStore();
+    const fx = Number(store?.fx || 35.8);
+    const holdings = (store?.holdings || []).filter(asset => Number(asset.qty || 0) > 0);
+    const totals = holdings.reduce((sum, asset) => {
+      const qty = Number(asset.qty || 0);
+      const rate = asset.ccy === "THB" ? 1 : fx;
+      const value = qty * Number(asset.price || 0) * rate;
+      const cost = qty * Number(asset.costAvg || 0) * rate;
+      return {
+        value: sum.value + value,
+        cost: sum.cost + cost,
+        pnl: sum.pnl + (value - cost)
+      };
+    }, { value: 0, cost: 0, pnl: 0 });
+
+    return {
+      ...totals,
+      count: holdings.length,
+      pnlPct: totals.cost > 0 ? (totals.pnl / totals.cost) * 100 : 0
+    };
   }
 
   function getRawPortfolioHoldings() {
@@ -845,6 +877,7 @@
     }
     renderPortfolioLegend();
     renderAssets();
+    renderPortfolioKpis();
     closeAssetTransactionModal();
     showToast(remotePushed ? `บันทึก ${asset.ticker} เข้า cloud แล้ว` : `บันทึกธุรกรรม ${asset.ticker} แล้ว`);
   }
@@ -931,6 +964,45 @@
     const cards = document.querySelectorAll(".summary-grid .stat-card");
     if (cards[3]) cards[3].querySelector("strong").textContent = `${(incomeTotal / 1000).toFixed(1)}K THB`;
     if (cards[4]) cards[4].querySelector("strong").textContent = `${(expenseTotal / 1000).toFixed(1)}K THB`;
+  }
+
+  function renderPortfolioKpis() {
+    const cards = document.querySelectorAll(".summary-grid .stat-card");
+    const portfolioCard = cards[0];
+    const pnlCard = cards[1];
+    const stats = getPortfolioStatsFromStore();
+    const isGain = stats.pnl >= 0;
+
+    if (portfolioCard) {
+      const value = portfolioCard.querySelector("strong");
+      const detail = portfolioCard.querySelector("small");
+      if (value) value.textContent = compactTHB(stats.value);
+      if (detail) {
+        detail.classList.remove("up", "down");
+        detail.textContent = stats.count
+          ? `${stats.count} สินทรัพย์ในพอร์ต`
+          : "ยังไม่มีสินทรัพย์ในพอร์ต";
+      }
+    }
+
+    if (pnlCard) {
+      const value = pnlCard.querySelector("strong");
+      const detail = pnlCard.querySelector("small");
+      const icon = pnlCard.querySelector(".stat-icon i");
+      if (value) {
+        value.textContent = signedCompactTHB(stats.pnl);
+        value.classList.toggle("profit", isGain);
+        value.classList.toggle("loss", !isGain);
+      }
+      if (detail) {
+        detail.classList.toggle("up", isGain);
+        detail.classList.toggle("down", !isGain);
+        detail.textContent = stats.cost > 0
+          ? `${isGain ? "+" : "-"}${Math.abs(stats.pnlPct).toFixed(2)}% จากต้นทุนรวม`
+          : "รอต้นทุนจากพอร์ต";
+      }
+      if (icon) icon.setAttribute("data-lucide", isGain ? "trending-up" : "trending-down");
+    }
   }
 
   function renderCategoryGrid() {
@@ -1083,6 +1155,7 @@
     const cashPanelSubtitle = document.querySelector(".income-expense-panel .panel-head p");
     if (cashPanelTitle) cashPanelTitle.textContent = "สรุปรายรับ-รายจ่าย";
     if (cashPanelSubtitle) cashPanelSubtitle.textContent = "กระแสเงินสดและเงินคงเหลือรายเดือน";
+    renderPortfolioKpis();
     renderCashFlow();
     renderRecent("recentIncome", "income");
     renderRecent("recentExpense", "expense");

@@ -406,7 +406,8 @@ canvas { max-width: 100%; }
 
 .up,
 .profit { color: var(--good) !important; }
-.down { color: var(--bad) !important; }
+.down,
+.loss { color: var(--bad) !important; }
 
 .income-expense-panel { grid-column: span 7; min-height: 0; }
 .portfolio-panel,
