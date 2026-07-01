@@ -1258,6 +1258,24 @@ select {
   gap: 8px;
   flex-wrap: wrap;
 }
+
+.asset-table-panel .panel-head {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.asset-table-panel .panel-head > div:first-child {
+  min-width: 0;
+}
+
+.asset-table-panel .filter-pills {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 100%;
+  gap: 8px;
+}
+
 .filter-pills button {
   min-height: 30px;
   border: 1px solid var(--line-soft);
@@ -1269,6 +1287,12 @@ select {
   font-weight: 800;
   cursor: pointer;
   transition: background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
+}
+
+.asset-table-panel .filter-pills button {
+  min-width: 0;
+  padding: 0 8px;
+  white-space: nowrap;
 }
 .filter-pills button.active,
 .filter-pills button:hover {
