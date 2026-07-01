@@ -127,6 +127,8 @@
   let liveQuotes = loadLiveQuotes();
   let liveQuoteBusy = false;
   let lastQuoteRefreshAt = 0;
+  let selectedCashMonth = "";
+  let analyticsMode = "month";
   const monthBaseline = [
     { key: "2026-01", label: "ม.ค. 2026", income: 38000, expense: 15500 },
     { key: "2026-02", label: "ก.พ. 2026", income: 40000, expense: 19800 },
@@ -834,20 +836,78 @@
     return new Date(now.getTime() - offset).toISOString().slice(0, 10);
   }
 
+  function monthLabel(key) {
+    if (!key) return "เดือนนี้";
+    const [year, month] = key.split("-").map(Number);
+    const date = new Date(year, (month || 1) - 1, 1);
+    return date.toLocaleDateString("th-TH", { month: "long", year: "numeric" });
+  }
+
+  function shortMonthLabel(key) {
+    if (!key) return "";
+    const [year, month] = key.split("-").map(Number);
+    const date = new Date(year, (month || 1) - 1, 1);
+    return date.toLocaleDateString("th-TH", { month: "short", year: "numeric" });
+  }
+
+  function yearLabel(key) {
+    return key ? `ปี ${Number(key) + 543}` : "ปีนี้";
+  }
+
+  function dayLabel(key) {
+    return formatDate(key);
+  }
+
+  function getTransactionMonth(item) {
+    return String(item?.date || "").slice(0, 7);
+  }
+
+  function getTransactionYear(item) {
+    return String(item?.date || "").slice(0, 4);
+  }
+
+  function availableMonths() {
+    const keys = new Set(transactions.map(getTransactionMonth).filter(Boolean));
+    monthBaseline.forEach(item => keys.add(item.key));
+    return [...keys].sort().reverse();
+  }
+
+  function ensureCashMonth() {
+    const months = availableMonths();
+    if (!selectedCashMonth || !months.includes(selectedCashMonth)) selectedCashMonth = months[0] || todayISO().slice(0, 7);
+    return selectedCashMonth;
+  }
+
+  function transactionsForMonth(monthKey = ensureCashMonth()) {
+    return transactions.filter(item => getTransactionMonth(item) === monthKey);
+  }
+
+  function transactionPeriodKey(item, mode = analyticsMode) {
+    if (mode === "day") return item.date || todayISO();
+    if (mode === "year") return getTransactionYear(item) || todayISO().slice(0, 4);
+    return getTransactionMonth(item) || todayISO().slice(0, 7);
+  }
+
+  function transactionPeriodLabel(key, mode = analyticsMode) {
+    if (mode === "day") return dayLabel(key);
+    if (mode === "year") return yearLabel(key);
+    return shortMonthLabel(key);
+  }
+
   function getCategory(type, categoryId) {
     const list = categories[type] || [];
     return list.find(category => category.id === categoryId) || list[list.length - 1] || { name: "อื่น ๆ", icon: "ellipsis" };
   }
 
-  function totalByType(type) {
-    return transactions
+  function totalByType(type, source = transactions) {
+    return source
       .filter(item => item.type === type)
       .reduce((sum, item) => sum + Number(item.amount || 0), 0);
   }
 
-  function summarizeCategories(type) {
+  function summarizeCategories(type, source = transactions) {
     const summary = new Map();
-    transactions.filter(item => item.type === type).forEach(item => {
+    source.filter(item => item.type === type).forEach(item => {
       const category = getCategory(type, item.categoryId);
       summary.set(category.name, (summary.get(category.name) || 0) + Number(item.amount || 0));
     });
@@ -867,21 +927,49 @@
     if (clock) clock.textContent = text;
   }
 
-  function getMonthlyRows() {
-    const rows = monthBaseline.map(item => ({ ...item }));
+  function getAnalyticsRows() {
+    const summary = new Map();
+    if (analyticsMode === "month") {
+      monthBaseline.forEach(item => {
+        summary.set(item.key, { key: item.key, label: shortMonthLabel(item.key), income: 0, expense: 0 });
+      });
+    }
     transactions.forEach(item => {
-      const key = item.date?.slice(0, 7);
-      const row = rows.find(entry => entry.key === key);
-      if (!row) return;
+      const key = transactionPeriodKey(item, analyticsMode);
+      if (!key) return;
+      if (!summary.has(key)) {
+        summary.set(key, { key, label: transactionPeriodLabel(key, analyticsMode), income: 0, expense: 0 });
+      }
+      const row = summary.get(key);
       row[item.type] += Number(item.amount || 0);
     });
-    return rows.map(row => ({ ...row, balance: row.income - row.expense })).reverse();
+    const limit = analyticsMode === "day" ? 10 : 6;
+    return [...summary.values()]
+      .map(row => ({ ...row, balance: row.income - row.expense }))
+      .sort((a, b) => b.key.localeCompare(a.key))
+      .slice(0, limit);
   }
 
   function renderMonthlyAnalytics() {
     const target = document.getElementById("monthlyAnalytics");
     if (!target) return;
-    const rows = getMonthlyRows();
+    const rows = getAnalyticsRows();
+    const rangeLabel = analyticsMode === "day" ? "วัน" : analyticsMode === "year" ? "ปี" : "เดือน";
+    const title = document.querySelector(".trend-panel .panel-head h2");
+    const subtitle = document.querySelector(".trend-panel .panel-head p");
+    if (title) title.textContent = analyticsMode === "day" ? "วิเคราะห์รายวัน" : analyticsMode === "year" ? "วิเคราะห์รายปี" : "วิเคราะห์รายเดือน";
+    if (subtitle) subtitle.textContent = `รายรับ รายจ่าย และเงินคงเหลือแบบ${rangeLabel}`;
+    if (!rows.length) {
+      target.innerHTML = `
+        <div class="asset-empty">
+          <i data-lucide="calendar-search"></i>
+          <b>ยังไม่มีข้อมูลสำหรับการวิเคราะห์แบบ${rangeLabel}</b>
+          <span>เพิ่มรายรับหรือรายจ่ายก่อน แล้วระบบจะสรุปให้ทันที</span>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
     const incomeTotal = rows.reduce((sum, row) => sum + row.income, 0);
     const expenseTotal = rows.reduce((sum, row) => sum + row.expense, 0);
     const currentBalance = rows[0]?.balance || 0;
@@ -901,12 +989,12 @@
         <article class="monthly-kpi" style="--dot:var(--good)">
           <span>รายรับรวม</span>
           <strong>${shortTHB(incomeTotal)}</strong>
-          <small>เฉลี่ยต่อเดือน ${shortTHB(incomeTotal / 6)}</small>
+          <small>เฉลี่ยต่อ${rangeLabel} ${shortTHB(incomeTotal / Math.max(rows.length, 1))}</small>
         </article>
         <article class="monthly-kpi" style="--dot:#ff6b6b">
           <span>รายจ่ายรวม</span>
           <strong>${shortTHB(expenseTotal)}</strong>
-          <small>เฉลี่ยต่อเดือน ${shortTHB(expenseTotal / 6)}</small>
+          <small>เฉลี่ยต่อ${rangeLabel} ${shortTHB(expenseTotal / Math.max(rows.length, 1))}</small>
         </article>
         <article class="monthly-kpi" style="--dot:var(--gold-2)">
           <span>เงินคงเหลือปัจจุบัน</span>
@@ -916,7 +1004,7 @@
       </section>
       <section class="monthly-table">
         <div class="monthly-row header">
-          <span>เดือน</span>
+          <span>${rangeLabel}</span>
           <span>รายรับ</span>
           <span>รายจ่าย</span>
           <span>เงินคงเหลือ</span>
@@ -931,7 +1019,7 @@
         `).join("")}
       </section>
       <section class="monthly-row total">
-        <span class="monthly-month">รวม 6 เดือน</span>
+        <span class="monthly-month">รวม ${rows.length} ${rangeLabel}</span>
         <span class="monthly-cell income"><b>${shortTHB(incomeTotal)}</b></span>
         <span class="monthly-cell expense"><b>${shortTHB(expenseTotal)}</b></span>
         <span class="monthly-cell balance"><b>${shortTHB(currentBalance)}</b></span>
@@ -998,7 +1086,7 @@
             <h3>LIVE MARKET</h3>
             <p>${cryptoCount} crypto · ${stockCount} stock · ${formatPriceUpdatedAt()}</p>
           </div>
-          <button class="live-add-toggle" type="button" data-live-add-toggle>+ Add</button>
+          <button class="live-add-toggle" type="button" data-live-add-toggle>เพิ่ม</button>
         </header>
         <form class="live-price-form" id="livePriceForm" hidden>
           <div>
@@ -1556,24 +1644,36 @@
     `).join("");
   }
 
+  function renderCashMonthOptions() {
+    const select = document.getElementById("monthSelect");
+    if (!select) return;
+    const month = ensureCashMonth();
+    select.innerHTML = availableMonths()
+      .map(key => `<option value="${key}" ${key === month ? "selected" : ""}>${monthLabel(key)}</option>`)
+      .join("");
+  }
+
   function renderCashFlow() {
-    const incomeTotal = totalByType("income");
-    const expenseTotal = totalByType("expense");
+    const month = ensureCashMonth();
+    const scopedTransactions = transactionsForMonth(month);
+    const incomeTotal = totalByType("income", scopedTransactions);
+    const expenseTotal = totalByType("expense", scopedTransactions);
     const remain = incomeTotal - expenseTotal;
     const target = document.querySelector(".cash-flow-layout");
     const rowTemplate = (type) => {
-      const rows = summarizeCategories(type);
-      if (!rows.length) return `<div><span>ยังไม่มีข้อมูล</span><b>0</b></div>`;
+      const rows = summarizeCategories(type, scopedTransactions);
+      if (!rows.length) return `<div><span>ยังไม่มีรายการในเดือนนี้</span><b>0</b></div>`;
       return rows.map(([name, amount]) => `<div><span>${name}</span><b>${number.format(amount)}</b></div>`).join("");
     };
 
     if (target) {
+      renderCashMonthOptions();
       target.innerHTML = `
         <section class="cash-ledger income-ledger">
           <div class="ledger-title">
             <p>รายรับรวม</p>
             <strong>THB ${number.format(incomeTotal)}</strong>
-            <small>เพิ่มขึ้น 12.5% จากเดือนก่อน</small>
+            <small>${monthLabel(month)}</small>
           </div>
           <div class="ledger-lines">${rowTemplate("income")}</div>
           <div class="ledger-total"><span>รวม</span><strong>${number.format(incomeTotal)}</strong></div>
@@ -1583,7 +1683,7 @@
           <div class="ledger-title">
             <p>รายจ่ายรวม</p>
             <strong>THB ${number.format(expenseTotal)}</strong>
-            <small>ลดลง 3.25% จากเดือนก่อน</small>
+            <small>${monthLabel(month)}</small>
           </div>
           <div class="ledger-lines">${rowTemplate("expense")}</div>
           <div class="ledger-total"><span>รวม</span><strong>${number.format(expenseTotal)}</strong></div>
@@ -2015,6 +2115,14 @@
     });
 
     document.querySelector(".goals-panel .ghost-btn")?.addEventListener("click", openGoalModal);
+    document.getElementById("monthSelect")?.addEventListener("change", event => {
+      selectedCashMonth = event.target.value || ensureCashMonth();
+      renderCashFlow();
+    });
+    document.getElementById("analyticsMode")?.addEventListener("change", event => {
+      analyticsMode = event.target.value || "month";
+      renderMonthlyAnalytics();
+    });
 
     document.getElementById("entryClose")?.addEventListener("click", closeEntryModal);
     document.getElementById("entryCancel")?.addEventListener("click", closeEntryModal);
