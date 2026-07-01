@@ -1494,6 +1494,19 @@ select {
   box-shadow: 0 0 0 3px rgba(216,180,95,.10);
 }
 
+.entry-input.is-linked-source {
+  border-color: rgba(110,231,165,.28);
+  background:
+    linear-gradient(90deg, rgba(110,231,165,.08), rgba(216,180,95,.035)),
+    rgba(255,255,255,.025);
+}
+
+.entry-input.is-linked-source input:disabled {
+  color: var(--gold-2);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
 .entry-input b,
 .entry-input svg {
   color: var(--gold-2);

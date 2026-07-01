@@ -233,7 +233,7 @@
   function defaultFinancialGoals() {
     return [
       { id: "goal-home", icon: "home", name: "บ้านในฝัน", targetValue: 3000000, currentValue: 1350000 },
-      { id: "goal-emergency", icon: "shield-plus", name: "เงินสำรองฉุกเฉิน", targetValue: 300000, currentValue: 240000 },
+      { id: "goal-savings", icon: "piggy-bank", name: "เงินออม", targetValue: 200000, currentValue: 0 },
       { id: "goal-portfolio", icon: "chart-no-axes-combined", name: "พอร์ต 1 ล้านบาท", targetValue: 1000000, currentValue: 620000 }
     ];
   }
@@ -370,6 +370,74 @@
       ...totals,
       count: holdings.length,
       pnlPct: totals.cost > 0 ? (totals.pnl / totals.cost) * 100 : 0
+    };
+  }
+
+  function earnPriceFromPortfolioHoldings(holdings, sym) {
+    const symbol = String(sym || "").toUpperCase();
+    const holding = (holdings || []).find(asset => String(asset.ticker || asset.symbol || "").toUpperCase() === symbol);
+    if (holding) return Number(holding.price || holding.costAvg || 0);
+    if (["USDT", "USDC", "BUSD", "DAI", "USD"].includes(symbol)) return 1;
+    return 0;
+  }
+
+  function getEarnStatsFromStore() {
+    const store = loadPortfolioStore();
+    if (!store || !Array.isArray(store.earn)) return null;
+    const fx = Number(store.fx || 35.8);
+    const holdings = Array.isArray(store.holdings) ? store.holdings : [];
+    const valueUSD = store.earn.reduce((sum, position) => {
+      const qty = Number(position.qty || position.amount || 0);
+      if (!qty) return sum;
+      const price = earnPriceFromPortfolioHoldings(holdings, position.sym || position.ticker || position.symbol);
+      const principalUSD = qty * Math.max(price, 1);
+      const accruedUSD = Number(position.accruedEarnedUSD ?? position.earnedToday ?? 0) || 0;
+      return sum + principalUSD + accruedUSD;
+    }, 0);
+    return {
+      value: valueUSD * fx,
+      count: store.earn.length
+    };
+  }
+
+  function goalSource(goal = {}) {
+    const id = String(goal.id || "").toLowerCase();
+    const name = String(goal.name || "").toLowerCase();
+    if (id === "goal-portfolio" || name.includes("พอร์ต") || name.includes("พอร์") || name.includes("portfolio")) return "portfolio";
+    if (id === "goal-savings" || name.includes("เงินออม") || name.includes("ออม") || name.includes("earn") || name.includes("eran")) return "earn";
+    return "";
+  }
+
+  function goalSourceValue(source) {
+    if (source === "portfolio") {
+      const store = loadPortfolioStore();
+      if (!store) return null;
+      return getPortfolioStatsFromStore().value;
+    }
+    if (source === "earn") {
+      return getEarnStatsFromStore()?.value ?? null;
+    }
+    return null;
+  }
+
+  function goalSourceLabel(source) {
+    if (source === "portfolio") return "อ้างอิงมูลค่าพอร์ต";
+    if (source === "earn") return "อ้างอิง Earn จากพอร์ต";
+    return "";
+  }
+
+  function resolveGoal(goal = {}) {
+    const row = normalizeGoal(goal);
+    const source = goalSource(row);
+    const linkedValue = goalSourceValue(source);
+    const currentValue = linkedValue == null ? row.currentValue : linkedValue;
+    const pct = row.targetValue > 0 ? Math.min(100, Math.max(0, (currentValue / row.targetValue) * 100)) : 0;
+    return {
+      ...row,
+      currentValue,
+      pct,
+      source,
+      sourceLabel: goalSourceLabel(source)
     };
   }
 
@@ -924,6 +992,7 @@
     renderPortfolioLegend();
     renderAssets();
     renderPortfolioKpis();
+    renderGoals();
     closeAssetTransactionModal();
     showToast(remotePushed ? `บันทึก ${asset.ticker} เข้า cloud แล้ว` : `บันทึกธุรกรรม ${asset.ticker} แล้ว`);
   }
@@ -944,12 +1013,12 @@
     }
 
     target.innerHTML = financialGoals.map(goal => {
-      const row = normalizeGoal(goal);
+      const row = resolveGoal(goal);
       return `
         <button class="goal-manager-item${row.id === editingGoalId ? " active" : ""}" type="button" data-goal-id="${escapeHTML(row.id)}">
           <span><i data-lucide="${row.icon}"></i></span>
           <strong>${escapeHTML(row.name)}</strong>
-          <small>${shortTHB(row.currentValue)} / ${shortTHB(row.targetValue)}</small>
+          <small>${shortTHB(row.currentValue)} / ${shortTHB(row.targetValue)}${row.sourceLabel ? ` · ${row.sourceLabel}` : ""}</small>
           <em>${row.pct.toFixed(0)}%</em>
         </button>
       `;
@@ -970,14 +1039,22 @@
 
   function updateGoalProgressPreview() {
     const targetValue = Number(document.getElementById("goalTargetValue")?.value || 0);
-    const currentValue = Number(document.getElementById("goalCurrentValue")?.value || 0);
+    const currentInput = document.getElementById("goalCurrentValue");
+    const source = goalSource({ id: editingGoalId, name: document.getElementById("goalName")?.value || "" });
+    const linkedValue = goalSourceValue(source);
+    const currentValue = linkedValue == null ? Number(currentInput?.value || 0) : linkedValue;
     const pct = targetValue > 0 ? Math.min(100, Math.max(0, (currentValue / targetValue) * 100)) : 0;
     const output = document.getElementById("goalProgressPreview");
+    if (currentInput) {
+      currentInput.disabled = linkedValue != null;
+      currentInput.parentElement?.classList.toggle("is-linked-source", linkedValue != null);
+      if (linkedValue != null) currentInput.value = String(Math.round(linkedValue));
+    }
     if (output) output.textContent = `${pct.toFixed(0)}%`;
   }
 
   function fillGoalForm(goal = null) {
-    const row = goal ? normalizeGoal(goal) : { id: "", icon: "target", name: "", targetValue: "", currentValue: "" };
+    const row = goal ? resolveGoal(goal) : { id: "", icon: "target", name: "", targetValue: "", currentValue: "" };
     editingGoalId = row.id || null;
     selectedGoalIcon = row.icon || "target";
     const name = document.getElementById("goalName");
@@ -1010,7 +1087,9 @@
     event.preventDefault();
     const name = document.getElementById("goalName")?.value.trim();
     const targetValue = Number(document.getElementById("goalTargetValue")?.value || 0);
-    const currentValue = Number(document.getElementById("goalCurrentValue")?.value || 0);
+    const source = goalSource({ id: editingGoalId, name });
+    const linkedValue = goalSourceValue(source);
+    const currentValue = linkedValue == null ? Number(document.getElementById("goalCurrentValue")?.value || 0) : linkedValue;
     if (!name) return showToast("กรุณาใส่ชื่อเป้าหมาย");
     if (!targetValue || targetValue <= 0) return showToast("กรุณาใส่ยอดเป้าหมาย");
     if (currentValue < 0) return showToast("ยอดสะสมต้องไม่ติดลบ");
@@ -1050,7 +1129,7 @@
   function renderGoals() {
     const target = document.getElementById("goalList");
     if (!target) return;
-    const rows = financialGoals.map(normalizeGoal);
+    const rows = financialGoals.map(resolveGoal);
     if (!rows.length) {
       target.innerHTML = `
         <div class="goal-empty">
@@ -1069,7 +1148,7 @@
           <header><b>${escapeHTML(goal.name)}</b><em>${goal.pct.toFixed(0)}%</em></header>
           <p>เป้าหมาย ${shortTHB(goal.targetValue)}</p>
           <i><b style="width:${goal.pct}%"></b></i>
-          <small>${shortTHB(goal.currentValue)} / ${shortTHB(goal.targetValue)}</small>
+          <small>${shortTHB(goal.currentValue)} / ${shortTHB(goal.targetValue)}${goal.sourceLabel ? ` · ${goal.sourceLabel}` : ""}</small>
         </div>
       </article>
     `).join("");
@@ -1524,6 +1603,15 @@
     showToast.timer = setTimeout(() => toast.classList.remove("show"), 1800);
   }
 
+  function refreshPortfolioDrivenData() {
+    renderPortfolioLegend();
+    renderAssets();
+    renderPortfolioKpis();
+    renderGoals();
+    renderGoalManagerList();
+    updateGoalProgressPreview();
+  }
+
   function bindActions() {
     document.querySelectorAll("[data-action]").forEach(button => {
       button.addEventListener("click", () => {
@@ -1592,7 +1680,7 @@
       selectedGoalIcon = button.dataset.goalIcon || "target";
       renderGoalIconGrid();
     });
-    ["goalTargetValue", "goalCurrentValue"].forEach(id => {
+    ["goalName", "goalTargetValue", "goalCurrentValue"].forEach(id => {
       document.getElementById(id)?.addEventListener("input", updateGoalProgressPreview);
     });
     document.getElementById("assetTxAssetList")?.addEventListener("click", event => {
@@ -1628,6 +1716,10 @@
         closeGoalModal();
       }
     });
+    window.addEventListener("storage", event => {
+      if (event.key === storageKeys.portfolio) refreshPortfolioDrivenData();
+    });
+    window.addEventListener("siamfolio:portfolio-updated", refreshPortfolioDrivenData);
   }
 
   function init() {
