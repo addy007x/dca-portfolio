@@ -127,6 +127,8 @@
   let liveQuotes = loadLiveQuotes();
   let liveQuoteBusy = false;
   let lastQuoteRefreshAt = 0;
+  let portfolioPriceBusy = false;
+  let lastPortfolioRefreshAt = 0;
   let selectedCashMonth = "";
   let analyticsMode = "month";
   const monthBaseline = [
@@ -444,6 +446,33 @@
     return 0;
   }
 
+  function earnPositionPrice(position = {}, holdings = []) {
+    const ownPrice = Number(position.priceUSD ?? position.price ?? position.lastPrice ?? 0);
+    if (Number.isFinite(ownPrice) && ownPrice > 0) return ownPrice;
+    return earnPriceFromPortfolioHoldings(holdings, position.sym || position.ticker || position.symbol);
+  }
+
+  function secondsSinceBangkokMidnight() {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Bangkok",
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    }).formatToParts(new Date()).reduce((out, part) => ({ ...out, [part.type]: part.value }), {});
+    return (Number(parts.hour || 0) * 3600) + (Number(parts.minute || 0) * 60) + Number(parts.second || 0);
+  }
+
+  function earnAccruedUSD(position = {}, price = 1) {
+    const qty = Number(position.qty || position.amount || 0);
+    const apy = Number(position.apy || 0);
+    const stored = Number(position.accruedEarnedUSD ?? position.earnedToday ?? 0) || 0;
+    if (!qty || !apy || !Number.isFinite(price) || price <= 0) return stored;
+    const last = Number(position.accruedEarnedAt || position.earnedUpdatedAt || position.updatedAt || 0);
+    const seconds = last > 0 ? Math.max(0, (Date.now() - last) / 1000) : secondsSinceBangkokMidnight();
+    return stored + (qty * price * (apy / 100) * (seconds / (365 * 24 * 60 * 60)));
+  }
+
   function getEarnStatsFromStore() {
     const store = loadPortfolioStore();
     if (!store || !Array.isArray(store.earn)) return null;
@@ -452,9 +481,9 @@
     const valueUSD = store.earn.reduce((sum, position) => {
       const qty = Number(position.qty || position.amount || 0);
       if (!qty) return sum;
-      const price = earnPriceFromPortfolioHoldings(holdings, position.sym || position.ticker || position.symbol);
+      const price = earnPositionPrice(position, holdings);
       const principalUSD = qty * Math.max(price, 1);
-      const accruedUSD = Number(position.accruedEarnedUSD ?? position.earnedToday ?? 0) || 0;
+      const accruedUSD = earnAccruedUSD(position, Math.max(price, 1));
       return sum + principalUSD + accruedUSD;
     }, 0);
     return {
@@ -581,6 +610,17 @@
       .replace(/-USD$/, "");
   }
 
+  function isStableSymbol(symbol) {
+    return ["USDT", "USDC", "BUSD", "DAI", "USD"].includes(String(symbol || "").toUpperCase());
+  }
+
+  function portfolioPriceSymbol(asset = {}) {
+    const symbol = normalizePriceSymbol(asset);
+    if (!symbol) return "";
+    if (String(asset.classKey || "").toLowerCase() === "th" && !symbol.endsWith(".BK")) return `${symbol}.BK`;
+    return symbol;
+  }
+
   function priceGroupForAsset(asset = {}) {
     const type = normalizeAssetType(asset);
     if (type === "crypto" || type === "gold") return "crypto";
@@ -628,6 +668,16 @@
 
   function normalizeWorkerPrices(json) {
     return json?.prices || json || {};
+  }
+
+  function extractFXRate(json) {
+    const value = Number(json?.rate ?? json?.price ?? json?.value ?? json?.THB ?? json?.result ?? json);
+    return Number.isFinite(value) && value > 0 ? value : NaN;
+  }
+
+  async function fetchFXRate() {
+    const json = await fetchJsonWithTimeout(`${getPriceApiBase()}/api/prices/fx?from=USD&to=THB`, 8000);
+    return extractFXRate(json);
   }
 
   function binanceSymbol(symbol) {
@@ -756,6 +806,90 @@
       return false;
     } finally {
       liveQuoteBusy = false;
+    }
+  }
+
+  async function refreshPortfolioPrices() {
+    const store = loadPortfolioStore();
+    const holdings = Array.isArray(store?.holdings) ? store.holdings : [];
+    const earn = Array.isArray(store?.earn) ? store.earn : [];
+    if (portfolioPriceBusy || (!holdings.length && !earn.length)) return false;
+
+    portfolioPriceBusy = true;
+    try {
+      const groups = holdings.reduce((sum, asset) => {
+        const symbol = portfolioPriceSymbol(asset);
+        if (!symbol) return sum;
+        sum[priceGroupForAsset(asset)].add(symbol);
+        return sum;
+      }, { crypto: new Set(), stocks: new Set() });
+
+      earn.forEach(position => {
+        const symbol = normalizePriceSymbol({ ticker: position.sym || position.ticker || position.symbol });
+        if (symbol && !isStableSymbol(symbol)) groups.crypto.add(symbol);
+      });
+
+      const [cryptoResult, stockResult, fxResult] = await Promise.allSettled([
+        fetchPriceGroup("crypto", Array.from(groups.crypto)),
+        fetchPriceGroup("stocks", Array.from(groups.stocks)),
+        fetchFXRate()
+      ]);
+
+      const cryptoPrices = cryptoResult.status === "fulfilled" ? cryptoResult.value : {};
+      const stockPrices = stockResult.status === "fulfilled" ? stockResult.value : {};
+      const nextFx = fxResult.status === "fulfilled" && Number.isFinite(fxResult.value) ? fxResult.value : Number(store.fx || 35.8);
+      const now = Date.now();
+      let changed = Number(nextFx) !== Number(store.fx || 0);
+
+      const nextHoldings = holdings.map(asset => {
+        const group = priceGroupForAsset(asset);
+        const prices = group === "crypto" ? cryptoPrices : stockPrices;
+        const requestSymbol = portfolioPriceSymbol(asset);
+        const symbol = normalizePriceSymbol(asset);
+        const latestPrice = pickPrice(prices, requestSymbol) || pickPrice(prices, symbol);
+        if (!Number.isFinite(latestPrice) || latestPrice <= 0) return asset;
+        const raw = prices[requestSymbol] ?? prices[symbol] ?? prices[`${symbol}-USD`] ?? prices[symbol.replace(".BK", "")];
+        changed = changed || Number(asset.price || 0) !== latestPrice;
+        return {
+          ...asset,
+          price: latestPrice,
+          chg1d: Number(raw?.chg1d ?? raw?.changePct ?? asset.chg1d ?? 0) || 0,
+          priceUpdatedAt: now,
+          spark: [...(asset.spark || []).slice(-11), latestPrice]
+        };
+      });
+
+      const nextEarn = earn.map(position => {
+        const symbol = normalizePriceSymbol({ ticker: position.sym || position.ticker || position.symbol });
+        if (!symbol) return position;
+        const latestPrice = isStableSymbol(symbol) ? 1 : pickPrice(cryptoPrices, symbol);
+        if (!Number.isFinite(latestPrice) || latestPrice <= 0) return position;
+        changed = changed || Number(position.priceUSD ?? position.price ?? 0) !== latestPrice;
+        return {
+          ...position,
+          priceUSD: latestPrice,
+          priceUpdatedAt: now
+        };
+      });
+
+      lastPortfolioRefreshAt = now;
+      if (changed) {
+        savePortfolioStore({
+          ...store,
+          fx: nextFx,
+          holdings: nextHoldings,
+          earn: nextEarn,
+          pricesUpdatedAt: now
+        });
+      } else {
+        refreshPortfolioDrivenData();
+      }
+      return true;
+    } catch (error) {
+      console.warn("Cannot refresh portfolio prices", error);
+      return false;
+    } finally {
+      portfolioPriceBusy = false;
     }
   }
 
@@ -2230,8 +2364,12 @@
   function init() {
     updateClock();
     window.setInterval(updateClock, 1000);
-    window.setTimeout(refreshLiveQuotes, 700);
-    window.setInterval(refreshLiveQuotes, PRICE_REFRESH_MS);
+    const refreshRealtimeData = () => {
+      refreshLiveQuotes();
+      refreshPortfolioPrices();
+    };
+    window.setTimeout(refreshRealtimeData, 700);
+    window.setInterval(refreshRealtimeData, PRICE_REFRESH_MS);
     renderPortfolioLegend();
     bindAssetFilters();
     renderAssets();
