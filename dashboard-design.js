@@ -276,9 +276,11 @@
   function defaultLiveQuotes() {
     return [
       { id: "live-btc", symbol: "BTC", type: "crypto" },
+      { id: "live-xaut", symbol: "XAUT", type: "crypto" },
       { id: "live-trx", symbol: "TRX", type: "crypto" },
-      { id: "live-nvda", symbol: "NVDA", type: "stocks" },
-      { id: "live-ptt", symbol: "PTT.BK", type: "stocks" }
+      { id: "live-sol", symbol: "SOL", type: "crypto" },
+      { id: "live-eth", symbol: "ETH", type: "crypto" },
+      { id: "live-bnb", symbol: "BNB", type: "crypto" }
     ];
   }
 
@@ -297,6 +299,7 @@
       currency: item.currency || (type === "crypto" ? "USD" : "USD"),
       source: item.source || "",
       session: item.session || item.marketState || "",
+      error: item.error || "",
       updatedAt: Number(item.updatedAt || 0)
     };
   }
@@ -304,7 +307,14 @@
   function loadLiveQuotes() {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKeys.liveQuotes));
-      if (Array.isArray(saved)) return saved.map(normalizeLiveQuote).filter(item => item.symbol);
+      if (Array.isArray(saved)) {
+        const rows = saved.map(normalizeLiveQuote).filter(item => item.symbol);
+        const key = rows.map(item => `${item.type}:${item.symbol}`).join(",");
+        if (key === "crypto:BTC,crypto:TRX,stocks:NVDA,stocks:PTT.BK") {
+          return defaultLiveQuotes().map(normalizeLiveQuote);
+        }
+        return rows;
+      }
     } catch (error) {
       console.warn("Cannot load live quotes", error);
     }
@@ -602,13 +612,96 @@
     return extractPriceValue(found?.[1]);
   }
 
+  async function fetchJsonWithTimeout(url, timeoutMs = 9000) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    } finally {
+      window.clearTimeout(timer);
+    }
+  }
+
+  function normalizeWorkerPrices(json) {
+    return json?.prices || json || {};
+  }
+
+  function binanceSymbol(symbol) {
+    const clean = String(symbol || "").toUpperCase().replace(/-USD$/, "");
+    if (clean === "XAUT") return "PAXGUSDT";
+    if (clean === "USDT") return "";
+    return `${clean}USDT`;
+  }
+
+  async function fetchBinancePrices(symbols) {
+    const pairs = symbols.map(binanceSymbol).filter(Boolean);
+    if (!pairs.length) return {};
+    const url = `https://data-api.binance.vision/api/v3/ticker/24hr?symbols=${encodeURIComponent(JSON.stringify(pairs))}`;
+    const rows = await fetchJsonWithTimeout(url);
+    const list = Array.isArray(rows) ? rows : [rows];
+    return list.reduce((out, row) => {
+      const pair = String(row.symbol || "").toUpperCase();
+      const symbol = pair === "PAXGUSDT" ? "XAUT" : pair.replace(/USDT$/, "");
+      const price = Number(row.lastPrice);
+      if (Number.isFinite(price) && price > 0) {
+        out[symbol] = {
+          price,
+          chg1d: Number(row.priceChangePercent || 0),
+          source: "binance",
+          currency: "USD",
+          updatedAt: Date.now()
+        };
+      }
+      return out;
+    }, {});
+  }
+
+  async function fetchCoinbasePrices(symbols) {
+    const results = await Promise.allSettled(symbols.map(async symbol => {
+      const clean = String(symbol || "").toUpperCase().replace(/-USD$/, "");
+      if (clean === "XAUT") return [clean, null];
+      const json = await fetchJsonWithTimeout(`https://api.coinbase.com/v2/prices/${clean}-USD/spot`, 8000);
+      const price = Number(json?.data?.amount);
+      return [clean, Number.isFinite(price) && price > 0 ? {
+        price,
+        chg1d: 0,
+        source: "coinbase",
+        currency: "USD",
+        updatedAt: Date.now()
+      } : null];
+    }));
+    return results.reduce((out, result) => {
+      if (result.status === "fulfilled" && result.value?.[1]) out[result.value[0]] = result.value[1];
+      return out;
+    }, {});
+  }
+
   async function fetchPriceGroup(group, symbols) {
     if (!symbols.length) return {};
     const endpoint = group === "crypto" ? "crypto" : "stocks";
-    const response = await fetch(`${getPriceApiBase()}/api/prices/${endpoint}?symbols=${encodeURIComponent(symbols.join(","))}`);
-    if (!response.ok) throw new Error(`price api ${response.status}`);
-    const json = await response.json();
-    return json.prices || json || {};
+    const workerUrl = `${getPriceApiBase()}/api/prices/${endpoint}?symbols=${encodeURIComponent(symbols.join(","))}`;
+    let workerPrices = {};
+    try {
+      workerPrices = normalizeWorkerPrices(await fetchJsonWithTimeout(workerUrl));
+    } catch (error) {
+      console.warn(`${endpoint} worker price refresh skipped`, error);
+    }
+    if (group !== "crypto") return workerPrices;
+
+    const missing = symbols.filter(symbol => !Number.isFinite(pickPrice(workerPrices, symbol)));
+    if (!missing.length) return workerPrices;
+
+    const [binanceResult, coinbaseResult] = await Promise.allSettled([
+      fetchBinancePrices(missing),
+      fetchCoinbasePrices(missing)
+    ]);
+    const binancePrices = binanceResult.status === "fulfilled" ? binanceResult.value : {};
+    const coinbasePrices = coinbaseResult.status === "fulfilled" ? coinbaseResult.value : {};
+    if (binanceResult.status === "rejected") console.warn("Binance price fallback skipped", binanceResult.reason);
+    if (coinbaseResult.status === "rejected") console.warn("Coinbase price fallback skipped", coinbaseResult.reason);
+    return { ...coinbasePrices, ...binancePrices, ...workerPrices };
   }
 
   async function fetchLatestLiveQuotePrices(quotes) {
@@ -638,9 +731,9 @@
       liveQuotes = liveQuotes.map(quote => {
         const symbol = normalizePriceSymbol(quote);
         const group = quote.type === "crypto" ? "crypto" : "stocks";
-        const raw = priceGroups[group]?.[symbol] ?? priceGroups[group]?.[`${symbol}-USD`];
+        const raw = priceGroups[group]?.[symbol] ?? priceGroups[group]?.[`${symbol}-USD`] ?? priceGroups[group]?.[symbol.replace(".BK", "")];
         const latestPrice = pickPrice(priceGroups[group], symbol);
-        if (!Number.isFinite(latestPrice) || latestPrice <= 0) return quote;
+        if (!Number.isFinite(latestPrice) || latestPrice <= 0) return { ...quote, error: "ดึงราคาไม่ได้" };
         return {
           ...quote,
           price: latestPrice,
@@ -648,6 +741,7 @@
           currency: raw?.currency || quote.currency || "USD",
           source: raw?.source || quote.source || "",
           session: raw?.session || raw?.marketState || quote.session || "",
+          error: "",
           updatedAt: Number(raw?.updatedAt || now)
         };
       });
@@ -891,21 +985,32 @@
   }
 
   function renderLivePriceMonitor(target) {
+    const cryptoCount = liveQuotes.filter(item => item.type === "crypto").length;
+    const stockCount = liveQuotes.length - cryptoCount;
     target.innerHTML = `
       <section class="live-price-panel">
-        <form class="live-price-form" id="livePriceForm">
-          <select id="liveQuoteType" aria-label="ประเภทสินทรัพย์">
-            <option value="crypto">คริปโต</option>
-            <option value="stocks">หุ้น</option>
-          </select>
-          <input id="liveQuoteSymbol" type="text" placeholder="เช่น BTC, ETH, NVDA, PTT.BK" autocomplete="off">
+        <header class="live-market-head">
+          <div>
+            <h3>${stockCount ? "LIVE MARKET" : "CRYPTO MARKET"}</h3>
+            <p>${cryptoCount} crypto · ${stockCount} stock · ${formatPriceUpdatedAt()}</p>
+          </div>
+          <button class="live-add-toggle" type="button" data-live-add-toggle>+ Add</button>
+        </header>
+        <form class="live-price-form" id="livePriceForm" hidden>
+          <div>
+            <select id="liveQuoteType" aria-label="ประเภทสินทรัพย์">
+              <option value="crypto">คริปโต</option>
+              <option value="stocks">หุ้น</option>
+            </select>
+            <input id="liveQuoteSymbol" type="text" placeholder="BTC, ETH, NVDA, PTT.BK" autocomplete="off">
+          </div>
           <button type="submit"><i data-lucide="plus"></i>เพิ่ม</button>
-          <button type="button" data-live-refresh><i data-lucide="refresh-cw"></i>รีเฟรช</button>
+          <button type="button" data-live-refresh><i data-lucide="refresh-cw"></i></button>
         </form>
         <div class="live-price-list">
           ${liveQuotes.length ? liveQuotes.map(quote => {
             const positive = Number(quote.changePct || 0) >= 0;
-            const typeLabel = quote.type === "crypto" ? "คริปโต" : "หุ้น";
+            const typeLabel = quote.source || (quote.type === "crypto" ? "crypto api" : "stock api");
             const iconAsset = { ticker: quote.symbol, symbol: quote.symbol, type: quote.type === "crypto" ? "crypto" : "stocks" };
             return `
               <article class="live-price-row ${positive ? "up" : "down"}" data-live-id="${escapeHTML(quote.id)}">
@@ -915,11 +1020,11 @@
                 </span>
                 <div>
                   <strong>${escapeHTML(quote.symbol)}</strong>
-                  <small>${typeLabel} · ${quote.source ? escapeHTML(quote.source) : "Live API"} · ${formatPriceUpdatedAt((quote.updatedAt || 0) * (quote.updatedAt < 100000000000 ? 1000 : 1))}</small>
+                  <small>${quote.error ? escapeHTML(quote.error) : escapeHTML(typeLabel)}</small>
                 </div>
-                <b>${formatLiveQuotePrice(quote)}</b>
+                <b>${quote.error ? "--" : formatLiveQuotePrice(quote)}</b>
                 <em>${positive ? "+" : ""}${Number(quote.changePct || 0).toFixed(2)}%</em>
-                <button type="button" data-live-remove="${escapeHTML(quote.id)}" aria-label="ลบ ${escapeHTML(quote.symbol)}"><i data-lucide="x"></i></button>
+                <button type="button" data-live-remove="${escapeHTML(quote.id)}" aria-label="ลบ ${escapeHTML(quote.symbol)}">X</button>
               </article>
             `;
           }).join("") : `
@@ -1982,6 +2087,15 @@
       if (event.target?.id === "livePriceForm") addLiveQuote(event);
     });
     document.getElementById("assetTable")?.addEventListener("click", event => {
+      const toggleButton = event.target.closest("[data-live-add-toggle]");
+      if (toggleButton) {
+        const form = document.getElementById("livePriceForm");
+        if (form) {
+          form.hidden = !form.hidden;
+          if (!form.hidden) window.setTimeout(() => document.getElementById("liveQuoteSymbol")?.focus(), 40);
+        }
+        return;
+      }
       const refreshButton = event.target.closest("[data-live-refresh]");
       if (refreshButton) return refreshLiveQuotes();
       const removeButton = event.target.closest("[data-live-remove]");

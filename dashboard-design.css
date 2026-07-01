@@ -1067,29 +1067,83 @@ select {
 }
 
 .live-price-panel {
+  position: relative;
   display: grid;
+  border: 1px solid rgba(214, 36, 47, .68);
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.88), rgba(17, 4, 6, .78)),
+    radial-gradient(circle at 78% 20%, rgba(214,36,47,.22), transparent 45%);
+  box-shadow: inset 0 0 28px rgba(0,0,0,.46), 0 0 20px rgba(214,36,47,.08);
+}
+
+.live-market-head {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 12px;
+  border-bottom: 1px solid rgba(214,36,47,.46);
+  padding: 0 0 0 14px;
+}
+
+.live-market-head h3 {
+  margin: 0;
+  color: #f5f0e8;
+  font-size: 20px;
+  font-style: italic;
+  font-weight: 950;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+.live-market-head p {
+  margin: 2px 0 0;
+  color: rgba(247,240,223,.55);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.live-add-toggle {
+  height: 48px;
+  min-width: 78px;
+  border: 0;
+  border-left: 1px solid rgba(255,255,255,.08);
+  color: white;
+  background: linear-gradient(135deg, #ba0f20, #e0313f);
+  font: inherit;
+  font-size: 15px;
+  font-style: italic;
+  font-weight: 950;
+  cursor: pointer;
 }
 
 .live-price-form {
   display: grid;
-  grid-template-columns: 120px minmax(0, 1fr) auto auto;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid rgba(216,180,95,.18);
-  border-radius: 14px;
-  background: rgba(255,255,255,.025);
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(214,36,47,.36);
+  background: rgba(0,0,0,.30);
+}
+
+.live-price-form[hidden] { display: none; }
+
+.live-price-form > div {
+  display: grid;
+  grid-template-columns: 94px minmax(0, 1fr);
+  gap: 8px;
 }
 
 .live-price-form select,
 .live-price-form input,
 .live-price-form button {
-  min-height: 40px;
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 10px;
-  color: var(--text);
-  background: rgba(0,0,0,.18);
-  padding: 0 12px;
+  min-height: 36px;
+  border: 1px solid rgba(214,36,47,.48);
+  border-radius: 0;
+  color: #f5f0e8;
+  background: rgba(0,0,0,.52);
+  padding: 0 10px;
   font: inherit;
   font-size: 12px;
   font-weight: 900;
@@ -1099,35 +1153,41 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  color: #111;
-  border-color: var(--gold);
-  background: linear-gradient(135deg, var(--gold-2), var(--gold));
+  gap: 6px;
+  color: white;
+  border-color: rgba(255,255,255,.10);
+  background: linear-gradient(135deg, #a60d19, #df2634);
   cursor: pointer;
 }
 
 .live-price-form button[data-live-refresh] {
-  color: var(--gold-2);
-  background: rgba(216,180,95,.08);
+  min-width: 38px;
+  color: #f5f0e8;
+  background: rgba(214,36,47,.12);
 }
 
 .live-price-list {
   display: grid;
-  gap: 8px;
+  padding: 0 12px 8px;
 }
 
 .live-price-row {
-  min-height: 58px;
+  min-height: 60px;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 112px 72px 34px;
+  grid-template-columns: 42px minmax(0, 1fr) 104px 62px 34px;
   align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 13px;
-  background:
-    radial-gradient(circle at 8% 50%, rgba(216,180,95,.11), transparent 44%),
-    rgba(255,255,255,.02);
+  gap: 8px;
+  border-bottom: 1px solid rgba(214,36,47,.34);
+  color: #f5f0e8;
+}
+
+.live-price-row .asset-icon {
+  width: 34px;
+  height: 34px;
+  border-color: rgba(214,36,47,.45);
+  border-radius: 50%;
+  background: rgba(255,255,255,.04);
+  box-shadow: 0 0 18px rgba(214,36,47,.12);
 }
 
 .live-price-row strong,
@@ -1136,43 +1196,57 @@ select {
   font-weight: 950;
 }
 
+.live-price-row strong {
+  display: block;
+  font-size: 15px;
+  font-style: italic;
+  letter-spacing: .02em;
+}
+
 .live-price-row small {
   display: block;
   margin-top: 2px;
-  color: var(--muted-2);
+  color: rgba(247,240,223,.55);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 900;
+  text-transform: lowercase;
 }
 
-.live-price-row b,
-.live-price-row em {
+.live-price-row b {
+  color: rgba(247,240,223,.86);
+  font-size: 14px;
+  font-style: italic;
   text-align: right;
 }
 
 .live-price-row em {
-  color: var(--good);
+  color: #49f57a;
+  font-size: 12px;
   font-style: normal;
+  text-align: right;
 }
 
 .live-price-row.down em {
-  color: var(--bad);
+  color: #ff4455;
 }
 
 .live-price-row button {
   width: 30px;
-  height: 30px;
+  height: 34px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 10px;
-  color: var(--muted);
-  background: rgba(255,255,255,.025);
+  border: 1px solid rgba(255, 70, 85, .58);
+  border-radius: 0;
+  color: white;
+  background: rgba(0,0,0,.24);
+  font-size: 13px;
+  font-weight: 950;
   cursor: pointer;
 }
 
 .live-price-row button:hover {
-  color: var(--bad);
-  border-color: rgba(242,143,127,.45);
+  border-color: rgba(255, 70, 85, .95);
+  background: rgba(214,36,47,.22);
 }
 
 .filter-pills {
