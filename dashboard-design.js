@@ -17,7 +17,10 @@
     categories: "siamfolio.dashboard.categories.v1",
     portfolio: "siamfolio.v1",
     layout: "siamfolio.dashboard.layout.v1",
-    pendingPortfolioTransactions: "siamfolio.pendingTransactions.v1"
+    pendingPortfolioTransactions: "siamfolio.pendingTransactions.v1",
+    authSession: "siamfolio.googleSession",
+    legacyBackend: "siamfolio.backend",
+    databaseMode: "siamfolio.databaseMode"
   };
 
   const assets = [
@@ -332,6 +335,84 @@
 
   function makePortfolioTransactionId() {
     return `tx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  function loadDashboardAuthSession() {
+    try {
+      const raw = localStorage.getItem(storageKeys.authSession) || sessionStorage.getItem(storageKeys.authSession);
+      const session = JSON.parse(raw || "null");
+      if (session?.token && (!session.expiresAt || session.expiresAt > Date.now())) return session;
+    } catch (_) {}
+    return null;
+  }
+
+  function getDashboardAuthApiUrl() {
+    return (window.AUTH_CONFIG?.apiUrl || "").replace(/\/$/, "");
+  }
+
+  async function dashboardAuthFetch(path, options = {}) {
+    const apiUrl = getDashboardAuthApiUrl();
+    const session = loadDashboardAuthSession();
+    if (!apiUrl || !session?.token) return null;
+    const headers = { ...(options.headers || {}), Authorization: `Bearer ${session.token}` };
+    if (options.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
+    const response = await fetch(apiUrl + path, { ...options, headers });
+    if (!response.ok) throw new Error(await response.text().catch(() => `HTTP ${response.status}`));
+    return response.json();
+  }
+
+  function loadLegacyBackendConfig() {
+    try {
+      if (localStorage.getItem(storageKeys.databaseMode) !== "cloud") return null;
+      const cfg = JSON.parse(localStorage.getItem(storageKeys.legacyBackend) || "null");
+      if (cfg?.url && cfg?.key) return { url: cfg.url.replace(/\/$/, ""), key: cfg.key };
+    } catch (_) {}
+    return null;
+  }
+
+  async function legacyBackendFetch(path, options = {}) {
+    const cfg = loadLegacyBackendConfig();
+    if (!cfg) return null;
+    const headers = { "X-Api-Key": cfg.key, ...(options.headers || {}) };
+    if (options.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
+    const response = await fetch(cfg.url + path, { ...options, headers });
+    if (!response.ok) throw new Error(await response.text().catch(() => `HTTP ${response.status}`));
+    return response.json();
+  }
+
+  function mergePortfolioTxIntoSnapshot(snapshot, tx) {
+    const base = snapshot && typeof snapshot === "object" ? snapshot : {};
+    const transactions = Array.isArray(base.transactions) ? base.transactions : [];
+    if (transactions.some(item => item.id === tx.id)) return base;
+    return {
+      ...base,
+      transactions: [tx, ...transactions],
+      holdings: (Array.isArray(base.holdings) ? base.holdings : []).map(holding => (
+        (holding.ticker || holding.symbol) === tx.ticker
+          ? applyDashboardPortfolioTx(holding, tx)
+          : holding
+      ))
+    };
+  }
+
+  async function pushPortfolioTransactionRemote(tx, fallbackStore) {
+    const pushOne = async (fetcher) => {
+      const remote = await fetcher("/api/portfolio", { method: "GET" });
+      const source = remote && Object.keys(remote).length ? remote : fallbackStore;
+      const merged = mergePortfolioTxIntoSnapshot(source, tx);
+      await fetcher("/api/portfolio", { method: "PUT", body: JSON.stringify(merged) });
+    };
+
+    let pushed = false;
+    if (loadDashboardAuthSession() && getDashboardAuthApiUrl()) {
+      await pushOne(dashboardAuthFetch);
+      pushed = true;
+    }
+    if (loadLegacyBackendConfig()) {
+      await pushOne(legacyBackendFetch);
+      pushed = true;
+    }
+    return pushed;
   }
 
   function formatDate(dateString) {
@@ -700,8 +781,9 @@
     if (overlay) overlay.hidden = true;
   }
 
-  function submitAssetTransaction(event) {
+  async function submitAssetTransaction(event) {
     event.preventDefault();
+    const submit = document.getElementById("assetTxSubmit");
     const store = loadPortfolioStore();
     const asset = getSelectedAssetTxHolding();
     if (!store || !asset) return showToast("ยังไม่มีสินทรัพย์ในพอร์ตให้บันทึก");
@@ -733,25 +815,38 @@
       note: note || `${kind === "sell" ? "ขาย" : "ซื้อ"} ${asset.ticker}`
     };
 
-    if (typeof window.addTransaction === "function") {
-      window.addTransaction(tx);
-    } else {
-      enqueuePortfolioTransaction(tx);
-      const nextStore = {
-        ...store,
-        transactions: [tx, ...(store.transactions || [])],
-        holdings: (store.holdings || []).map(holding => (
-          (holding.ticker || holding.symbol) === asset.ticker
-            ? applyDashboardPortfolioTx(holding, tx)
-            : holding
-        ))
-      };
-      savePortfolioStore(nextStore);
+    if (submit) {
+      submit.disabled = true;
+      submit.innerHTML = `<i data-lucide="loader-2"></i>กำลังบันทึก...`;
+      refreshModalIcons();
+    }
+
+    let nextStore = store;
+    let remotePushed = false;
+    try {
+      if (typeof window.addTransaction === "function") {
+        window.addTransaction(tx);
+        nextStore = loadPortfolioStore() || store;
+      } else {
+        enqueuePortfolioTransaction(tx);
+        nextStore = mergePortfolioTxIntoSnapshot(store, tx);
+        savePortfolioStore(nextStore);
+      }
+      remotePushed = await pushPortfolioTransactionRemote(tx, nextStore);
+    } catch (error) {
+      console.warn("Remote portfolio transaction save failed", error);
+      showToast("บันทึกในเครื่องแล้ว แต่ส่งขึ้นระบบหลักไม่สำเร็จ");
+    } finally {
+      if (submit) {
+        submit.disabled = false;
+        submit.innerHTML = `<i data-lucide="save"></i>บันทึกธุรกรรมพอร์ต`;
+        refreshModalIcons();
+      }
     }
     renderPortfolioLegend();
     renderAssets();
     closeAssetTransactionModal();
-    showToast(`บันทึกธุรกรรม ${asset.ticker} แล้ว`);
+    showToast(remotePushed ? `บันทึก ${asset.ticker} เข้า cloud แล้ว` : `บันทึกธุรกรรม ${asset.ticker} แล้ว`);
   }
 
   function renderGoals() {
