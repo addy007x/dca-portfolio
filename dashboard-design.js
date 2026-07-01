@@ -987,11 +987,15 @@
   function renderLivePriceMonitor(target) {
     const cryptoCount = liveQuotes.filter(item => item.type === "crypto").length;
     const stockCount = liveQuotes.length - cryptoCount;
+    const sortedQuotes = [...liveQuotes].sort((a, b) => {
+      if (a.type !== b.type) return a.type === "stocks" ? -1 : 1;
+      return a.symbol.localeCompare(b.symbol);
+    });
     target.innerHTML = `
       <section class="live-price-panel">
         <header class="live-market-head">
           <div>
-            <h3>${stockCount ? "LIVE MARKET" : "CRYPTO MARKET"}</h3>
+            <h3>LIVE MARKET</h3>
             <p>${cryptoCount} crypto · ${stockCount} stock · ${formatPriceUpdatedAt()}</p>
           </div>
           <button class="live-add-toggle" type="button" data-live-add-toggle>+ Add</button>
@@ -1008,7 +1012,7 @@
           <button type="button" data-live-refresh><i data-lucide="refresh-cw"></i></button>
         </form>
         <div class="live-price-list">
-          ${liveQuotes.length ? liveQuotes.map(quote => {
+          ${sortedQuotes.length ? sortedQuotes.map(quote => {
             const positive = Number(quote.changePct || 0) >= 0;
             const typeLabel = quote.source || (quote.type === "crypto" ? "crypto api" : "stock api");
             const iconAsset = { ticker: quote.symbol, symbol: quote.symbol, type: quote.type === "crypto" ? "crypto" : "stocks" };
