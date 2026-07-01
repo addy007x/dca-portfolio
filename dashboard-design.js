@@ -27,6 +27,7 @@
     portfolio: "siamfolio.v1",
     layout: "siamfolio.dashboard.layout.v1",
     pendingPortfolioTransactions: "siamfolio.pendingTransactions.v1",
+    goals: "siamfolio.dashboard.goals.v1",
     authSession: "siamfolio.googleSession",
     legacyBackend: "siamfolio.backend",
     databaseMode: "siamfolio.databaseMode"
@@ -40,6 +41,11 @@
     { symbol: "NVDA", name: "NVIDIA", color: "#c9a56a", share: 15, value: 179973, pnl: 12382, pct: 7.38 },
     { symbol: "GOOGL", name: "Alphabet", color: "#6ee7a5", share: 20, value: 239964, pnl: 11491, pct: 5.05 },
     { symbol: "LLY", name: "Eli Lilly", color: "#a78bfa", share: 7, value: 83988, pnl: 2264, pct: 2.77 }
+  ];
+
+  const goalIconChoices = [
+    "home", "shield-plus", "chart-no-axes-combined", "piggy-bank", "target", "trophy",
+    "car", "plane", "graduation-cap", "gem", "heart-pulse", "briefcase-business"
   ];
 
   const defaultCategories = {
@@ -112,6 +118,9 @@
   let editingTransactionId = null;
   let reportFilter = "all";
   let selectedAssetTxTicker = "";
+  let financialGoals = loadFinancialGoals();
+  let editingGoalId = null;
+  let selectedGoalIcon = "target";
   const monthBaseline = [
     { key: "2026-01", label: "ม.ค. 2026", income: 38000, expense: 15500 },
     { key: "2026-02", label: "ก.พ. 2026", income: 40000, expense: 19800 },
@@ -219,6 +228,43 @@
 
   function saveTransactions() {
     localStorage.setItem(storageKeys.transactions, JSON.stringify(transactions));
+  }
+
+  function defaultFinancialGoals() {
+    return [
+      { id: "goal-home", icon: "home", name: "บ้านในฝัน", targetValue: 3000000, currentValue: 1350000 },
+      { id: "goal-emergency", icon: "shield-plus", name: "เงินสำรองฉุกเฉิน", targetValue: 300000, currentValue: 240000 },
+      { id: "goal-portfolio", icon: "chart-no-axes-combined", name: "พอร์ต 1 ล้านบาท", targetValue: 1000000, currentValue: 620000 }
+    ];
+  }
+
+  function normalizeGoal(goal = {}) {
+    const parseMoney = value => Number(String(value || "").replace(/[^\d.-]/g, "")) || 0;
+    const targetValue = Number(goal.targetValue) || parseMoney(goal.target) || 0;
+    const currentValue = Number(goal.currentValue) || parseMoney(String(goal.current || "").split("/")[0]) || 0;
+    const pct = targetValue > 0 ? Math.min(100, Math.max(0, (currentValue / targetValue) * 100)) : Number(goal.pct || 0);
+    return {
+      id: goal.id || `goal-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+      icon: goal.icon || "target",
+      name: goal.name || "เป้าหมายใหม่",
+      targetValue,
+      currentValue,
+      pct
+    };
+  }
+
+  function loadFinancialGoals() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKeys.goals));
+      if (Array.isArray(saved)) return saved.map(normalizeGoal);
+    } catch (error) {
+      console.warn("Cannot load financial goals", error);
+    }
+    return defaultFinancialGoals().map(normalizeGoal);
+  }
+
+  function saveFinancialGoals() {
+    localStorage.setItem(storageKeys.goals, JSON.stringify(financialGoals.map(normalizeGoal)));
   }
 
   function loadPortfolioStore() {
@@ -882,17 +928,148 @@
     showToast(remotePushed ? `บันทึก ${asset.ticker} เข้า cloud แล้ว` : `บันทึกธุรกรรม ${asset.ticker} แล้ว`);
   }
 
+  function renderGoalManagerList() {
+    const target = document.getElementById("goalManagerList");
+    if (!target) return;
+    if (!financialGoals.length) {
+      target.innerHTML = `
+        <div class="goal-manager-empty">
+          <i data-lucide="target"></i>
+          <b>ยังไม่มีเป้าหมาย</b>
+          <span>กดเพิ่มเพื่อสร้างเป้าหมายแรก</span>
+        </div>
+      `;
+      refreshModalIcons();
+      return;
+    }
+
+    target.innerHTML = financialGoals.map(goal => {
+      const row = normalizeGoal(goal);
+      return `
+        <button class="goal-manager-item${row.id === editingGoalId ? " active" : ""}" type="button" data-goal-id="${escapeHTML(row.id)}">
+          <span><i data-lucide="${row.icon}"></i></span>
+          <strong>${escapeHTML(row.name)}</strong>
+          <small>${shortTHB(row.currentValue)} / ${shortTHB(row.targetValue)}</small>
+          <em>${row.pct.toFixed(0)}%</em>
+        </button>
+      `;
+    }).join("");
+    refreshModalIcons();
+  }
+
+  function renderGoalIconGrid() {
+    const target = document.getElementById("goalIconGrid");
+    if (!target) return;
+    target.innerHTML = goalIconChoices.map(icon => `
+      <button class="goal-icon-choice${icon === selectedGoalIcon ? " active" : ""}" type="button" data-goal-icon="${icon}" title="${icon}">
+        <i data-lucide="${icon}"></i>
+      </button>
+    `).join("");
+    refreshModalIcons();
+  }
+
+  function updateGoalProgressPreview() {
+    const targetValue = Number(document.getElementById("goalTargetValue")?.value || 0);
+    const currentValue = Number(document.getElementById("goalCurrentValue")?.value || 0);
+    const pct = targetValue > 0 ? Math.min(100, Math.max(0, (currentValue / targetValue) * 100)) : 0;
+    const output = document.getElementById("goalProgressPreview");
+    if (output) output.textContent = `${pct.toFixed(0)}%`;
+  }
+
+  function fillGoalForm(goal = null) {
+    const row = goal ? normalizeGoal(goal) : { id: "", icon: "target", name: "", targetValue: "", currentValue: "" };
+    editingGoalId = row.id || null;
+    selectedGoalIcon = row.icon || "target";
+    const name = document.getElementById("goalName");
+    const target = document.getElementById("goalTargetValue");
+    const current = document.getElementById("goalCurrentValue");
+    const deleteButton = document.getElementById("goalDeleteButton");
+    if (name) name.value = row.name || "";
+    if (target) target.value = row.targetValue || "";
+    if (current) current.value = row.currentValue || "";
+    if (deleteButton) deleteButton.hidden = !editingGoalId;
+    updateGoalProgressPreview();
+    renderGoalManagerList();
+    renderGoalIconGrid();
+    setTimeout(() => name?.focus(), 40);
+  }
+
+  function openGoalModal() {
+    const overlay = document.getElementById("goalOverlay");
+    if (!overlay) return;
+    overlay.hidden = false;
+    fillGoalForm(financialGoals[0] || null);
+  }
+
+  function closeGoalModal() {
+    const overlay = document.getElementById("goalOverlay");
+    if (overlay) overlay.hidden = true;
+  }
+
+  function submitGoalForm(event) {
+    event.preventDefault();
+    const name = document.getElementById("goalName")?.value.trim();
+    const targetValue = Number(document.getElementById("goalTargetValue")?.value || 0);
+    const currentValue = Number(document.getElementById("goalCurrentValue")?.value || 0);
+    if (!name) return showToast("กรุณาใส่ชื่อเป้าหมาย");
+    if (!targetValue || targetValue <= 0) return showToast("กรุณาใส่ยอดเป้าหมาย");
+    if (currentValue < 0) return showToast("ยอดสะสมต้องไม่ติดลบ");
+
+    const nextGoal = normalizeGoal({
+      id: editingGoalId || `goal-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+      icon: selectedGoalIcon,
+      name,
+      targetValue,
+      currentValue
+    });
+
+    if (editingGoalId) {
+      financialGoals = financialGoals.map(goal => goal.id === editingGoalId ? nextGoal : goal);
+    } else {
+      financialGoals = [nextGoal, ...financialGoals];
+    }
+    editingGoalId = nextGoal.id;
+    saveFinancialGoals();
+    renderGoals();
+    renderGoalManagerList();
+    updateGoalProgressPreview();
+    showToast("บันทึกเป้าหมายแล้ว");
+  }
+
+  function deleteSelectedGoal() {
+    const goal = financialGoals.find(item => item.id === editingGoalId);
+    if (!goal) return showToast("เลือกเป้าหมายที่ต้องการลบ");
+    if (!window.confirm(`ลบเป้าหมาย "${goal.name}" ใช่ไหม?`)) return;
+    financialGoals = financialGoals.filter(item => item.id !== editingGoalId);
+    saveFinancialGoals();
+    renderGoals();
+    fillGoalForm(financialGoals[0] || null);
+    showToast("ลบเป้าหมายแล้ว");
+  }
+
   function renderGoals() {
     const target = document.getElementById("goalList");
     if (!target) return;
-    target.innerHTML = goals.map(goal => `
+    const rows = financialGoals.map(normalizeGoal);
+    if (!rows.length) {
+      target.innerHTML = `
+        <div class="goal-empty">
+          <i data-lucide="target"></i>
+          <b>ยังไม่มีเป้าหมาย</b>
+          <span>กดเมนูเป้าหมายเพื่อเพิ่มแผนการเงินของคุณ</span>
+        </div>
+      `;
+      refreshModalIcons();
+      return;
+    }
+    target.innerHTML = rows.map(goal => `
       <article class="goal-card">
         <span><i data-lucide="${goal.icon}"></i></span>
         <div>
-          <header><b>${goal.name}</b><em>${goal.pct}%</em></header>
-          <p>${goal.target}</p>
+          <header><b>${escapeHTML(goal.name)}</b><em>${goal.pct.toFixed(0)}%</em></header>
+          <p>เป้าหมาย ${shortTHB(goal.targetValue)}</p>
           <i><b style="width:${goal.pct}%"></b></i>
-          <small>${goal.current}</small>
+          <small>${shortTHB(goal.currentValue)} / ${shortTHB(goal.targetValue)}</small>
         </div>
       </article>
     `).join("");
@@ -1364,10 +1541,13 @@
         if (href === "#income") return openEntryModal("income");
         if (href === "#expense") return openEntryModal("expense");
         if (href === "#portfolio") return openAssetTransactionModal();
+        if (href === "#goal") return openGoalModal();
         if (href === "#report") return openReportModal();
         showToast(`เลือก ${item.dataset.section || item.textContent.trim()}`);
       });
     });
+
+    document.querySelector(".goals-panel .ghost-btn")?.addEventListener("click", openGoalModal);
 
     document.getElementById("entryClose")?.addEventListener("click", closeEntryModal);
     document.getElementById("entryCancel")?.addEventListener("click", closeEntryModal);
@@ -1391,6 +1571,29 @@
     document.getElementById("assetTxForm")?.addEventListener("submit", submitAssetTransaction);
     document.getElementById("assetTxOverlay")?.addEventListener("click", event => {
       if (event.target.id === "assetTxOverlay") closeAssetTransactionModal();
+    });
+    document.getElementById("goalClose")?.addEventListener("click", closeGoalModal);
+    document.getElementById("goalCancel")?.addEventListener("click", closeGoalModal);
+    document.getElementById("goalForm")?.addEventListener("submit", submitGoalForm);
+    document.getElementById("goalDeleteButton")?.addEventListener("click", deleteSelectedGoal);
+    document.getElementById("goalNewButton")?.addEventListener("click", () => fillGoalForm(null));
+    document.getElementById("goalOverlay")?.addEventListener("click", event => {
+      if (event.target.id === "goalOverlay") closeGoalModal();
+    });
+    document.getElementById("goalManagerList")?.addEventListener("click", event => {
+      const button = event.target.closest("[data-goal-id]");
+      if (!button) return;
+      const goal = financialGoals.find(item => item.id === button.dataset.goalId);
+      if (goal) fillGoalForm(goal);
+    });
+    document.getElementById("goalIconGrid")?.addEventListener("click", event => {
+      const button = event.target.closest("[data-goal-icon]");
+      if (!button) return;
+      selectedGoalIcon = button.dataset.goalIcon || "target";
+      renderGoalIconGrid();
+    });
+    ["goalTargetValue", "goalCurrentValue"].forEach(id => {
+      document.getElementById(id)?.addEventListener("input", updateGoalProgressPreview);
     });
     document.getElementById("assetTxAssetList")?.addEventListener("click", event => {
       const button = event.target.closest("[data-asset-ticker]");
@@ -1422,6 +1625,7 @@
         closeEntryModal();
         closeReportModal();
         closeAssetTransactionModal();
+        closeGoalModal();
       }
     });
   }
@@ -1438,7 +1642,7 @@
     renderDashboardData();
     bindActions();
     if (window.lucide) window.lucide.createIcons();
-    if (["#income", "#expense", "#portfolio", "#report"].includes(window.location.hash)) {
+    if (["#income", "#expense", "#portfolio", "#goal", "#report"].includes(window.location.hash)) {
       document.querySelectorAll(".side-menu a").forEach(link => {
         link.classList.toggle("active", link.getAttribute("href") === window.location.hash);
       });
@@ -1448,6 +1652,10 @@
       }
       if (window.location.hash === "#portfolio") {
         window.setTimeout(openAssetTransactionModal, 120);
+        return;
+      }
+      if (window.location.hash === "#goal") {
+        window.setTimeout(openGoalModal, 120);
         return;
       }
       const type = window.location.hash === "#income" ? "income" : "expense";

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Thai:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="dashboard-design.css?v=20260701-2">
+  <link rel="stylesheet" href="dashboard-design.css?v=20260701-3">
 </head>
 <body>
   <div class="app-shell">
@@ -433,11 +433,91 @@
     </section>
   </div>
 
+  <div class="entry-overlay goal-overlay" id="goalOverlay" hidden>
+    <section class="entry-modal goal-modal" role="dialog" aria-modal="true" aria-labelledby="goalModalTitle">
+      <button class="entry-close" type="button" id="goalClose" aria-label="ปิดหน้าต่างเป้าหมาย">
+        <i data-lucide="x"></i>
+      </button>
+
+      <div class="entry-form goal-manager">
+        <header class="entry-head goal-head">
+          <span class="entry-head-icon"><i data-lucide="target"></i></span>
+          <div>
+            <h2 id="goalModalTitle">จัดการเป้าหมายการเงิน</h2>
+            <p>เพิ่ม แก้ไข ลบ และเลือกไอคอนให้แต่ละเป้าหมาย</p>
+          </div>
+        </header>
+
+        <div class="goal-manager-grid">
+          <section class="goal-manager-list-wrap">
+            <div class="entry-section-head">
+              <span>รายการเป้าหมาย</span>
+              <button class="goal-new-btn" type="button" id="goalNewButton"><i data-lucide="plus"></i> เพิ่ม</button>
+            </div>
+            <div class="goal-manager-list" id="goalManagerList"></div>
+          </section>
+
+          <form class="goal-form" id="goalForm">
+            <div class="entry-fields">
+              <label>
+                <span>ชื่อเป้าหมาย</span>
+                <div class="entry-input">
+                  <i data-lucide="pen-line"></i>
+                  <input id="goalName" name="name" type="text" placeholder="เช่น บ้านในฝัน" required>
+                </div>
+              </label>
+              <label>
+                <span>ยอดเป้าหมาย</span>
+                <div class="entry-input">
+                  <b>฿</b>
+                  <input id="goalTargetValue" name="target" type="number" min="1" step="1" inputmode="numeric" placeholder="0" required>
+                </div>
+              </label>
+              <label>
+                <span>สะสมแล้ว</span>
+                <div class="entry-input">
+                  <b>฿</b>
+                  <input id="goalCurrentValue" name="current" type="number" min="0" step="1" inputmode="numeric" placeholder="0" required>
+                </div>
+              </label>
+              <label>
+                <span>ความคืบหน้า</span>
+                <div class="entry-input goal-progress-output">
+                  <i data-lucide="activity"></i>
+                  <output id="goalProgressPreview">0%</output>
+                </div>
+              </label>
+            </div>
+
+            <section class="entry-section goal-icon-section">
+              <div class="entry-section-head">
+                <span>เลือกไอคอน</span>
+              </div>
+              <div class="goal-icon-grid" id="goalIconGrid"></div>
+            </section>
+
+            <footer class="entry-actions">
+              <button class="entry-cancel" type="button" id="goalCancel">ปิด</button>
+              <button class="entry-submit goal-delete" type="button" id="goalDeleteButton">
+                <i data-lucide="trash-2"></i>
+                ลบ
+              </button>
+              <button class="entry-submit" type="submit" id="goalSubmit">
+                <i data-lucide="save"></i>
+                บันทึกเป้าหมาย
+              </button>
+            </footer>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <script src="auth-config.js?v=34"></script>
-  <script src="dashboard-design.js?v=20260701-2"></script>
+  <script src="dashboard-design.js?v=20260701-3"></script>
 </body>
 </html>
