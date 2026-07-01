@@ -3053,6 +3053,157 @@ select,
   color: var(--text);
 }
 
+.asset-table .asset-row.is-live {
+  grid-template-columns: 42px minmax(0, 1.35fr) 96px 96px 78px;
+  min-height: 50px;
+  padding: 7px 8px;
+  border-bottom-color: rgba(255,255,255,.07);
+  border-left: 0;
+  border-radius: 12px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--dot, var(--gold)), transparent 94%), rgba(255,255,255,.016)),
+    rgba(0,0,0,.08);
+}
+
+.asset-table .asset-row.is-live:hover {
+  transform: translateX(1px);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--dot, var(--gold)), transparent 88%), rgba(255,255,255,.026)),
+    rgba(0,0,0,.12);
+}
+
+.asset-row.is-live .asset-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.92);
+}
+
+.asset-row.is-live .asset-icon svg {
+  color: var(--dot, var(--gold));
+}
+
+.asset-row.is-live strong:first-child {
+  color: var(--text);
+  font-size: 14px;
+  font-style: normal;
+  letter-spacing: 0;
+}
+
+.asset-row.is-live small {
+  color: var(--muted-2);
+  font-size: 10px;
+}
+
+.asset-row.is-live b,
+.asset-row.is-live em,
+.asset-row.is-live .gain {
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.dividend-modal {
+  width: min(980px, 100%);
+}
+
+.dividend-manager {
+  gap: 20px;
+}
+
+.dividend-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dividend-summary article {
+  min-height: 96px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid rgba(216,180,95,.18);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(216,180,95,.12), transparent 44%),
+    rgba(255,255,255,.025);
+}
+
+.dividend-summary span,
+.dividend-summary small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.dividend-summary strong {
+  color: var(--gold-2);
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.dividend-form {
+  display: grid;
+  gap: 16px;
+}
+
+.dividend-records-wrap {
+  display: grid;
+  gap: 12px;
+}
+
+.dividend-records {
+  display: grid;
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.dividend-record {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 110px 88px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(216,180,95,.16);
+  border-left: 3px solid var(--dot, var(--gold));
+  border-radius: 10px;
+  background: rgba(255,255,255,.025);
+}
+
+.dividend-record strong {
+  display: block;
+  color: var(--text);
+  font-weight: 950;
+}
+
+.dividend-record small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.dividend-record > b {
+  color: var(--gold-2);
+  text-align: right;
+  font-weight: 950;
+}
+
+.dividend-row b small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted-2);
+  font-size: 10px;
+}
+
+.report-actions button:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+
 @media (max-width: 760px) {
   .report-summary {
     grid-template-columns: 1fr;
@@ -3061,7 +3212,9 @@ select,
   .asset-tx-picker,
   .asset-tx-fields,
   .goal-manager-grid,
-  .goal-form .entry-fields {
+  .goal-form .entry-fields,
+  .dividend-fields,
+  .dividend-summary {
     grid-template-columns: 1fr;
   }
 
@@ -3075,6 +3228,21 @@ select,
 
   .report-row > b,
   .report-actions {
+    grid-column: 2;
+    text-align: left;
+    justify-content: flex-start;
+  }
+
+  .asset-table .asset-row.is-live,
+  .dividend-record {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .asset-row.is-live > b,
+  .asset-row.is-live > em,
+  .asset-row.is-live > .gain,
+  .dividend-record > b,
+  .dividend-record .report-actions {
     grid-column: 2;
     text-align: left;
     justify-content: flex-start;

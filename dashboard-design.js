@@ -30,6 +30,7 @@
     layout: "siamfolio.dashboard.layout.v1",
     pendingPortfolioTransactions: "siamfolio.pendingTransactions.v1",
     goals: "siamfolio.dashboard.goals.v1",
+    dividends: "siamfolio.dashboard.dividends.v1",
     liveQuotes: "siamfolio.dashboard.liveQuotes.v1",
     authSession: "siamfolio.googleSession",
     legacyBackend: "siamfolio.backend",
@@ -124,6 +125,7 @@
   let financialGoals = loadFinancialGoals();
   let editingGoalId = null;
   let selectedGoalIcon = "target";
+  let dividendRecords = loadDividendRecords();
   let liveQuotes = loadLiveQuotes();
   let liveQuoteBusy = false;
   let lastQuoteRefreshAt = 0;
@@ -275,6 +277,54 @@
 
   function saveFinancialGoals() {
     localStorage.setItem(storageKeys.goals, JSON.stringify(financialGoals.map(normalizeGoal)));
+  }
+
+  function dividendColorForTicker(ticker) {
+    const symbol = String(ticker || "").toUpperCase();
+    const asset = assets.find(item => item.symbol === symbol) || getHeldAssets().find(item => item.symbol === symbol);
+    return asset?.color || "#d8b45f";
+  }
+
+  function normalizeDividendRecord(record = {}) {
+    const ticker = String(record.ticker || record.symbol || record[0] || "").trim().toUpperCase() || "DIV";
+    const amount = Number(record.amount ?? record.dividend ?? record[1] ?? 0) || 0;
+    const fallbackDate = `${new Date().getFullYear()}-12-31`;
+    return {
+      id: record.id || `div-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+      ticker,
+      amount,
+      exDate: record.exDate || record.ex_date || "",
+      payDate: record.payDate || record.pay_date || fallbackDate,
+      mark: record.mark || record[2] || ticker.slice(0, 1),
+      color: record.color || record[3] || dividendColorForTicker(ticker),
+      recordedIncomeId: record.recordedIncomeId || ""
+    };
+  }
+
+  function defaultDividendRecords() {
+    const year = new Date().getFullYear();
+    return dividends.map(([ticker, amount, mark, color], index) => normalizeDividendRecord({
+      ticker,
+      amount,
+      mark,
+      color,
+      exDate: `${year}-${String(6 + index).padStart(2, "0")}-12`,
+      payDate: `${year}-${String(6 + index).padStart(2, "0")}-26`
+    }));
+  }
+
+  function loadDividendRecords() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKeys.dividends));
+      if (Array.isArray(saved)) return saved.map(normalizeDividendRecord);
+    } catch (error) {
+      console.warn("Cannot load dividend records", error);
+    }
+    return defaultDividendRecords();
+  }
+
+  function saveDividendRecords() {
+    localStorage.setItem(storageKeys.dividends, JSON.stringify(dividendRecords.map(normalizeDividendRecord)));
   }
 
   function defaultLiveQuotes() {
@@ -1198,6 +1248,12 @@
     });
   }
 
+  function formatPortfolioUpdatedAt() {
+    const store = loadPortfolioStore();
+    const at = Number(lastPortfolioRefreshAt || store?.pricesUpdatedAt || 0);
+    return formatPriceUpdatedAt(at);
+  }
+
   function formatLiveQuotePrice(quote = {}) {
     const price = Number(quote.price || 0);
     if (!price) return "รอราคา";
@@ -1266,6 +1322,43 @@
     if (window.lucide) window.lucide.createIcons();
   }
 
+  function renderLiveHoldingAssets(target) {
+    const rows = getHeldAssets();
+    const subtitle = document.querySelector(".asset-table-panel .panel-head p");
+    if (subtitle) subtitle.textContent = `ราคา Live จากสินทรัพย์ที่ถืออยู่ · อัปเดตทุก 1 นาที · ล่าสุด ${formatPortfolioUpdatedAt()}`;
+    if (!rows.length) {
+      target.innerHTML = `
+        <div class="asset-empty">
+          <i data-lucide="radar"></i>
+          <b>ยังไม่มีสินทรัพย์สำหรับราคา Live</b>
+          <span>เพิ่มสินทรัพย์ในพอร์ตก่อน ระบบจะแสดงราคาล่าสุดที่นี่</span>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+    const typeLabels = { crypto: "คริปโต", stocks: "หุ้น", gold: "ทองคำ" };
+    target.innerHTML = rows.map(asset => {
+      const isGain = Number(asset.pnl || 0) >= 0;
+      return `
+        <div class="asset-row is-live asset-type-${asset.type}" style="--dot:${asset.color}">
+          <span class="asset-icon">
+            ${asset.logoUrl ? `<img src="${escapeHTML(asset.logoUrl)}" alt="${escapeHTML(asset.symbol)}" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">` : ""}
+            <i data-lucide="${asset.icon || "landmark"}" ${asset.logoUrl ? "hidden" : ""}></i>
+          </span>
+          <div>
+            <strong>${escapeHTML(asset.symbol)}</strong>
+            <small>${escapeHTML(asset.symbol)} · ${typeLabels[asset.type] || "สินทรัพย์"} · ราคา ${formatAssetPrice(asset)} · ${number.format(asset.qty || 0)} หน่วย</small>
+          </div>
+          <b>${shortTHB(asset.value)}</b>
+          <em class="${isGain ? "income" : "expense"}">${isGain ? "+" : ""}${shortTHB(asset.pnl)}</em>
+          <strong class="gain ${isGain ? "" : "loss"}">${isGain ? "+" : ""}${asset.pct.toFixed(2)}%</strong>
+        </div>
+      `;
+    }).join("");
+    if (window.lucide) window.lucide.createIcons();
+  }
+
   function addLiveQuote(event) {
     event?.preventDefault();
     const type = document.getElementById("liveQuoteType")?.value === "crypto" ? "crypto" : "stocks";
@@ -1292,9 +1385,7 @@
     const allAssets = getHeldAssets();
     const isLiveView = activeAssetFilter === "live";
     if (isLiveView) {
-      const subtitle = document.querySelector(".asset-table-panel .panel-head p");
-      if (subtitle) subtitle.textContent = `เพิ่มคริปโต/หุ้นที่อยากดู · ดึงราคาเรียลไทม์ทุก 1 นาที · ล่าสุด ${formatPriceUpdatedAt()}`;
-      renderLivePriceMonitor(target);
+      renderLiveHoldingAssets(target);
       return;
     }
     const heldAssets = activeAssetFilter === "all"
@@ -1342,7 +1433,7 @@
         activeAssetFilter = button.dataset.assetFilter;
         buttons.forEach(item => item.classList.toggle("active", item === button));
         renderAssets();
-        if (activeAssetFilter === "live") refreshLiveQuotes();
+        if (activeAssetFilter === "live") refreshPortfolioPrices();
       });
     });
   }
@@ -1755,16 +1846,194 @@
     `).join("");
   }
 
+  function formatDividendDate(dateString) {
+    return dateString ? formatDate(dateString) : "-";
+  }
+
+  function dividendStats() {
+    const store = loadPortfolioStore();
+    const fx = Number(store?.fx || 35.8);
+    const totalUSD = dividendRecords.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const today = todayISO();
+    const next = [...dividendRecords]
+      .filter(item => item.payDate >= today)
+      .sort((a, b) => a.payDate.localeCompare(b.payDate))[0] || null;
+    const pending = dividendRecords.filter(item => item.payDate >= today && !item.recordedIncomeId).length;
+    return {
+      fx,
+      totalUSD,
+      totalTHB: totalUSD * fx,
+      monthlyUSD: totalUSD / 12,
+      next,
+      pending
+    };
+  }
+
   function renderDividends() {
     const target = document.getElementById("dividendList");
     if (!target) return;
-    target.innerHTML = dividends.map(([ticker, amount, mark, color]) => `
+    const rows = [...dividendRecords].sort((a, b) => a.payDate.localeCompare(b.payDate)).slice(0, 5);
+    const stats = dividendStats();
+    const subtitle = document.querySelector(".dividend-panel .panel-head p");
+    const total = document.querySelector(".dividend-total strong");
+    if (subtitle) subtitle.textContent = `${dividendRecords.length} รายการ · ถัดไป ${stats.next ? `${stats.next.ticker} ${formatDividendDate(stats.next.payDate)}` : "ยังไม่มี"}`;
+    if (total) total.textContent = USD.format(stats.totalUSD);
+    if (!rows.length) {
+      target.innerHTML = `
+        <div class="asset-empty">
+          <i data-lucide="badge-dollar-sign"></i>
+          <b>ยังไม่มีรายการเงินปันผล</b>
+          <span>กดจัดการเพื่อเพิ่มกำหนดจ่ายเงินปันผล</span>
+        </div>
+      `;
+      refreshModalIcons();
+      return;
+    }
+    target.innerHTML = rows.map(item => `
       <div class="dividend-row">
-        <span class="stock-badge" style="--dot:${color}">${mark}</span>
-        <b>${ticker}</b>
-        <em>${USD.format(amount)}</em>
+        <span class="stock-badge" style="--dot:${item.color}">${escapeHTML(item.mark)}</span>
+        <b>${escapeHTML(item.ticker)} <small>${formatDividendDate(item.payDate)}</small></b>
+        <em>${USD.format(item.amount)}</em>
       </div>
     `).join("");
+    refreshModalIcons();
+  }
+
+  function renderDividendManager() {
+    const summary = document.getElementById("dividendSummary");
+    const list = document.getElementById("dividendRecords");
+    if (!summary || !list) return;
+    const stats = dividendStats();
+    summary.innerHTML = `
+      <article>
+        <span>รวมทั้งปี</span>
+        <strong>${USD.format(stats.totalUSD)}</strong>
+        <small>${shortTHB(stats.totalTHB)}</small>
+      </article>
+      <article>
+        <span>เฉลี่ย/เดือน</span>
+        <strong>${USD.format(stats.monthlyUSD)}</strong>
+        <small>ประมาณการจากรายการทั้งหมด</small>
+      </article>
+      <article>
+        <span>รายการถัดไป</span>
+        <strong>${stats.next ? escapeHTML(stats.next.ticker) : "-"}</strong>
+        <small>${stats.next ? formatDividendDate(stats.next.payDate) : "ยังไม่มีรายการรอจ่าย"}</small>
+      </article>
+      <article>
+        <span>รอบันทึกรายรับ</span>
+        <strong>${stats.pending}</strong>
+        <small>รายการที่ยังไม่ถูกบันทึก</small>
+      </article>
+    `;
+
+    const rows = [...dividendRecords].sort((a, b) => a.payDate.localeCompare(b.payDate));
+    if (!rows.length) {
+      list.innerHTML = `
+        <div class="report-empty">
+          <i data-lucide="inbox"></i>
+          <b>ยังไม่มีรายการเงินปันผล</b>
+          <span>เพิ่มรายการแรกจากฟอร์มด้านบนได้เลย</span>
+        </div>
+      `;
+      refreshModalIcons();
+      return;
+    }
+
+    list.innerHTML = rows.map(item => {
+      const isRecorded = item.recordedIncomeId && transactions.some(tx => tx.id === item.recordedIncomeId);
+      return `
+        <article class="dividend-record" style="--dot:${item.color}">
+          <span class="stock-badge" style="--dot:${item.color}">${escapeHTML(item.mark)}</span>
+          <div>
+            <strong>${escapeHTML(item.ticker)}</strong>
+            <small>Ex ${formatDividendDate(item.exDate)} · Pay ${formatDividendDate(item.payDate)}${isRecorded ? " · บันทึกรายรับแล้ว" : ""}</small>
+          </div>
+          <b>${USD.format(item.amount)}</b>
+          <div class="report-actions">
+            <button type="button" data-record-dividend="${escapeHTML(item.id)}" title="บันทึกเป็นรายรับ" ${isRecorded ? "disabled" : ""}><i data-lucide="receipt-text"></i></button>
+            <button type="button" data-delete-dividend="${escapeHTML(item.id)}" title="ลบ"><i data-lucide="trash-2"></i></button>
+          </div>
+        </article>
+      `;
+    }).join("");
+    refreshModalIcons();
+  }
+
+  function openDividendModal() {
+    const overlay = document.getElementById("dividendOverlay");
+    if (!overlay) return;
+    document.getElementById("dividendForm")?.reset();
+    const payDate = document.getElementById("dividendPayDate");
+    if (payDate) payDate.value = todayISO();
+    overlay.hidden = false;
+    renderDividendManager();
+  }
+
+  function closeDividendModal() {
+    const overlay = document.getElementById("dividendOverlay");
+    if (overlay) overlay.hidden = true;
+  }
+
+  function submitDividendRecord(event) {
+    event.preventDefault();
+    const ticker = document.getElementById("dividendTicker")?.value.trim().toUpperCase();
+    const amount = Number(document.getElementById("dividendAmount")?.value || 0);
+    const exDate = document.getElementById("dividendExDate")?.value || "";
+    const payDate = document.getElementById("dividendPayDate")?.value || todayISO();
+    if (!ticker) return showToast("กรุณาใส่สัญลักษณ์หุ้น");
+    if (!amount || amount <= 0) return showToast("กรุณาใส่จำนวนเงินปันผล");
+    dividendRecords = [normalizeDividendRecord({ ticker, amount, exDate, payDate }), ...dividendRecords];
+    saveDividendRecords();
+    document.getElementById("dividendForm")?.reset();
+    const nextPayDate = document.getElementById("dividendPayDate");
+    if (nextPayDate) nextPayDate.value = todayISO();
+    renderDividends();
+    renderDividendManager();
+    showToast(`เพิ่มปันผล ${ticker} แล้ว`);
+  }
+
+  function deleteDividendRecord(id) {
+    const item = dividendRecords.find(record => record.id === id);
+    if (!item) return showToast("ไม่พบรายการเงินปันผล");
+    if (!window.confirm(`ลบปันผล ${item.ticker} ใช่ไหม?`)) return;
+    dividendRecords = dividendRecords.filter(record => record.id !== id);
+    saveDividendRecords();
+    renderDividends();
+    renderDividendManager();
+    showToast("ลบรายการเงินปันผลแล้ว");
+  }
+
+  function recordDividendAsIncome(id) {
+    const item = dividendRecords.find(record => record.id === id);
+    if (!item) return showToast("ไม่พบรายการเงินปันผล");
+    if (item.recordedIncomeId && transactions.some(tx => tx.id === item.recordedIncomeId)) {
+      return showToast("รายการนี้บันทึกเป็นรายรับแล้ว");
+    }
+    const amountTHB = Number(item.amount || 0) * dividendStats().fx;
+    const tx = {
+      id: `div-income-${item.id}`,
+      type: "income",
+      date: item.payDate || todayISO(),
+      categoryId: "invest",
+      note: `เงินปันผล ${item.ticker}`,
+      amount: Math.round(amountTHB)
+    };
+    transactions.unshift(tx);
+    dividendRecords = dividendRecords.map(record => record.id === id ? { ...record, recordedIncomeId: tx.id } : record);
+    saveTransactions();
+    saveDividendRecords();
+    renderDashboardData();
+    renderDividends();
+    renderDividendManager();
+    showToast(`บันทึกเงินปันผล ${item.ticker} เป็นรายรับแล้ว`);
+  }
+
+  function recordDueDividendsAsIncome() {
+    const today = todayISO();
+    const dueRows = dividendRecords.filter(item => item.payDate <= today && !(item.recordedIncomeId && transactions.some(tx => tx.id === item.recordedIncomeId)));
+    if (!dueRows.length) return showToast("ยังไม่มีรายการปันผลครบกำหนด");
+    dueRows.forEach(item => recordDividendAsIncome(item.id));
   }
 
   function renderExpenseLegend() {
@@ -2221,6 +2490,8 @@
     renderAssets();
     renderPortfolioKpis();
     renderGoals();
+    renderDividends();
+    if (!document.getElementById("dividendOverlay")?.hidden) renderDividendManager();
     renderGoalManagerList();
     updateGoalProgressPreview();
   }
@@ -2243,12 +2514,27 @@
         if (href === "#expense") return openEntryModal("expense");
         if (href === "#portfolio") return openAssetTransactionModal();
         if (href === "#goal") return openGoalModal();
+        if (href === "#dividend") return openDividendModal();
         if (href === "#report") return openReportModal();
         showToast(`เลือก ${item.dataset.section || item.textContent.trim()}`);
       });
     });
 
     document.querySelector(".goals-panel .ghost-btn")?.addEventListener("click", openGoalModal);
+    document.getElementById("openDividendModal")?.addEventListener("click", openDividendModal);
+    document.getElementById("dividendClose")?.addEventListener("click", closeDividendModal);
+    document.getElementById("dividendCancel")?.addEventListener("click", closeDividendModal);
+    document.getElementById("dividendForm")?.addEventListener("submit", submitDividendRecord);
+    document.getElementById("dividendSeedIncome")?.addEventListener("click", recordDueDividendsAsIncome);
+    document.getElementById("dividendOverlay")?.addEventListener("click", event => {
+      if (event.target.id === "dividendOverlay") closeDividendModal();
+    });
+    document.getElementById("dividendRecords")?.addEventListener("click", event => {
+      const recordButton = event.target.closest("[data-record-dividend]");
+      if (recordButton) return recordDividendAsIncome(recordButton.dataset.recordDividend);
+      const deleteButton = event.target.closest("[data-delete-dividend]");
+      if (deleteButton) return deleteDividendRecord(deleteButton.dataset.deleteDividend);
+    });
     document.getElementById("monthSelect")?.addEventListener("change", event => {
       selectedCashMonth = event.target.value || ensureCashMonth();
       renderCashFlow();
@@ -2353,6 +2639,7 @@
         closeReportModal();
         closeAssetTransactionModal();
         closeGoalModal();
+        closeDividendModal();
       }
     });
     window.addEventListener("storage", event => {
@@ -2379,7 +2666,7 @@
     renderDashboardData();
     bindActions();
     if (window.lucide) window.lucide.createIcons();
-    if (["#income", "#expense", "#portfolio", "#goal", "#report"].includes(window.location.hash)) {
+    if (["#income", "#expense", "#portfolio", "#goal", "#dividend", "#report"].includes(window.location.hash)) {
       document.querySelectorAll(".side-menu a").forEach(link => {
         link.classList.toggle("active", link.getAttribute("href") === window.location.hash);
       });
@@ -2393,6 +2680,10 @@
       }
       if (window.location.hash === "#goal") {
         window.setTimeout(openGoalModal, 120);
+        return;
+      }
+      if (window.location.hash === "#dividend") {
+        window.setTimeout(openDividendModal, 120);
         return;
       }
       const type = window.location.hash === "#income" ? "income" : "expense";
