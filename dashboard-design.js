@@ -1385,7 +1385,9 @@
     const allAssets = getHeldAssets();
     const isLiveView = activeAssetFilter === "live";
     if (isLiveView) {
-      renderLiveHoldingAssets(target);
+      const subtitle = document.querySelector(".asset-table-panel .panel-head p");
+      if (subtitle) subtitle.textContent = `เพิ่มคริปโต/หุ้นที่อยากดู · ดึงราคาเรียลไทม์ทุก 1 นาที · ล่าสุด ${formatPriceUpdatedAt()}`;
+      renderLivePriceMonitor(target);
       return;
     }
     const heldAssets = activeAssetFilter === "all"
@@ -1433,7 +1435,7 @@
         activeAssetFilter = button.dataset.assetFilter;
         buttons.forEach(item => item.classList.toggle("active", item === button));
         renderAssets();
-        if (activeAssetFilter === "live") refreshPortfolioPrices();
+        if (activeAssetFilter === "live") refreshLiveQuotes();
       });
     });
   }
@@ -1850,6 +1852,28 @@
     return dateString ? formatDate(dateString) : "-";
   }
 
+  function dividendVisual(ticker) {
+    const symbol = String(ticker || "").toUpperCase();
+    const held = getHeldAssets().find(asset => String(asset.symbol || "").toUpperCase() === symbol);
+    const fallback = { ticker: symbol, symbol, type: normalizeAssetType({ ticker: symbol }) };
+    return {
+      color: held?.color || dividendColorForTicker(symbol),
+      logoUrl: held?.logoUrl || assetLogoUrl(fallback),
+      icon: held?.icon || assetIconName(fallback),
+      mark: symbol.slice(0, 1) || "D"
+    };
+  }
+
+  function dividendIconHTML(ticker, label = ticker) {
+    const visual = dividendVisual(ticker);
+    return `
+      <span class="asset-icon dividend-asset-icon" style="--dot:${visual.color}">
+        ${visual.logoUrl ? `<img src="${escapeHTML(visual.logoUrl)}" alt="${escapeHTML(label)}" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">` : ""}
+        <i data-lucide="${visual.icon || "badge-dollar-sign"}" ${visual.logoUrl ? "hidden" : ""}></i>
+      </span>
+    `;
+  }
+
   function dividendStats() {
     const store = loadPortfolioStore();
     const fx = Number(store?.fx || 35.8);
@@ -1891,7 +1915,7 @@
     }
     target.innerHTML = rows.map(item => `
       <div class="dividend-row">
-        <span class="stock-badge" style="--dot:${item.color}">${escapeHTML(item.mark)}</span>
+        ${dividendIconHTML(item.ticker, item.ticker)}
         <b>${escapeHTML(item.ticker)} <small>${formatDividendDate(item.payDate)}</small></b>
         <em>${USD.format(item.amount)}</em>
       </div>
@@ -1944,7 +1968,7 @@
       const isRecorded = item.recordedIncomeId && transactions.some(tx => tx.id === item.recordedIncomeId);
       return `
         <article class="dividend-record" style="--dot:${item.color}">
-          <span class="stock-badge" style="--dot:${item.color}">${escapeHTML(item.mark)}</span>
+          ${dividendIconHTML(item.ticker, item.ticker)}
           <div>
             <strong>${escapeHTML(item.ticker)}</strong>
             <small>Ex ${formatDividendDate(item.exDate)} · Pay ${formatDividendDate(item.payDate)}${isRecorded ? " · บันทึกรายรับแล้ว" : ""}</small>

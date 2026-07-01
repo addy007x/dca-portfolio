@@ -3204,6 +3204,129 @@ select,
   cursor: not-allowed;
 }
 
+/* Live market and dividend polish */
+.live-price-panel {
+  border-radius: 14px;
+  border-color: rgba(205,168,95,.24);
+  background:
+    radial-gradient(circle at 88% 14%, rgba(205,168,95,.12), transparent 42%),
+    linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.014)),
+    rgba(10,10,8,.76);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 0 16px 34px rgba(0,0,0,.22);
+}
+
+.live-market-head {
+  min-height: 54px;
+  padding-left: 16px;
+  background: linear-gradient(90deg, rgba(205,168,95,.085), rgba(255,255,255,.018));
+}
+
+.live-market-head h3 {
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.live-add-toggle {
+  min-width: 86px;
+  color: #171209;
+  background: linear-gradient(180deg, var(--gold-2), var(--gold));
+}
+
+.live-price-list {
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.live-price-row {
+  min-height: 56px;
+  grid-template-columns: 40px minmax(0, 1fr) 104px 64px 34px;
+  padding: 8px 10px;
+  border: 1px solid rgba(205,168,95,.12);
+  border-radius: 12px;
+  background: rgba(255,255,255,.024);
+}
+
+.live-price-row .asset-icon {
+  width: 34px;
+  height: 34px;
+  border-color: color-mix(in srgb, var(--gold), transparent 55%);
+  background: rgba(255,255,255,.90);
+}
+
+.live-price-row strong {
+  color: var(--text);
+  font-style: normal;
+  letter-spacing: 0;
+}
+
+.live-price-row b {
+  color: var(--text);
+  font-style: normal;
+}
+
+.live-price-row em { color: var(--good); }
+.live-price-row.down em { color: var(--bad); }
+
+.live-price-row button {
+  border-radius: 9px;
+  color: var(--muted);
+}
+
+.dividend-panel {
+  grid-column: span 5;
+  min-height: 230px;
+}
+
+.dividend-panel .panel-head {
+  min-height: 60px;
+  padding: 14px 16px 10px;
+}
+
+.dividend-list {
+  gap: 7px;
+  padding: 12px 16px 8px;
+}
+
+.dividend-row {
+  min-height: 42px;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 7px 0;
+}
+
+.dividend-row em {
+  color: var(--gold-2);
+}
+
+.dividend-total {
+  min-height: 42px;
+  margin: 0 16px 14px;
+  padding: 0 12px;
+  border-radius: 12px;
+}
+
+.dividend-asset-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.92);
+}
+
+.dividend-asset-icon img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.dividend-record .dividend-asset-icon {
+  width: 32px;
+  height: 32px;
+}
+
+@media (max-width: 1180px) {
+  .dividend-panel { grid-column: 1 / -1; }
+}
+
 @media (max-width: 760px) {
   .report-summary {
     grid-template-columns: 1fr;
