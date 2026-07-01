@@ -30,6 +30,7 @@
     layout: "siamfolio.dashboard.layout.v1",
     pendingPortfolioTransactions: "siamfolio.pendingTransactions.v1",
     goals: "siamfolio.dashboard.goals.v1",
+    liveQuotes: "siamfolio.dashboard.liveQuotes.v1",
     authSession: "siamfolio.googleSession",
     legacyBackend: "siamfolio.backend",
     databaseMode: "siamfolio.databaseMode"
@@ -123,8 +124,9 @@
   let financialGoals = loadFinancialGoals();
   let editingGoalId = null;
   let selectedGoalIcon = "target";
-  let priceRefreshBusy = false;
-  let lastPriceRefreshAt = 0;
+  let liveQuotes = loadLiveQuotes();
+  let liveQuoteBusy = false;
+  let lastQuoteRefreshAt = 0;
   const monthBaseline = [
     { key: "2026-01", label: "ม.ค. 2026", income: 38000, expense: 15500 },
     { key: "2026-02", label: "ก.พ. 2026", income: 40000, expense: 19800 },
@@ -271,6 +273,48 @@
     localStorage.setItem(storageKeys.goals, JSON.stringify(financialGoals.map(normalizeGoal)));
   }
 
+  function defaultLiveQuotes() {
+    return [
+      { id: "live-btc", symbol: "BTC", type: "crypto" },
+      { id: "live-trx", symbol: "TRX", type: "crypto" },
+      { id: "live-nvda", symbol: "NVDA", type: "stocks" },
+      { id: "live-ptt", symbol: "PTT.BK", type: "stocks" }
+    ];
+  }
+
+  function normalizeLiveQuote(item = {}) {
+    const type = item.type === "crypto" ? "crypto" : "stocks";
+    const symbol = String(item.symbol || item.ticker || "")
+      .trim()
+      .toUpperCase()
+      .replace(type === "crypto" ? /-USD$/ : /$/g, "");
+    return {
+      id: item.id || `live-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+      symbol,
+      type,
+      price: Number(item.price || 0),
+      changePct: Number(item.changePct ?? item.chg1d ?? 0),
+      currency: item.currency || (type === "crypto" ? "USD" : "USD"),
+      source: item.source || "",
+      session: item.session || item.marketState || "",
+      updatedAt: Number(item.updatedAt || 0)
+    };
+  }
+
+  function loadLiveQuotes() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKeys.liveQuotes));
+      if (Array.isArray(saved)) return saved.map(normalizeLiveQuote).filter(item => item.symbol);
+    } catch (error) {
+      console.warn("Cannot load live quotes", error);
+    }
+    return defaultLiveQuotes().map(normalizeLiveQuote);
+  }
+
+  function saveLiveQuotes() {
+    localStorage.setItem(storageKeys.liveQuotes, JSON.stringify(liveQuotes.map(normalizeLiveQuote)));
+  }
+
   function loadPortfolioStore() {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKeys.portfolio));
@@ -411,7 +455,18 @@
     const id = String(goal.id || "").toLowerCase();
     const name = String(goal.name || "").toLowerCase();
     if (id === "goal-portfolio" || name.includes("พอร์ต") || name.includes("พอร์") || name.includes("portfolio")) return "portfolio";
-    if (id === "goal-savings" || name.includes("เงินออม") || name.includes("ออม") || name.includes("earn") || name.includes("eran")) return "earn";
+    if (
+      id === "goal-savings" ||
+      name.includes("เงินออม") ||
+      name.includes("เงินฝาก") ||
+      name.includes("ดอกเบี้ย") ||
+      name.includes("ฝาก") ||
+      name.includes("ออม") ||
+      name.includes("earn") ||
+      name.includes("eran") ||
+      name.includes("interest") ||
+      name.includes("deposit")
+    ) return "earn";
     return "";
   }
 
@@ -556,12 +611,11 @@
     return json.prices || json || {};
   }
 
-  async function fetchLatestPortfolioPrices(holdings) {
-    const grouped = holdings.reduce((sum, asset) => {
-      const symbol = normalizePriceSymbol(asset);
+  async function fetchLatestLiveQuotePrices(quotes) {
+    const grouped = quotes.reduce((sum, quote) => {
+      const symbol = normalizePriceSymbol(quote);
       if (!symbol) return sum;
-      const group = priceGroupForAsset(asset);
-      sum[group].add(symbol);
+      sum[quote.type === "crypto" ? "crypto" : "stocks"].add(symbol);
       return sum;
     }, { crypto: new Set(), stocks: new Set() });
     const [cryptoResult, stockResult] = await Promise.allSettled([
@@ -575,42 +629,37 @@
     return { crypto: cryptoPrices, stocks: stockPrices };
   }
 
-  async function refreshLivePortfolioPrices() {
-    if (priceRefreshBusy) return false;
-    const store = loadPortfolioStore();
-    const holdings = (store?.holdings || []).filter(asset => Number(asset.qty || 0) > 0);
-    if (!store || !holdings.length) return false;
-
-    priceRefreshBusy = true;
+  async function refreshLiveQuotes() {
+    if (liveQuoteBusy || !liveQuotes.length) return false;
+    liveQuoteBusy = true;
     try {
-      const priceGroups = await fetchLatestPortfolioPrices(holdings);
-      let changed = false;
+      const priceGroups = await fetchLatestLiveQuotePrices(liveQuotes);
       const now = Date.now();
-      const nextHoldings = (store.holdings || []).map(asset => {
-        const symbol = normalizePriceSymbol(asset);
-        const group = priceGroupForAsset(asset);
+      liveQuotes = liveQuotes.map(quote => {
+        const symbol = normalizePriceSymbol(quote);
+        const group = quote.type === "crypto" ? "crypto" : "stocks";
+        const raw = priceGroups[group]?.[symbol] ?? priceGroups[group]?.[`${symbol}-USD`];
         const latestPrice = pickPrice(priceGroups[group], symbol);
-        if (!Number.isFinite(latestPrice) || latestPrice <= 0) return asset;
-        const oldPrice = Number(asset.price || 0);
-        if (Math.abs(oldPrice - latestPrice) > 0.000001 || !asset.priceUpdatedAt) changed = true;
+        if (!Number.isFinite(latestPrice) || latestPrice <= 0) return quote;
         return {
-          ...asset,
+          ...quote,
           price: latestPrice,
-          priceUpdatedAt: now
+          changePct: Number(raw?.chg1d ?? raw?.changePct ?? quote.changePct ?? 0) || 0,
+          currency: raw?.currency || quote.currency || "USD",
+          source: raw?.source || quote.source || "",
+          session: raw?.session || raw?.marketState || quote.session || "",
+          updatedAt: Number(raw?.updatedAt || now)
         };
       });
-      lastPriceRefreshAt = now;
-      if (changed) {
-        savePortfolioStore({ ...store, holdings: nextHoldings, pricesUpdatedAt: now });
-      } else {
-        refreshPortfolioDrivenData();
-      }
+      lastQuoteRefreshAt = now;
+      saveLiveQuotes();
+      if (activeAssetFilter === "live") renderAssets();
       return true;
     } catch (error) {
-      console.warn("Cannot refresh portfolio prices", error);
+      console.warn("Cannot refresh live quotes", error);
       return false;
     } finally {
-      priceRefreshBusy = false;
+      liveQuoteBusy = false;
     }
   }
 
@@ -823,7 +872,7 @@
   }
 
   function formatPriceUpdatedAt(timestamp) {
-    const at = Number(timestamp || lastPriceRefreshAt || 0);
+    const at = Number(timestamp || lastQuoteRefreshAt || 0);
     if (!at) return "ยังไม่ดึงราคา";
     return new Date(at).toLocaleTimeString("th-TH", {
       timeZone: "Asia/Bangkok",
@@ -833,20 +882,95 @@
     });
   }
 
+  function formatLiveQuotePrice(quote = {}) {
+    const price = Number(quote.price || 0);
+    if (!price) return "รอราคา";
+    const prefix = quote.currency === "THB" ? "฿" : "$";
+    const digits = price >= 100 ? 2 : 4;
+    return `${prefix}${number.format(Number(price.toFixed(digits)))}`;
+  }
+
+  function renderLivePriceMonitor(target) {
+    target.innerHTML = `
+      <section class="live-price-panel">
+        <form class="live-price-form" id="livePriceForm">
+          <select id="liveQuoteType" aria-label="ประเภทสินทรัพย์">
+            <option value="crypto">คริปโต</option>
+            <option value="stocks">หุ้น</option>
+          </select>
+          <input id="liveQuoteSymbol" type="text" placeholder="เช่น BTC, ETH, NVDA, PTT.BK" autocomplete="off">
+          <button type="submit"><i data-lucide="plus"></i>เพิ่ม</button>
+          <button type="button" data-live-refresh><i data-lucide="refresh-cw"></i>รีเฟรช</button>
+        </form>
+        <div class="live-price-list">
+          ${liveQuotes.length ? liveQuotes.map(quote => {
+            const positive = Number(quote.changePct || 0) >= 0;
+            const typeLabel = quote.type === "crypto" ? "คริปโต" : "หุ้น";
+            const iconAsset = { ticker: quote.symbol, symbol: quote.symbol, type: quote.type === "crypto" ? "crypto" : "stocks" };
+            return `
+              <article class="live-price-row ${positive ? "up" : "down"}" data-live-id="${escapeHTML(quote.id)}">
+                <span class="asset-icon">
+                  <img src="${escapeHTML(assetLogoUrl(iconAsset))}" alt="${escapeHTML(quote.symbol)}" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">
+                  <i data-lucide="${quote.type === "crypto" ? "coins" : "chart-line"}" hidden></i>
+                </span>
+                <div>
+                  <strong>${escapeHTML(quote.symbol)}</strong>
+                  <small>${typeLabel} · ${quote.source ? escapeHTML(quote.source) : "Live API"} · ${formatPriceUpdatedAt((quote.updatedAt || 0) * (quote.updatedAt < 100000000000 ? 1000 : 1))}</small>
+                </div>
+                <b>${formatLiveQuotePrice(quote)}</b>
+                <em>${positive ? "+" : ""}${Number(quote.changePct || 0).toFixed(2)}%</em>
+                <button type="button" data-live-remove="${escapeHTML(quote.id)}" aria-label="ลบ ${escapeHTML(quote.symbol)}"><i data-lucide="x"></i></button>
+              </article>
+            `;
+          }).join("") : `
+            <div class="asset-empty">
+              <i data-lucide="radar"></i>
+              <b>ยังไม่มีรายการราคา Live</b>
+              <span>เพิ่มคริปโตหรือหุ้นที่อยากดู ราคา Live จะไม่ยุ่งกับสินทรัพย์ในพอร์ต</span>
+            </div>
+          `}
+        </div>
+      </section>
+    `;
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function addLiveQuote(event) {
+    event?.preventDefault();
+    const type = document.getElementById("liveQuoteType")?.value === "crypto" ? "crypto" : "stocks";
+    const input = document.getElementById("liveQuoteSymbol");
+    const symbol = String(input?.value || "").trim().toUpperCase().replace(type === "crypto" ? /-USD$/ : /$/g, "");
+    if (!symbol) return showToast("ใส่สัญลักษณ์ที่ต้องการดูก่อน");
+    if (liveQuotes.some(item => item.type === type && item.symbol === symbol)) return showToast("มีรายการนี้แล้ว");
+    liveQuotes = [{ id: `live-${Date.now().toString(36)}`, symbol, type }, ...liveQuotes].map(normalizeLiveQuote);
+    saveLiveQuotes();
+    if (input) input.value = "";
+    renderAssets();
+    refreshLiveQuotes();
+  }
+
+  function removeLiveQuote(id) {
+    liveQuotes = liveQuotes.filter(item => item.id !== id);
+    saveLiveQuotes();
+    renderAssets();
+  }
+
   function renderAssets() {
     const target = document.getElementById("assetTable");
     if (!target) return;
     const allAssets = getHeldAssets();
     const isLiveView = activeAssetFilter === "live";
+    if (isLiveView) {
+      const subtitle = document.querySelector(".asset-table-panel .panel-head p");
+      if (subtitle) subtitle.textContent = `เพิ่มคริปโต/หุ้นที่อยากดู · ดึงราคาเรียลไทม์ทุก 1 นาที · ล่าสุด ${formatPriceUpdatedAt()}`;
+      renderLivePriceMonitor(target);
+      return;
+    }
     const heldAssets = activeAssetFilter === "all"
       ? allAssets
-      : isLiveView
-        ? allAssets.filter(asset => ["crypto", "stocks", "gold"].includes(asset.type))
-        : allAssets.filter(asset => asset.type === activeAssetFilter);
+      : allAssets.filter(asset => asset.type === activeAssetFilter);
     const subtitle = document.querySelector(".asset-table-panel .panel-head p");
-    if (subtitle) subtitle.textContent = isLiveView
-      ? `ดูราคาคริปโต/หุ้นแบบ Live · อัปเดตทุก 1 นาที · ล่าสุด ${formatPriceUpdatedAt()}`
-      : `${allAssets.length} สินทรัพย์ที่ถืออยู่ · แสดง ${heldAssets.length} รายการ`;
+    if (subtitle) subtitle.textContent = `${allAssets.length} สินทรัพย์ที่ถืออยู่ · แสดง ${heldAssets.length} รายการ`;
     if (!heldAssets.length) {
       target.innerHTML = `
         <div class="asset-empty">
@@ -887,7 +1011,7 @@
         activeAssetFilter = button.dataset.assetFilter;
         buttons.forEach(item => item.classList.toggle("active", item === button));
         renderAssets();
-        if (activeAssetFilter === "live") refreshLivePortfolioPrices();
+        if (activeAssetFilter === "live") refreshLiveQuotes();
       });
     });
   }
@@ -1854,6 +1978,15 @@
       const deleteButton = event.target.closest("[data-delete-transaction]");
       if (deleteButton) return deleteTransaction(deleteButton.dataset.deleteTransaction);
     });
+    document.getElementById("assetTable")?.addEventListener("submit", event => {
+      if (event.target?.id === "livePriceForm") addLiveQuote(event);
+    });
+    document.getElementById("assetTable")?.addEventListener("click", event => {
+      const refreshButton = event.target.closest("[data-live-refresh]");
+      if (refreshButton) return refreshLiveQuotes();
+      const removeButton = event.target.closest("[data-live-remove]");
+      if (removeButton) return removeLiveQuote(removeButton.dataset.liveRemove);
+    });
     document.addEventListener("keydown", event => {
       if (event.key === "Escape") {
         closeEntryModal();
@@ -1871,8 +2004,8 @@
   function init() {
     updateClock();
     window.setInterval(updateClock, 1000);
-    window.setTimeout(refreshLivePortfolioPrices, 700);
-    window.setInterval(refreshLivePortfolioPrices, PRICE_REFRESH_MS);
+    window.setTimeout(refreshLiveQuotes, 700);
+    window.setInterval(refreshLiveQuotes, PRICE_REFRESH_MS);
     renderPortfolioLegend();
     bindAssetFilters();
     renderAssets();
