@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Thai:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="dashboard-design.css?v=20260701-13">
+  <link rel="stylesheet" href="dashboard-design.css?v=20260702-01">
 </head>
 <body>
   <div class="app-shell">
@@ -50,7 +50,6 @@
         <a href="#income" data-section="รายรับ"><i data-lucide="wallet-cards"></i><span>รายรับ</span></a>
         <a href="#expense" data-section="รายจ่าย"><i data-lucide="receipt-text"></i><span>รายจ่าย</span></a>
         <a href="#portfolio" data-section="พอร์ตลงทุน"><i data-lucide="chart-no-axes-combined"></i><span>พอร์ตลงทุน</span></a>
-        <a href="#dividend" data-section="เงินปันผล"><i data-lucide="badge-dollar-sign"></i><span>เงินปันผล</span></a>
         <a href="#goal" data-section="เป้าหมาย"><i data-lucide="target"></i><span>เป้าหมาย</span></a>
         <a href="#analysis" data-section="วิเคราะห์"><i data-lucide="chart-line"></i><span>วิเคราะห์</span></a>
         <a href="#report" data-section="รายงาน"><i data-lucide="file-chart-column"></i><span>รายงาน</span></a>
@@ -226,7 +225,6 @@
               <h2>เงินปันผล</h2>
               <p>รายได้ที่คาดการณ์ไว้สำหรับปี 2026</p>
             </div>
-            <button class="ghost-btn" type="button" id="openDividendModal">จัดการ</button>
           </div>
           <div class="dividend-list" id="dividendList"></div>
           <div class="dividend-total"><span>ทั้งหมด</span><strong>$239.59</strong></div>
@@ -517,83 +515,11 @@
     </section>
   </div>
 
-  <div class="entry-overlay dividend-overlay" id="dividendOverlay" hidden>
-    <section class="entry-modal dividend-modal" role="dialog" aria-modal="true" aria-labelledby="dividendModalTitle">
-      <button class="entry-close" type="button" id="dividendClose" aria-label="ปิดหน้าต่างเงินปันผล">
-        <i data-lucide="x"></i>
-      </button>
-
-      <div class="entry-form dividend-manager">
-        <header class="entry-head dividend-head">
-          <span class="entry-head-icon"><i data-lucide="badge-dollar-sign"></i></span>
-          <div>
-            <h2 id="dividendModalTitle">จัดการเงินปันผล</h2>
-            <p>เพิ่มรายการ ดูกำหนดจ่าย และบันทึกเป็นรายรับได้ทันที</p>
-          </div>
-        </header>
-
-        <div class="dividend-summary" id="dividendSummary"></div>
-
-        <form class="dividend-form" id="dividendForm">
-          <div class="entry-fields dividend-fields">
-            <label>
-              <span>สัญลักษณ์</span>
-              <div class="entry-input">
-                <i data-lucide="ticket"></i>
-                <input id="dividendTicker" name="ticker" type="text" placeholder="เช่น SCHD, NVDA" required>
-              </div>
-            </label>
-            <label>
-              <span>เงินปันผล</span>
-              <div class="entry-input">
-                <b>$</b>
-                <input id="dividendAmount" name="amount" type="number" min="0" step="0.0001" inputmode="decimal" placeholder="0.0000" required>
-              </div>
-            </label>
-            <label>
-              <span>Ex-Date</span>
-              <div class="entry-input">
-                <i data-lucide="calendar-minus"></i>
-                <input id="dividendExDate" name="exDate" type="date">
-              </div>
-            </label>
-            <label>
-              <span>Pay Date</span>
-              <div class="entry-input">
-                <i data-lucide="calendar-check"></i>
-                <input id="dividendPayDate" name="payDate" type="date" required>
-              </div>
-            </label>
-          </div>
-
-          <footer class="entry-actions">
-            <button class="entry-cancel" type="button" id="dividendCancel">ปิด</button>
-            <button class="entry-submit" type="submit">
-              <i data-lucide="plus"></i>
-              เพิ่มปันผล
-            </button>
-          </footer>
-        </form>
-
-        <section class="dividend-records-wrap">
-          <div class="entry-section-head">
-            <span>รายการปันผล</span>
-            <button class="goal-new-btn" type="button" id="dividendSeedIncome">
-              <i data-lucide="file-plus-2"></i>
-              บันทึกรายการครบกำหนด
-            </button>
-          </div>
-          <div class="dividend-records" id="dividendRecords"></div>
-        </section>
-      </div>
-    </section>
-  </div>
-
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <script src="auth-config.js?v=34"></script>
-  <script src="dashboard-design.js?v=20260701-13"></script>
+  <script src="dashboard-design.js?v=20260702-01"></script>
 </body>
 </html>

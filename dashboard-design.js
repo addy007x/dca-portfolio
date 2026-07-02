@@ -31,6 +31,7 @@
     pendingPortfolioTransactions: "siamfolio.pendingTransactions.v1",
     goals: "siamfolio.dashboard.goals.v1",
     dividends: "siamfolio.dashboard.dividends.v1",
+    dividendFundamentals: "siamfolio.dashboard.dividendFundamentals.v1",
     liveQuotes: "siamfolio.dashboard.liveQuotes.v1",
     authSession: "siamfolio.googleSession",
     legacyBackend: "siamfolio.backend",
@@ -126,6 +127,9 @@
   let editingGoalId = null;
   let selectedGoalIcon = "target";
   let dividendRecords = loadDividendRecords();
+  let dividendFundamentals = loadDividendFundamentals();
+  let dividendRefreshBusy = false;
+  let lastDividendRefreshAt = 0;
   let liveQuotes = loadLiveQuotes();
   let liveQuoteBusy = false;
   let lastQuoteRefreshAt = 0;
@@ -325,6 +329,20 @@
 
   function saveDividendRecords() {
     localStorage.setItem(storageKeys.dividends, JSON.stringify(dividendRecords.map(normalizeDividendRecord)));
+  }
+
+  function loadDividendFundamentals() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKeys.dividendFundamentals));
+      return saved && typeof saved === "object" ? saved : {};
+    } catch (error) {
+      console.warn("Cannot load dividend fundamentals", error);
+      return {};
+    }
+  }
+
+  function saveDividendFundamentals() {
+    localStorage.setItem(storageKeys.dividendFundamentals, JSON.stringify(dividendFundamentals || {}));
   }
 
   function defaultLiveQuotes() {
@@ -940,6 +958,53 @@
       return false;
     } finally {
       portfolioPriceBusy = false;
+    }
+  }
+
+  function dividendSymbolsFromHoldings() {
+    return getHeldAssets()
+      .filter(asset => asset.type === "stocks" && Number(asset.qty || 0) > 0)
+      .map(asset => String(asset.symbol || "").toUpperCase())
+      .filter(Boolean);
+  }
+
+  async function refreshDividendFundamentals() {
+    const symbols = Array.from(new Set(dividendSymbolsFromHoldings()));
+    if (dividendRefreshBusy || !symbols.length) {
+      renderDividends();
+      return false;
+    }
+    dividendRefreshBusy = true;
+    try {
+      const url = `${getPriceApiBase()}/api/fundamentals/dividends?symbols=${encodeURIComponent(symbols.join(","))}`;
+      const json = await fetchJsonWithTimeout(url, 9000);
+      const now = Date.now();
+      dividendFundamentals = symbols.reduce((out, symbol) => {
+        const raw = json?.[symbol] || json?.dividends?.[symbol] || json?.data?.[symbol] || null;
+        const dividendRate = Number(raw?.dividendRate ?? raw?.rate ?? raw?.annualDividend ?? 0) || 0;
+        const dividendYield = Number(raw?.dividendYield ?? raw?.yield ?? 0) || 0;
+        const payments = Math.max(1, Number(raw?.payments ?? raw?.frequency ?? 4) || 4);
+        out[symbol] = {
+          dividendRate,
+          dividendYield,
+          payments,
+          currency: raw?.currency || "USD",
+          source: raw?.source || "yahoo-dividend",
+          updatedAt: now
+        };
+        return out;
+      }, { ...dividendFundamentals });
+      lastDividendRefreshAt = now;
+      saveDividendFundamentals();
+      renderDividends();
+      renderDashboardData();
+      return true;
+    } catch (error) {
+      console.warn("Cannot refresh dividend fundamentals", error);
+      renderDividends();
+      return false;
+    } finally {
+      dividendRefreshBusy = false;
     }
   }
 
@@ -1874,50 +1939,94 @@
     `;
   }
 
-  function dividendStats() {
+  function dividendEstimateRows() {
     const store = loadPortfolioStore();
     const fx = Number(store?.fx || 35.8);
-    const totalUSD = dividendRecords.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    const today = todayISO();
-    const next = [...dividendRecords]
-      .filter(item => item.payDate >= today)
-      .sort((a, b) => a.payDate.localeCompare(b.payDate))[0] || null;
-    const pending = dividendRecords.filter(item => item.payDate >= today && !item.recordedIncomeId).length;
+    return getHeldAssets()
+      .filter(asset => asset.type === "stocks" && Number(asset.qty || 0) > 0)
+      .map(asset => {
+        const symbol = String(asset.symbol || "").toUpperCase();
+        const info = dividendFundamentals[symbol] || {};
+        const rate = Number(info.dividendRate || 0);
+        const payments = Math.max(1, Number(info.payments || 4) || 4);
+        const annualNative = Number(asset.qty || 0) * rate;
+        const currency = info.currency || asset.ccy || "USD";
+        const annualTHB = currency === "THB" ? annualNative : annualNative * fx;
+        return {
+          ...asset,
+          symbol,
+          dividendRate: rate,
+          dividendYield: Number(info.dividendYield || 0),
+          payments,
+          currency,
+          source: info.source || "รอข้อมูล",
+          updatedAt: Number(info.updatedAt || lastDividendRefreshAt || 0),
+          annualNative,
+          annualTHB,
+          perPaymentTHB: annualTHB / payments,
+          monthlyTHB: annualTHB / 12
+        };
+      })
+      .filter(row => row.dividendRate > 0)
+      .sort((a, b) => b.annualTHB - a.annualTHB);
+  }
+
+  function estimatedMonthlyDividendTHB() {
+    return dividendEstimateRows().reduce((sum, row) => sum + Number(row.monthlyTHB || 0), 0);
+  }
+
+  function dividendStats() {
+    const rows = dividendEstimateRows();
+    const annualTHB = rows.reduce((sum, row) => sum + Number(row.annualTHB || 0), 0);
+    const monthlyTHB = annualTHB / 12;
+    const next = rows[0] || null;
     return {
-      fx,
-      totalUSD,
-      totalTHB: totalUSD * fx,
-      monthlyUSD: totalUSD / 12,
+      annualTHB,
+      monthlyTHB,
+      rows,
       next,
-      pending
+      pending: 0
     };
   }
 
   function renderDividends() {
     const target = document.getElementById("dividendList");
     if (!target) return;
-    const rows = [...dividendRecords].sort((a, b) => a.payDate.localeCompare(b.payDate)).slice(0, 5);
+    const rows = dividendEstimateRows().slice(0, 5);
     const stats = dividendStats();
     const subtitle = document.querySelector(".dividend-panel .panel-head p");
-    const total = document.querySelector(".dividend-total strong");
-    if (subtitle) subtitle.textContent = `${dividendRecords.length} รายการ · ถัดไป ${stats.next ? `${stats.next.ticker} ${formatDividendDate(stats.next.payDate)}` : "ยังไม่มี"}`;
-    if (total) total.textContent = USD.format(stats.totalUSD);
+    const total = document.querySelector(".dividend-total");
+    const sourceLabel = rows.some(row => row.source && row.source !== "รอข้อมูล") ? "Yahoo/Worker" : "รอข้อมูลจากเน็ต";
+    if (subtitle) subtitle.textContent = `${rows.length} หุ้นปันผล · คำนวณจากจำนวนหุ้นที่ถือ · ${sourceLabel}`;
+    if (total) {
+      total.innerHTML = `
+        <span>รวมประมาณการ</span>
+        <strong>${shortTHB(stats.annualTHB)}</strong>
+        <small>${shortTHB(stats.monthlyTHB)} / เดือน</small>
+      `;
+    }
     if (!rows.length) {
       target.innerHTML = `
-        <div class="asset-empty">
-          <i data-lucide="badge-dollar-sign"></i>
-          <b>ยังไม่มีรายการเงินปันผล</b>
-          <span>กดจัดการเพื่อเพิ่มกำหนดจ่ายเงินปันผล</span>
+        <div class="asset-empty dividend-empty">
+          <i data-lucide="satellite-dish"></i>
+          <b>ยังไม่พบหุ้นที่มีข้อมูลปันผล</b>
+          <span>ระบบจะเช็คหุ้นที่ถืออยู่จาก Yahoo ผ่าน Worker แล้วคำนวณให้เมื่อมีข้อมูล</span>
         </div>
       `;
       refreshModalIcons();
       return;
     }
     target.innerHTML = rows.map(item => `
-      <div class="dividend-row">
-        ${dividendIconHTML(item.ticker, item.ticker)}
-        <b>${escapeHTML(item.ticker)} <small>${formatDividendDate(item.payDate)}</small></b>
-        <em>${USD.format(item.amount)}</em>
+      <div class="dividend-row auto-dividend-row">
+        ${dividendIconHTML(item.symbol, item.symbol)}
+        <b>
+          ${escapeHTML(item.symbol)}
+          <small>ถือ ${number.format(item.qty)} หุ้น · ${item.payments} รอบ/ปี · Yield ${item.dividendYield.toFixed(2)}%</small>
+        </b>
+        <em>
+          <strong>${shortTHB(item.annualTHB)}</strong>
+          <small>${shortTHB(item.perPaymentTHB)} / รอบ</small>
+        </em>
       </div>
     `).join("");
     refreshModalIcons();
@@ -2083,12 +2192,16 @@
   function renderCashFlow() {
     const month = ensureCashMonth();
     const scopedTransactions = transactionsForMonth(month);
-    const incomeTotal = totalByType("income", scopedTransactions);
+    const estimatedDividend = estimatedMonthlyDividendTHB();
+    const incomeTotal = totalByType("income", scopedTransactions) + estimatedDividend;
     const expenseTotal = totalByType("expense", scopedTransactions);
     const remain = incomeTotal - expenseTotal;
     const target = document.querySelector(".cash-flow-layout");
     const rowTemplate = (type) => {
       const rows = summarizeCategories(type, scopedTransactions);
+      if (type === "income" && estimatedDividend > 0) {
+        rows.unshift(["ปันผลคาดการณ์", estimatedDividend]);
+      }
       if (!rows.length) return `<div><span>ยังไม่มีรายการในเดือนนี้</span><b>0</b></div>`;
       return rows.map(([name, amount]) => `<div><span>${name}</span><b>${number.format(amount)}</b></div>`).join("");
     };
@@ -2515,9 +2628,9 @@
     renderPortfolioKpis();
     renderGoals();
     renderDividends();
-    if (!document.getElementById("dividendOverlay")?.hidden) renderDividendManager();
     renderGoalManagerList();
     updateGoalProgressPreview();
+    refreshDividendFundamentals();
   }
 
   function bindActions() {
@@ -2538,27 +2651,12 @@
         if (href === "#expense") return openEntryModal("expense");
         if (href === "#portfolio") return openAssetTransactionModal();
         if (href === "#goal") return openGoalModal();
-        if (href === "#dividend") return openDividendModal();
         if (href === "#report") return openReportModal();
         showToast(`เลือก ${item.dataset.section || item.textContent.trim()}`);
       });
     });
 
     document.querySelector(".goals-panel .ghost-btn")?.addEventListener("click", openGoalModal);
-    document.getElementById("openDividendModal")?.addEventListener("click", openDividendModal);
-    document.getElementById("dividendClose")?.addEventListener("click", closeDividendModal);
-    document.getElementById("dividendCancel")?.addEventListener("click", closeDividendModal);
-    document.getElementById("dividendForm")?.addEventListener("submit", submitDividendRecord);
-    document.getElementById("dividendSeedIncome")?.addEventListener("click", recordDueDividendsAsIncome);
-    document.getElementById("dividendOverlay")?.addEventListener("click", event => {
-      if (event.target.id === "dividendOverlay") closeDividendModal();
-    });
-    document.getElementById("dividendRecords")?.addEventListener("click", event => {
-      const recordButton = event.target.closest("[data-record-dividend]");
-      if (recordButton) return recordDividendAsIncome(recordButton.dataset.recordDividend);
-      const deleteButton = event.target.closest("[data-delete-dividend]");
-      if (deleteButton) return deleteDividendRecord(deleteButton.dataset.deleteDividend);
-    });
     document.getElementById("monthSelect")?.addEventListener("change", event => {
       selectedCashMonth = event.target.value || ensureCashMonth();
       renderCashFlow();
@@ -2663,7 +2761,6 @@
         closeReportModal();
         closeAssetTransactionModal();
         closeGoalModal();
-        closeDividendModal();
       }
     });
     window.addEventListener("storage", event => {
@@ -2678,6 +2775,7 @@
     const refreshRealtimeData = () => {
       refreshLiveQuotes();
       refreshPortfolioPrices();
+      refreshDividendFundamentals();
     };
     window.setTimeout(refreshRealtimeData, 700);
     window.setInterval(refreshRealtimeData, PRICE_REFRESH_MS);
@@ -2690,7 +2788,7 @@
     renderDashboardData();
     bindActions();
     if (window.lucide) window.lucide.createIcons();
-    if (["#income", "#expense", "#portfolio", "#goal", "#dividend", "#report"].includes(window.location.hash)) {
+    if (["#income", "#expense", "#portfolio", "#goal", "#report"].includes(window.location.hash)) {
       document.querySelectorAll(".side-menu a").forEach(link => {
         link.classList.toggle("active", link.getAttribute("href") === window.location.hash);
       });
@@ -2704,10 +2802,6 @@
       }
       if (window.location.hash === "#goal") {
         window.setTimeout(openGoalModal, 120);
-        return;
-      }
-      if (window.location.hash === "#dividend") {
-        window.setTimeout(openDividendModal, 120);
         return;
       }
       const type = window.location.hash === "#income" ? "income" : "expense";
