@@ -565,6 +565,12 @@
     const name = String(goal.name || "").toLowerCase();
     if (id === "goal-portfolio" || name.includes("พอร์ต") || name.includes("พอร์") || name.includes("portfolio")) return "portfolio";
     if (
+      id === "goal-cash" ||
+      name.includes("เงินสด") ||
+      name.includes("พร้อมใช้") ||
+      name.includes("cash")
+    ) return "cash";
+    if (
       id === "goal-savings" ||
       name.includes("เงินออม") ||
       name.includes("เงินฝาก") ||
@@ -585,6 +591,7 @@
       if (!store) return null;
       return getPortfolioStatsFromStore().value;
     }
+    if (source === "cash") return cashAvailableFromTransactions();
     if (source === "earn") {
       return getEarnStatsFromStore()?.value ?? null;
     }
@@ -593,6 +600,7 @@
 
   function goalSourceLabel(source) {
     if (source === "portfolio") return "อ้างอิงมูลค่าพอร์ต";
+    if (source === "cash") return "อ้างอิงรายรับ - รายจ่าย";
     if (source === "earn") return "อ้างอิง Earn จากพอร์ต";
     return "";
   }
@@ -1152,6 +1160,10 @@
     return source
       .filter(item => item.type === type)
       .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  }
+
+  function cashAvailableFromTransactions(source = transactions) {
+    return Math.max(0, totalByType("income", source) - totalByType("expense", source));
   }
 
   function summarizeCategories(type, source = transactions) {
@@ -1939,9 +1951,82 @@
     `;
   }
 
+  function dateFromISO(dateString) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateString || ""))) return null;
+    const [year, month, day] = dateString.split("-").map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
+  }
+
+  function daysBetween(start, end) {
+    const ms = 24 * 60 * 60 * 1000;
+    return Math.max(0, Math.round((end - start) / ms));
+  }
+
+  function portfolioTxSignedQty(tx = {}) {
+    const qty = Number(tx.qty || 0);
+    if (String(tx.kind || "").toLowerCase() === "sell" && qty > 0) return -qty;
+    return qty;
+  }
+
+  function portfolioTxSymbol(tx = {}) {
+    return String(tx.ticker || tx.symbol || "").trim().toUpperCase();
+  }
+
+  function dividendHoldingExposure(asset, year = new Date().getFullYear()) {
+    const store = loadPortfolioStore();
+    const symbol = String(asset.symbol || asset.ticker || "").toUpperCase();
+    const currentQty = Number(asset.qty || 0);
+    const start = new Date(Date.UTC(year, 0, 1));
+    const end = new Date(Date.UTC(year + 1, 0, 1));
+    const totalDays = Math.max(1, daysBetween(start, end));
+    const transactions = (store?.transactions || [])
+      .filter(tx => portfolioTxSymbol(tx) === symbol)
+      .map(tx => ({ ...tx, dateValue: dateFromISO(tx.date), signedQty: portfolioTxSignedQty(tx) }))
+      .filter(tx => tx.dateValue && Number.isFinite(tx.signedQty) && tx.signedQty !== 0)
+      .sort((a, b) => a.dateValue - b.dateValue);
+
+    if (!transactions.length) {
+      return {
+        eligibleQty: currentQty,
+        firstBuyDate: "",
+        heldDays: totalDays,
+        totalDays
+      };
+    }
+
+    const yearEvents = transactions.filter(tx => tx.dateValue >= start && tx.dateValue < end);
+    const yearQtyDelta = yearEvents.reduce((sum, tx) => sum + tx.signedQty, 0);
+    let runningQty = Math.max(0, currentQty - yearQtyDelta);
+    let cursor = start;
+    let shareDays = 0;
+    let firstBuyDate = yearEvents.find(tx => tx.signedQty > 0)?.date || "";
+
+    yearEvents.forEach(tx => {
+      if (tx.dateValue > cursor) {
+        shareDays += runningQty * daysBetween(cursor, tx.dateValue);
+        cursor = tx.dateValue;
+      }
+      runningQty = Math.max(0, runningQty + tx.signedQty);
+    });
+
+    shareDays += runningQty * daysBetween(cursor, end);
+    if (!firstBuyDate) {
+      const earliestBuy = transactions.find(tx => tx.signedQty > 0);
+      firstBuyDate = earliestBuy?.date || "";
+    }
+
+    return {
+      eligibleQty: shareDays / totalDays,
+      firstBuyDate,
+      heldDays: currentQty > 0 ? Math.round(shareDays / Math.max(currentQty, 0.000001)) : 0,
+      totalDays
+    };
+  }
+
   function dividendEstimateRows() {
     const store = loadPortfolioStore();
     const fx = Number(store?.fx || 35.8);
+    const year = new Date().getFullYear();
     return getHeldAssets()
       .filter(asset => asset.type === "stocks" && Number(asset.qty || 0) > 0)
       .map(asset => {
@@ -1949,12 +2034,17 @@
         const info = dividendFundamentals[symbol] || {};
         const rate = Number(info.dividendRate || 0);
         const payments = Math.max(1, Number(info.payments || 4) || 4);
-        const annualNative = Number(asset.qty || 0) * rate;
+        const exposure = dividendHoldingExposure(asset, year);
+        const annualNative = Number(exposure.eligibleQty || 0) * rate;
         const currency = info.currency || asset.ccy || "USD";
         const annualTHB = currency === "THB" ? annualNative : annualNative * fx;
         return {
           ...asset,
           symbol,
+          eligibleQty: Number(exposure.eligibleQty || 0),
+          firstBuyDate: exposure.firstBuyDate,
+          heldDays: exposure.heldDays,
+          totalDays: exposure.totalDays,
           dividendRate: rate,
           dividendYield: Number(info.dividendYield || 0),
           payments,
@@ -2021,7 +2111,7 @@
         ${dividendIconHTML(item.symbol, item.symbol)}
         <b>
           ${escapeHTML(item.symbol)}
-          <small>ถือ ${number.format(item.qty)} หุ้น · ${item.payments} รอบ/ปี · Yield ${item.dividendYield.toFixed(2)}%</small>
+          <small>ถือ ${number.format(item.qty)} หุ้น · คิดเฉลี่ย ${number.format(Number(item.eligibleQty || 0).toFixed(3))} หุ้น · ${item.firstBuyDate ? `ซื้อ ${formatDate(item.firstBuyDate)} · ` : ""}${item.payments} รอบ/ปี</small>
         </b>
         <em>
           <strong>${shortTHB(item.annualTHB)}</strong>
@@ -2237,6 +2327,13 @@
     }
 
     const cards = document.querySelectorAll(".summary-grid .stat-card");
+    if (cards[2]) {
+      const cashValue = cards[2].querySelector("strong");
+      const cashDetail = cards[2].querySelector("small");
+      const allCash = cashAvailableFromTransactions();
+      if (cashValue) cashValue.textContent = compactTHB(allCash);
+      if (cashDetail) cashDetail.textContent = "รายรับสะสมหักรายจ่ายแล้ว";
+    }
     if (cards[3]) cards[3].querySelector("strong").textContent = `${(incomeTotal / 1000).toFixed(1)}K THB`;
     if (cards[4]) cards[4].querySelector("strong").textContent = `${(expenseTotal / 1000).toFixed(1)}K THB`;
   }
