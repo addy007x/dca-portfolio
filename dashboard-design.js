@@ -237,7 +237,12 @@
   function loadTransactions() {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKeys.transactions));
-      if (Array.isArray(saved)) return saved;
+      if (Array.isArray(saved)) {
+        return saved.map(item => ({
+          ...item,
+          amount: Number.isFinite(Number(item?.amount)) ? Number(item.amount) : 0
+        }));
+      }
     } catch (error) {
       console.warn("Cannot load transactions", error);
     }
@@ -260,6 +265,11 @@
 
   function saveEarnIncomeRecords() {
     localStorage.setItem(storageKeys.earnIncomeRecords, JSON.stringify(earnIncomeRecords));
+  }
+
+  function portfolioFxRate() {
+    const store = loadPortfolioStore();
+    return Number(store?.fx || 35.8) || 35.8;
   }
 
   function defaultFinancialGoals() {
@@ -2167,13 +2177,35 @@
     const annualTHB = rows.reduce((sum, row) => sum + Number(row.annualTHB || 0), 0);
     const monthlyTHB = annualTHB / 12;
     const next = rows[0] || null;
+    const fx = portfolioFxRate();
     return {
+      fx,
       annualTHB,
       monthlyTHB,
       rows,
       next,
       pending: 0
     };
+  }
+
+  function repairInvalidDividendIncomeTransactions() {
+    const fx = portfolioFxRate();
+    let changed = false;
+    transactions = transactions.map(item => {
+      const amount = Number(item?.amount);
+      if (Number.isFinite(amount)) return item;
+      if (!String(item?.id || "").startsWith("div-income-")) {
+        changed = true;
+        return { ...item, amount: 0 };
+      }
+      const recordId = String(item.id).replace(/^div-income-/, "");
+      const dividend = dividendRecords.find(record => record.id === recordId);
+      const repairedAmount = dividend ? Math.round((Number(dividend.amount || 0) * fx) || 0) : 0;
+      changed = true;
+      return { ...item, amount: repairedAmount };
+    });
+    if (changed) saveTransactions();
+    return changed;
   }
 
   function renderDividends() {
@@ -2335,14 +2367,14 @@
       if (!silent) showToast("รายการนี้บันทึกเป็นรายรับแล้ว");
       return false;
     }
-    const amountTHB = Number(item.amount || 0) * dividendStats().fx;
+    const amountTHB = Number(item.amount || 0) * portfolioFxRate();
     const tx = {
       id: `div-income-${item.id}`,
       type: "income",
       date: item.payDate || todayISO(),
       categoryId: "invest",
       note: `เงินปันผล ${item.ticker}`,
-      amount: Math.round(amountTHB)
+      amount: Math.round(Number(amountTHB || 0))
     };
     transactions.unshift(tx);
     dividendRecords = dividendRecords.map(record => record.id === id ? { ...record, recordedIncomeId: tx.id } : record);
@@ -2840,6 +2872,7 @@
   }
 
   function refreshPortfolioDrivenData() {
+    const repairedDividendRows = repairInvalidDividendIncomeTransactions();
     const earnIncomeChanged = recordDailyEarnInterestAsIncome();
     const dividendIncomeCount = recordDueDividendsAsIncome({ silent: true, rerender: false });
     renderPortfolioLegend();
@@ -2849,7 +2882,7 @@
     renderDividends();
     renderGoalManagerList();
     updateGoalProgressPreview();
-    if (earnIncomeChanged || dividendIncomeCount) {
+    if (repairedDividendRows || earnIncomeChanged || dividendIncomeCount) {
       renderCashFlow();
       renderRecent("recentIncome", "income");
       renderMonthlyAnalytics();
@@ -3011,6 +3044,7 @@
     renderGoals();
     renderDividends();
     renderExpenseLegend();
+    repairInvalidDividendIncomeTransactions();
     recordDailyEarnInterestAsIncome();
     recordDueDividendsAsIncome({ silent: true, rerender: false });
     renderDashboardData();
