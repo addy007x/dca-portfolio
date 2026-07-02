@@ -560,16 +560,27 @@
     };
   }
 
+  function getEarnInterestStatsFromStore() {
+    const store = loadPortfolioStore();
+    if (!store || !Array.isArray(store.earn)) return null;
+    const fx = Number(store.fx || 35.8);
+    const holdings = Array.isArray(store.holdings) ? store.holdings : [];
+    const accruedUSD = store.earn.reduce((sum, position) => {
+      const qty = Number(position.qty || position.amount || 0);
+      if (!qty) return sum;
+      const price = earnPositionPrice(position, holdings);
+      return sum + earnAccruedUSD(position, Math.max(price, 1));
+    }, 0);
+    return {
+      value: accruedUSD * fx,
+      count: store.earn.length
+    };
+  }
+
   function goalSource(goal = {}) {
     const id = String(goal.id || "").toLowerCase();
     const name = String(goal.name || "").toLowerCase();
     if (id === "goal-portfolio" || name.includes("พอร์ต") || name.includes("พอร์") || name.includes("portfolio")) return "portfolio";
-    if (
-      id === "goal-cash" ||
-      name.includes("เงินสด") ||
-      name.includes("พร้อมใช้") ||
-      name.includes("cash")
-    ) return "cash";
     if (
       id === "goal-savings" ||
       name.includes("เงินออม") ||
@@ -591,7 +602,6 @@
       if (!store) return null;
       return getPortfolioStatsFromStore().value;
     }
-    if (source === "cash") return cashAvailableFromTransactions();
     if (source === "earn") {
       return getEarnStatsFromStore()?.value ?? null;
     }
@@ -600,7 +610,6 @@
 
   function goalSourceLabel(source) {
     if (source === "portfolio") return "อ้างอิงมูลค่าพอร์ต";
-    if (source === "cash") return "อ้างอิงรายรับ - รายจ่าย";
     if (source === "earn") return "อ้างอิง Earn จากพอร์ต";
     return "";
   }
@@ -2065,6 +2074,16 @@
     return dividendEstimateRows().reduce((sum, row) => sum + Number(row.monthlyTHB || 0), 0);
   }
 
+  function portfolioIncomeCashAvailable() {
+    const dividend = estimatedMonthlyDividendTHB();
+    const earnInterest = getEarnInterestStatsFromStore()?.value || 0;
+    return {
+      dividend,
+      earnInterest,
+      total: Math.max(0, dividend + earnInterest)
+    };
+  }
+
   function dividendStats() {
     const rows = dividendEstimateRows();
     const annualTHB = rows.reduce((sum, row) => sum + Number(row.annualTHB || 0), 0);
@@ -2330,9 +2349,9 @@
     if (cards[2]) {
       const cashValue = cards[2].querySelector("strong");
       const cashDetail = cards[2].querySelector("small");
-      const allCash = cashAvailableFromTransactions();
-      if (cashValue) cashValue.textContent = compactTHB(allCash);
-      if (cashDetail) cashDetail.textContent = "รายรับสะสมหักรายจ่ายแล้ว";
+      const portfolioCash = portfolioIncomeCashAvailable();
+      if (cashValue) cashValue.textContent = compactTHB(portfolioCash.total);
+      if (cashDetail) cashDetail.textContent = "ปันผล + ดอกเบี้ยสะสมจากพอร์ต";
     }
     if (cards[3]) cards[3].querySelector("strong").textContent = `${(incomeTotal / 1000).toFixed(1)}K THB`;
     if (cards[4]) cards[4].querySelector("strong").textContent = `${(expenseTotal / 1000).toFixed(1)}K THB`;
