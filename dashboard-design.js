@@ -34,9 +34,20 @@
     dividendFundamentals: "siamfolio.dashboard.dividendFundamentals.v1",
     earnIncomeRecords: "siamfolio.dashboard.earnIncomeRecords.v1",
     liveQuotes: "siamfolio.dashboard.liveQuotes.v1",
+    appSettings: "siamfolio.dashboard.appSettings.v1",
     authSession: "siamfolio.googleSession",
     legacyBackend: "siamfolio.backend",
     databaseMode: "siamfolio.databaseMode"
+  };
+
+  const defaultAppSettings = {
+    appName: "SiamFolio Prime",
+    subtitle: "แดชบอร์ดการเงินและพอร์ตลงทุน",
+    userName: "APISIT TIAKHAM",
+    userEmail: "HONGAME5678@GMAIL.COM",
+    theme: "dark",
+    logoImage: "",
+    avatarImage: ""
   };
 
   const assets = [
@@ -130,6 +141,8 @@
   let dividendRecords = loadDividendRecords();
   let dividendFundamentals = loadDividendFundamentals();
   let earnIncomeRecords = loadEarnIncomeRecords();
+  let appSettings = loadAppSettings();
+  let settingsDraft = null;
   let dividendRefreshBusy = false;
   let lastDividendRefreshAt = 0;
   let liveQuotes = loadLiveQuotes();
@@ -265,6 +278,147 @@
 
   function saveEarnIncomeRecords() {
     localStorage.setItem(storageKeys.earnIncomeRecords, JSON.stringify(earnIncomeRecords));
+  }
+
+  function loadAppSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKeys.appSettings));
+      if (saved && typeof saved === "object") return { ...defaultAppSettings, ...saved };
+    } catch (error) {
+      console.warn("Cannot load app settings", error);
+    }
+    return { ...defaultAppSettings };
+  }
+
+  function saveAppSettings() {
+    localStorage.setItem(storageKeys.appSettings, JSON.stringify(appSettings));
+  }
+
+  function imageOrTextHTML(image, fallback, alt = "") {
+    return image
+      ? `<img src="${escapeHTML(image)}" alt="${escapeHTML(alt)}">`
+      : escapeHTML(fallback);
+  }
+
+  function applyAppSettings(settings = appSettings) {
+    const next = { ...defaultAppSettings, ...settings };
+    document.body.dataset.theme = next.theme === "light" ? "light" : "dark";
+    document.title = `${next.appName} Dashboard`;
+
+    document.querySelectorAll(".brand-emblem").forEach(target => {
+      target.innerHTML = imageOrTextHTML(next.logoImage, "SF", next.appName);
+    });
+    document.querySelectorAll(".brand strong").forEach(target => {
+      target.textContent = next.appName;
+    });
+    document.querySelectorAll(".brand small").forEach(target => {
+      target.textContent = next.subtitle;
+    });
+
+    const profileAvatar = document.querySelector(".profile-avatar");
+    if (profileAvatar) {
+      profileAvatar.innerHTML = `<img src="${escapeHTML(next.avatarImage || "assets/manga-dashboard-scene.webp")}" alt="">`;
+    }
+    const profileName = document.querySelector(".profile-card h1");
+    const profileEmail = document.querySelector(".profile-card p");
+    if (profileName) profileName.textContent = next.userName;
+    if (profileEmail) profileEmail.textContent = next.userEmail;
+    renderSettingsPreview(next);
+  }
+
+  function renderSettingsPreview(settings = settingsDraft || appSettings) {
+    const next = { ...defaultAppSettings, ...settings };
+    const logo = document.getElementById("settingsPreviewLogo");
+    const avatar = document.getElementById("settingsPreviewAvatar");
+    const name = document.getElementById("settingsPreviewName");
+    const subtitle = document.getElementById("settingsPreviewSubtitle");
+    if (logo) logo.innerHTML = imageOrTextHTML(next.logoImage, "SF", next.appName);
+    if (avatar) avatar.innerHTML = `<img src="${escapeHTML(next.avatarImage || "assets/manga-dashboard-scene.webp")}" alt="">`;
+    if (name) name.textContent = next.appName;
+    if (subtitle) subtitle.textContent = next.subtitle;
+  }
+
+  function fillSettingsForm() {
+    settingsDraft = { ...defaultAppSettings, ...appSettings };
+    const fields = {
+      settingsAppName: settingsDraft.appName,
+      settingsSubtitle: settingsDraft.subtitle,
+      settingsUserName: settingsDraft.userName,
+      settingsUserEmail: settingsDraft.userEmail
+    };
+    Object.entries(fields).forEach(([id, value]) => {
+      const input = document.getElementById(id);
+      if (input) input.value = value || "";
+    });
+    document.querySelectorAll('input[name="settingsTheme"]').forEach(input => {
+      input.checked = input.value === settingsDraft.theme;
+    });
+    renderSettingsPreview(settingsDraft);
+  }
+
+  function updateSettingsDraftFromInputs() {
+    if (!settingsDraft) settingsDraft = { ...defaultAppSettings, ...appSettings };
+    settingsDraft = {
+      ...settingsDraft,
+      appName: document.getElementById("settingsAppName")?.value.trim() || defaultAppSettings.appName,
+      subtitle: document.getElementById("settingsSubtitle")?.value.trim() || defaultAppSettings.subtitle,
+      userName: document.getElementById("settingsUserName")?.value.trim() || defaultAppSettings.userName,
+      userEmail: document.getElementById("settingsUserEmail")?.value.trim() || defaultAppSettings.userEmail,
+      theme: document.querySelector('input[name="settingsTheme"]:checked')?.value || "dark"
+    };
+    document.body.dataset.theme = settingsDraft.theme === "light" ? "light" : "dark";
+    renderSettingsPreview(settingsDraft);
+  }
+
+  function openSettingsModal() {
+    const overlay = document.getElementById("settingsOverlay");
+    if (!overlay) return;
+    fillSettingsForm();
+    overlay.hidden = false;
+    setTimeout(() => document.getElementById("settingsAppName")?.focus(), 60);
+    refreshModalIcons();
+  }
+
+  function closeSettingsModal() {
+    const overlay = document.getElementById("settingsOverlay");
+    if (overlay) overlay.hidden = true;
+    settingsDraft = null;
+    applyAppSettings(appSettings);
+  }
+
+  function readSettingsImage(input, field) {
+    const file = input?.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return showToast("เลือกไฟล์รูปภาพเท่านั้น");
+    if (file.size > 2_000_000) return showToast("รูปต้องไม่เกิน 2MB");
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (!settingsDraft) settingsDraft = { ...defaultAppSettings, ...appSettings };
+      settingsDraft[field] = String(reader.result || "");
+      renderSettingsPreview(settingsDraft);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function submitSettings(event) {
+    event.preventDefault();
+    updateSettingsDraftFromInputs();
+    appSettings = { ...defaultAppSettings, ...settingsDraft };
+    saveAppSettings();
+    applyAppSettings();
+    closeSettingsModal();
+    showToast("บันทึกตั้งค่าแล้ว");
+  }
+
+  function resetSettingsMedia() {
+    if (!settingsDraft) settingsDraft = { ...defaultAppSettings, ...appSettings };
+    settingsDraft.logoImage = "";
+    settingsDraft.avatarImage = "";
+    const logoInput = document.getElementById("settingsLogoFile");
+    const avatarInput = document.getElementById("settingsAvatarFile");
+    if (logoInput) logoInput.value = "";
+    if (avatarInput) avatarInput.value = "";
+    renderSettingsPreview(settingsDraft);
   }
 
   function portfolioFxRate() {
@@ -2912,6 +3066,7 @@
         if (href === "#portfolio") return openAssetTransactionModal();
         if (href === "#goal") return openGoalModal();
         if (href === "#report") return openReportModal();
+        if (href === "#settings") return openSettingsModal();
         showToast(`เลือก ${item.dataset.section || item.textContent.trim()}`);
       });
     });
@@ -2957,6 +3112,21 @@
     document.getElementById("goalOverlay")?.addEventListener("click", event => {
       if (event.target.id === "goalOverlay") closeGoalModal();
     });
+    document.getElementById("settingsClose")?.addEventListener("click", closeSettingsModal);
+    document.getElementById("settingsCancel")?.addEventListener("click", closeSettingsModal);
+    document.getElementById("settingsOverlay")?.addEventListener("click", event => {
+      if (event.target.id === "settingsOverlay") closeSettingsModal();
+    });
+    document.getElementById("settingsForm")?.addEventListener("submit", submitSettings);
+    ["settingsAppName", "settingsSubtitle", "settingsUserName", "settingsUserEmail"].forEach(id => {
+      document.getElementById(id)?.addEventListener("input", updateSettingsDraftFromInputs);
+    });
+    document.querySelectorAll('input[name="settingsTheme"]').forEach(input => {
+      input.addEventListener("change", updateSettingsDraftFromInputs);
+    });
+    document.getElementById("settingsLogoFile")?.addEventListener("change", event => readSettingsImage(event.target, "logoImage"));
+    document.getElementById("settingsAvatarFile")?.addEventListener("change", event => readSettingsImage(event.target, "avatarImage"));
+    document.getElementById("settingsResetMedia")?.addEventListener("click", resetSettingsMedia);
     document.getElementById("goalManagerList")?.addEventListener("click", event => {
       const button = event.target.closest("[data-goal-id]");
       if (!button) return;
@@ -3021,6 +3191,7 @@
         closeReportModal();
         closeAssetTransactionModal();
         closeGoalModal();
+        closeSettingsModal();
       }
     });
     window.addEventListener("storage", event => {
@@ -3030,6 +3201,7 @@
   }
 
   function init() {
+    applyAppSettings();
     updateClock();
     window.setInterval(updateClock, 1000);
     const refreshRealtimeData = () => {
@@ -3052,7 +3224,7 @@
     renderDashboardData();
     bindActions();
     if (window.lucide) window.lucide.createIcons();
-    if (["#income", "#expense", "#portfolio", "#goal", "#report"].includes(window.location.hash)) {
+    if (["#income", "#expense", "#portfolio", "#goal", "#report", "#settings"].includes(window.location.hash)) {
       document.querySelectorAll(".side-menu a").forEach(link => {
         link.classList.toggle("active", link.getAttribute("href") === window.location.hash);
       });
@@ -3066,6 +3238,10 @@
       }
       if (window.location.hash === "#goal") {
         window.setTimeout(openGoalModal, 120);
+        return;
+      }
+      if (window.location.hash === "#settings") {
+        window.setTimeout(openSettingsModal, 120);
         return;
       }
       const type = window.location.hash === "#income" ? "income" : "expense";
