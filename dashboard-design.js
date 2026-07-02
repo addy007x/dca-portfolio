@@ -32,6 +32,7 @@
     goals: "siamfolio.dashboard.goals.v1",
     dividends: "siamfolio.dashboard.dividends.v1",
     dividendFundamentals: "siamfolio.dashboard.dividendFundamentals.v1",
+    earnIncomeRecords: "siamfolio.dashboard.earnIncomeRecords.v1",
     liveQuotes: "siamfolio.dashboard.liveQuotes.v1",
     authSession: "siamfolio.googleSession",
     legacyBackend: "siamfolio.backend",
@@ -128,6 +129,7 @@
   let selectedGoalIcon = "target";
   let dividendRecords = loadDividendRecords();
   let dividendFundamentals = loadDividendFundamentals();
+  let earnIncomeRecords = loadEarnIncomeRecords();
   let dividendRefreshBusy = false;
   let lastDividendRefreshAt = 0;
   let liveQuotes = loadLiveQuotes();
@@ -244,6 +246,20 @@
 
   function saveTransactions() {
     localStorage.setItem(storageKeys.transactions, JSON.stringify(transactions));
+  }
+
+  function loadEarnIncomeRecords() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKeys.earnIncomeRecords));
+      if (saved && typeof saved === "object" && !Array.isArray(saved)) return saved;
+    } catch (error) {
+      console.warn("Cannot load earn income records", error);
+    }
+    return {};
+  }
+
+  function saveEarnIncomeRecords() {
+    localStorage.setItem(storageKeys.earnIncomeRecords, JSON.stringify(earnIncomeRecords));
   }
 
   function defaultFinancialGoals() {
@@ -575,6 +591,68 @@
       value: accruedUSD * fx,
       count: store.earn.length
     };
+  }
+
+  function earnIncomeSymbol(position = {}) {
+    return String(position.sym || position.ticker || position.symbol || "EARN")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9.-]/g, "") || "EARN";
+  }
+
+  function dailyEarnIncomeRows(date = todayISO()) {
+    const store = loadPortfolioStore();
+    if (!store || !Array.isArray(store.earn) || !store.earn.length) return [];
+    const fx = Number(store.fx || 35.8);
+    const holdings = Array.isArray(store.holdings) ? store.holdings : [];
+    const rows = new Map();
+    store.earn.forEach(position => {
+      const qty = Number(position.qty || position.amount || 0);
+      const apy = Number(position.apy || 0);
+      if (!qty || !apy) return;
+      const symbol = earnIncomeSymbol(position);
+      const price = Math.max(earnPositionPrice(position, holdings), 1);
+      const dailyTHB = qty * price * (apy / 100) / 365 * fx;
+      if (!Number.isFinite(dailyTHB) || dailyTHB < 0.01) return;
+      const current = rows.get(symbol) || { symbol, amount: 0 };
+      current.amount += dailyTHB;
+      rows.set(symbol, current);
+    });
+    return Array.from(rows.values()).map(row => ({
+      ...row,
+      id: `earn-income-${row.symbol}-${date}`,
+      date,
+      amount: Math.round(row.amount * 100) / 100
+    }));
+  }
+
+  function recordDailyEarnInterestAsIncome(date = todayISO()) {
+    const rows = dailyEarnIncomeRows(date).filter(row => (
+      row.amount > 0 &&
+      !earnIncomeRecords[row.id] &&
+      !transactions.some(tx => tx.id === row.id)
+    ));
+    if (!rows.length) return false;
+    const newTransactions = rows.map(row => ({
+      id: row.id,
+      type: "income",
+      date: row.date,
+      categoryId: "invest",
+      note: `ดอกเบี้ย Earn ${row.symbol}`,
+      amount: row.amount
+    }));
+    transactions = [...newTransactions, ...transactions];
+    rows.forEach(row => {
+      earnIncomeRecords[row.id] = {
+        symbol: row.symbol,
+        date: row.date,
+        amount: row.amount,
+        recordedAt: Date.now()
+      };
+    });
+    saveTransactions();
+    saveEarnIncomeRecords();
+    return true;
   }
 
   function goalSource(goal = {}) {
@@ -2739,6 +2817,7 @@
   }
 
   function refreshPortfolioDrivenData() {
+    const earnIncomeChanged = recordDailyEarnInterestAsIncome();
     renderPortfolioLegend();
     renderAssets();
     renderPortfolioKpis();
@@ -2746,6 +2825,12 @@
     renderDividends();
     renderGoalManagerList();
     updateGoalProgressPreview();
+    if (earnIncomeChanged) {
+      renderCashFlow();
+      renderRecent("recentIncome", "income");
+      renderMonthlyAnalytics();
+      renderReportRows();
+    }
     refreshDividendFundamentals();
   }
 
@@ -2901,6 +2986,7 @@
     renderGoals();
     renderDividends();
     renderExpenseLegend();
+    recordDailyEarnInterestAsIncome();
     renderDashboardData();
     bindActions();
     if (window.lucide) window.lucide.createIcons();
