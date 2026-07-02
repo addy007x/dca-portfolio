@@ -2162,8 +2162,14 @@
     return dividendEstimateRows().reduce((sum, row) => sum + Number(row.monthlyTHB || 0), 0);
   }
 
+  function actualDividendIncomeTHB(source = transactions) {
+    return source
+      .filter(item => item.type === "income" && String(item.id || "").startsWith("div-income-"))
+      .reduce((sum, item) => sum + (Number.isFinite(Number(item.amount)) ? Number(item.amount) : 0), 0);
+  }
+
   function portfolioIncomeCashAvailable() {
-    const dividend = estimatedMonthlyDividendTHB();
+    const dividend = actualDividendIncomeTHB();
     const earnInterest = getEarnInterestStatsFromStore()?.value || 0;
     return {
       dividend,
@@ -2434,16 +2440,12 @@
   function renderCashFlow() {
     const month = ensureCashMonth();
     const scopedTransactions = transactionsForMonth(month);
-    const estimatedDividend = estimatedMonthlyDividendTHB();
-    const incomeTotal = totalByType("income", scopedTransactions) + estimatedDividend;
+    const incomeTotal = totalByType("income", scopedTransactions);
     const expenseTotal = totalByType("expense", scopedTransactions);
     const remain = incomeTotal - expenseTotal;
     const target = document.querySelector(".cash-flow-layout");
     const rowTemplate = (type) => {
       const rows = summarizeCategories(type, scopedTransactions);
-      if (type === "income" && estimatedDividend > 0) {
-        rows.unshift(["ปันผลคาดการณ์", estimatedDividend]);
-      }
       if (!rows.length) return `<div><span>ยังไม่มีรายการในเดือนนี้</span><b>0</b></div>`;
       return rows.map(([name, amount]) => `<div><span>${name}</span><b>${number.format(amount)}</b></div>`).join("");
     };
@@ -2484,7 +2486,7 @@
       const cashDetail = cards[2].querySelector("small");
       const portfolioCash = portfolioIncomeCashAvailable();
       if (cashValue) cashValue.textContent = compactTHB(portfolioCash.total);
-      if (cashDetail) cashDetail.textContent = "ปันผล + ดอกเบี้ยสะสมจากพอร์ต";
+      if (cashDetail) cashDetail.textContent = "ปันผลจริง + ดอกเบี้ยสะสมจากพอร์ต";
     }
     if (cards[3]) cards[3].querySelector("strong").textContent = `${(incomeTotal / 1000).toFixed(1)}K THB`;
     if (cards[4]) cards[4].querySelector("strong").textContent = `${(expenseTotal / 1000).toFixed(1)}K THB`;
