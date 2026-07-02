@@ -2324,11 +2324,16 @@
     showToast("ลบรายการเงินปันผลแล้ว");
   }
 
-  function recordDividendAsIncome(id) {
+  function recordDividendAsIncome(id, options = {}) {
+    const { silent = false, rerender = true } = options;
     const item = dividendRecords.find(record => record.id === id);
-    if (!item) return showToast("ไม่พบรายการเงินปันผล");
+    if (!item) {
+      if (!silent) showToast("ไม่พบรายการเงินปันผล");
+      return false;
+    }
     if (item.recordedIncomeId && transactions.some(tx => tx.id === item.recordedIncomeId)) {
-      return showToast("รายการนี้บันทึกเป็นรายรับแล้ว");
+      if (!silent) showToast("รายการนี้บันทึกเป็นรายรับแล้ว");
+      return false;
     }
     const amountTHB = Number(item.amount || 0) * dividendStats().fx;
     const tx = {
@@ -2343,17 +2348,35 @@
     dividendRecords = dividendRecords.map(record => record.id === id ? { ...record, recordedIncomeId: tx.id } : record);
     saveTransactions();
     saveDividendRecords();
-    renderDashboardData();
-    renderDividends();
-    renderDividendManager();
-    showToast(`บันทึกเงินปันผล ${item.ticker} เป็นรายรับแล้ว`);
+    if (rerender) {
+      renderDashboardData();
+      renderDividends();
+      renderDividendManager();
+    }
+    if (!silent) showToast(`บันทึกเงินปันผล ${item.ticker} เป็นรายรับแล้ว`);
+    return true;
   }
 
-  function recordDueDividendsAsIncome() {
+  function recordDueDividendsAsIncome(options = {}) {
+    const { silent = false, rerender = true } = options;
     const today = todayISO();
     const dueRows = dividendRecords.filter(item => item.payDate <= today && !(item.recordedIncomeId && transactions.some(tx => tx.id === item.recordedIncomeId)));
-    if (!dueRows.length) return showToast("ยังไม่มีรายการปันผลครบกำหนด");
-    dueRows.forEach(item => recordDividendAsIncome(item.id));
+    if (!dueRows.length) {
+      if (!silent) showToast("ยังไม่มีรายการปันผลครบกำหนด");
+      return 0;
+    }
+    let recordedCount = 0;
+    dueRows.forEach(item => {
+      if (recordDividendAsIncome(item.id, { silent: true, rerender: false })) recordedCount += 1;
+    });
+    if (recordedCount && rerender) {
+      renderDashboardData();
+      renderDividends();
+      renderDividendManager();
+      renderReportRows();
+    }
+    if (!silent && recordedCount) showToast(`บันทึกเงินปันผลเข้าเป็นรายรับ ${recordedCount} รายการแล้ว`);
+    return recordedCount;
   }
 
   function renderExpenseLegend() {
@@ -2818,6 +2841,7 @@
 
   function refreshPortfolioDrivenData() {
     const earnIncomeChanged = recordDailyEarnInterestAsIncome();
+    const dividendIncomeCount = recordDueDividendsAsIncome({ silent: true, rerender: false });
     renderPortfolioLegend();
     renderAssets();
     renderPortfolioKpis();
@@ -2825,7 +2849,7 @@
     renderDividends();
     renderGoalManagerList();
     updateGoalProgressPreview();
-    if (earnIncomeChanged) {
+    if (earnIncomeChanged || dividendIncomeCount) {
       renderCashFlow();
       renderRecent("recentIncome", "income");
       renderMonthlyAnalytics();
@@ -2974,6 +2998,7 @@
     updateClock();
     window.setInterval(updateClock, 1000);
     const refreshRealtimeData = () => {
+      recordDueDividendsAsIncome({ silent: true });
       refreshLiveQuotes();
       refreshPortfolioPrices();
       refreshDividendFundamentals();
@@ -2987,6 +3012,7 @@
     renderDividends();
     renderExpenseLegend();
     recordDailyEarnInterestAsIncome();
+    recordDueDividendsAsIncome({ silent: true, rerender: false });
     renderDashboardData();
     bindActions();
     if (window.lucide) window.lucide.createIcons();
