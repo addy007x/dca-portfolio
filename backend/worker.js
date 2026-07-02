@@ -443,6 +443,40 @@ async function cacheSet(env, key, value, ttlSec) {
 }
 
 // Price proxies
+function binancePairForSymbol(symbol) {
+  const clean = String(symbol || "").trim().toUpperCase().replace(/-USD$/, "");
+  if (!clean || clean === "USDT" || clean === "USDC") return "";
+  if (clean === "XAUT") return "PAXGUSDT";
+  return `${clean}USDT`;
+}
+
+async function fetchBinanceCryptoPrices(symbols = []) {
+  const pairs = uniqueSymbols(symbols.map(binancePairForSymbol).filter(Boolean));
+  if (!pairs.length) return {};
+  const r = await fetch(
+    `https://data-api.binance.vision/api/v3/ticker/24hr?symbols=${encodeURIComponent(JSON.stringify(pairs))}`,
+    { headers: { "User-Agent": "Mozilla/5.0 SiamFolio/1.0", "Accept": "application/json" } }
+  );
+  if (!r.ok) return {};
+  const rows = await r.json().catch(() => []);
+  const list = Array.isArray(rows) ? rows : [rows];
+  return list.reduce((out, row) => {
+    const pair = String(row?.symbol || "").toUpperCase();
+    const symbol = pair === "PAXGUSDT" ? "XAUT" : pair.replace(/USDT$/, "");
+    const price = Number(row?.lastPrice);
+    if (Number.isFinite(price) && price > 0) {
+      out[symbol] = {
+        price,
+        chg1d: Number(row?.priceChangePercent || 0),
+        source: "binance",
+        currency: "USD",
+        updatedAt: Date.now(),
+      };
+    }
+    return out;
+  }, {});
+}
+
 async function handleCrypto(url, env) {
   const symbols = (url.searchParams.get("symbols") || "").split(",").filter(Boolean);
   const ids = symbols.map(s => COINGECKO_IDS[s.toUpperCase()]).filter(Boolean);
@@ -456,6 +490,11 @@ async function handleCrypto(url, env) {
   );
   if (!r.ok) {
     const txt = await r.text().catch(() => "");
+    const fallback = await fetchBinanceCryptoPrices(symbols).catch(() => ({}));
+    if (Object.keys(fallback).length) {
+      await cacheSet(env, cacheKey, fallback, 20);
+      return json(fallback);
+    }
     return error(`CoinGecko ${r.status}: ${txt.slice(0, 200)}`, 502);
   }
   const data = await r.json();

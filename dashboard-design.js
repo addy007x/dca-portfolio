@@ -1057,6 +1057,63 @@
     }, {});
   }
 
+  function yahooStockPriceFromChart(symbol, chart = {}) {
+    const result = chart?.chart?.result?.[0] || {};
+    const meta = result.meta || {};
+    const timestamps = Array.isArray(result.timestamp) ? result.timestamp : [];
+    const closes = Array.isArray(result.indicators?.quote?.[0]?.close) ? result.indicators.quote[0].close : [];
+    let latestClose = NaN;
+    let latestTime = 0;
+    for (let index = closes.length - 1; index >= 0; index -= 1) {
+      const close = Number(closes[index]);
+      const time = Number(timestamps[index]);
+      if (Number.isFinite(close) && close > 0) {
+        latestClose = close;
+        latestTime = Number.isFinite(time) ? time * 1000 : 0;
+        break;
+      }
+    }
+    const state = String(meta.marketState || "").toUpperCase();
+    const regular = Number(meta.regularMarketPrice);
+    const pre = Number(meta.preMarketPrice);
+    const post = Number(meta.postMarketPrice);
+    const prev = Number(meta.chartPreviousClose ?? meta.previousClose);
+    let price = Number.isFinite(latestClose) ? latestClose : regular;
+    let session = state.includes("CLOSED") ? "close" : "regular";
+    if (Number.isFinite(pre) && state.includes("PRE")) {
+      price = pre;
+      session = "pre";
+    } else if (Number.isFinite(post) && (state.includes("POST") || state.includes("CLOSED"))) {
+      price = post;
+      session = "post";
+    } else if (!Number.isFinite(price) && Number.isFinite(prev)) {
+      price = prev;
+      session = "close";
+    }
+    if (!Number.isFinite(price) || price <= 0) return null;
+    const baseline = Number.isFinite(prev) && prev > 0 ? prev : price;
+    return {
+      price,
+      chg1d: baseline > 0 ? ((price - baseline) / baseline) * 100 : 0,
+      source: "yahoo-direct",
+      currency: String(meta.currency || "USD").toUpperCase(),
+      session,
+      updatedAt: latestTime || (Number(meta.regularMarketTime || meta.preMarketTime || meta.postMarketTime || 0) * 1000) || Date.now()
+    };
+  }
+
+  async function fetchYahooStockPrices(symbols) {
+    const results = await Promise.allSettled(symbols.map(async symbol => {
+      const clean = String(symbol || "").trim().toUpperCase();
+      const json = await fetchJsonWithTimeout(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(clean)}?interval=1m&range=1d&includePrePost=true`, 8000);
+      return [clean, yahooStockPriceFromChart(clean, json)];
+    }));
+    return results.reduce((out, result) => {
+      if (result.status === "fulfilled" && result.value?.[1]) out[result.value[0]] = result.value[1];
+      return out;
+    }, {});
+  }
+
   async function fetchPriceGroup(group, symbols) {
     if (!symbols.length) return {};
     const endpoint = group === "crypto" ? "crypto" : "stocks";
@@ -1067,7 +1124,17 @@
     } catch (error) {
       console.warn(`${endpoint} worker price refresh skipped`, error);
     }
-    if (group !== "crypto") return workerPrices;
+    if (group !== "crypto") {
+      const missingStocks = symbols.filter(symbol => !Number.isFinite(pickPrice(workerPrices, symbol)));
+      if (!missingStocks.length) return workerPrices;
+      try {
+        const yahooPrices = await fetchYahooStockPrices(missingStocks);
+        return { ...yahooPrices, ...workerPrices };
+      } catch (error) {
+        console.warn("Yahoo direct stock fallback skipped", error);
+        return workerPrices;
+      }
+    }
 
     const missing = symbols.filter(symbol => !Number.isFinite(pickPrice(workerPrices, symbol)));
     if (!missing.length) return workerPrices;
@@ -1167,6 +1234,7 @@
       const nextFx = fxResult.status === "fulfilled" && Number.isFinite(fxResult.value) ? fxResult.value : Number(store.fx || 35.8);
       const now = Date.now();
       let changed = Number(nextFx) !== Number(store.fx || 0);
+      let touched = changed;
 
       const nextHoldings = holdings.map(asset => {
         const group = priceGroupForAsset(asset);
@@ -1177,10 +1245,13 @@
         if (!Number.isFinite(latestPrice) || latestPrice <= 0) return asset;
         const raw = prices[requestSymbol] ?? prices[symbol] ?? prices[`${symbol}-USD`] ?? prices[symbol.replace(".BK", "")];
         changed = changed || Number(asset.price || 0) !== latestPrice;
+        touched = true;
         return {
           ...asset,
           price: latestPrice,
           chg1d: Number(raw?.chg1d ?? raw?.changePct ?? asset.chg1d ?? 0) || 0,
+          priceSource: raw?.source || asset.priceSource || (group === "crypto" ? "crypto" : "stocks"),
+          priceSession: raw?.session || raw?.marketState || asset.priceSession || "",
           priceUpdatedAt: now,
           spark: [...(asset.spark || []).slice(-11), latestPrice]
         };
@@ -1192,6 +1263,7 @@
         const latestPrice = isStableSymbol(symbol) ? 1 : pickPrice(cryptoPrices, symbol);
         if (!Number.isFinite(latestPrice) || latestPrice <= 0) return position;
         changed = changed || Number(position.priceUSD ?? position.price ?? 0) !== latestPrice;
+        touched = true;
         return {
           ...position,
           priceUSD: latestPrice,
@@ -1200,7 +1272,7 @@
       });
 
       lastPortfolioRefreshAt = now;
-      if (changed) {
+      if (changed || touched) {
         savePortfolioStore({
           ...store,
           fx: nextFx,
