@@ -454,7 +454,7 @@ async function fetchBinanceCryptoPrices(symbols = []) {
   const pairs = uniqueSymbols(symbols.map(binancePairForSymbol).filter(Boolean));
   if (!pairs.length) return {};
   const r = await fetch(
-    `https://data-api.binance.vision/api/v3/ticker/24hr?symbols=${encodeURIComponent(JSON.stringify(pairs))}`,
+    `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(JSON.stringify(pairs))}`,
     { headers: { "User-Agent": "Mozilla/5.0 SiamFolio/1.0", "Accept": "application/json" } }
   );
   if (!r.ok) return {};
@@ -477,6 +477,48 @@ async function fetchBinanceCryptoPrices(symbols = []) {
   }, {});
 }
 
+function krakenPairForSymbol(symbol) {
+  const clean = String(symbol || "").trim().toUpperCase().replace(/-USD$/, "");
+  if (clean === "BTC") return "XBTUSD";
+  if (clean === "TRX") return "TRXUSD";
+  if (clean === "XAUT") return "PAXGUSD";
+  return "";
+}
+
+async function fetchKrakenCryptoPrices(symbols = []) {
+  const pairMap = symbols.reduce((out, symbol) => {
+    const clean = String(symbol || "").trim().toUpperCase().replace(/-USD$/, "");
+    const pair = krakenPairForSymbol(clean);
+    if (pair) out[pair] = clean;
+    return out;
+  }, {});
+  const pairs = Object.keys(pairMap);
+  if (!pairs.length) return {};
+  const r = await fetch(
+    `https://api.kraken.com/0/public/Ticker?pair=${encodeURIComponent(pairs.join(","))}`,
+    { headers: { "User-Agent": "Mozilla/5.0 SiamFolio/1.0", "Accept": "application/json" } }
+  );
+  if (!r.ok) return {};
+  const data = await r.json().catch(() => ({}));
+  const result = data?.result || {};
+  return Object.entries(result).reduce((out, [pair, row]) => {
+    const normalizedPair = pair === "XXBTZUSD" ? "XBTUSD" : pair;
+    const symbol = pairMap[normalizedPair] || pairMap[pair];
+    const price = Number(row?.c?.[0] ?? row?.a?.[0] ?? row?.b?.[0]);
+    const open = Number(row?.o || 0);
+    if (symbol && Number.isFinite(price) && price > 0) {
+      out[symbol] = {
+        price,
+        chg1d: open > 0 ? ((price - open) / open) * 100 : 0,
+        source: "kraken",
+        currency: "USD",
+        updatedAt: Date.now(),
+      };
+    }
+    return out;
+  }, {});
+}
+
 async function handleCrypto(url, env) {
   const symbols = (url.searchParams.get("symbols") || "").split(",").filter(Boolean);
   const ids = symbols.map(s => COINGECKO_IDS[s.toUpperCase()]).filter(Boolean);
@@ -490,7 +532,11 @@ async function handleCrypto(url, env) {
   );
   if (!r.ok) {
     const txt = await r.text().catch(() => "");
-    const fallback = await fetchBinanceCryptoPrices(symbols).catch(() => ({}));
+    const [krakenFallback, binanceFallback] = await Promise.all([
+      fetchKrakenCryptoPrices(symbols).catch(() => ({})),
+      fetchBinanceCryptoPrices(symbols).catch(() => ({})),
+    ]);
+    const fallback = { ...krakenFallback, ...binanceFallback };
     if (Object.keys(fallback).length) {
       await cacheSet(env, cacheKey, fallback, 20);
       return json(fallback);
