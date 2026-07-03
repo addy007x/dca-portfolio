@@ -16,10 +16,6 @@
   const shortTHB = value => THB.format(value).replace("THB", "").trim();
   const compactTHB = value => {
     const amount = Number(value || 0);
-    const abs = Math.abs(amount);
-    const clean = raw => raw.replace(/\.0$/, "").replace(/(\.\d)0$/, "$1");
-    if (abs >= 1_000_000) return `${clean((amount / 1_000_000).toFixed(2))}M THB`;
-    if (abs >= 1_000) return `${clean((amount / 1_000).toFixed(1))}K THB`;
     return `${number.format(Math.round(amount))} THB`;
   };
   const signedCompactTHB = value => `${Number(value || 0) >= 0 ? "+" : "-"}${compactTHB(Math.abs(value))}`;
@@ -2714,8 +2710,8 @@
       if (cashValue) cashValue.textContent = compactTHB(portfolioCash.total);
       if (cashDetail) cashDetail.textContent = "ปันผลจริง + ดอกเบี้ยสะสมจากพอร์ต";
     }
-    if (cards[3]) cards[3].querySelector("strong").textContent = `${(incomeTotal / 1000).toFixed(1)}K THB`;
-    if (cards[4]) cards[4].querySelector("strong").textContent = `${(expenseTotal / 1000).toFixed(1)}K THB`;
+    if (cards[3]) cards[3].querySelector("strong").textContent = compactTHB(incomeTotal);
+    if (cards[4]) cards[4].querySelector("strong").textContent = compactTHB(expenseTotal);
   }
 
   function renderPortfolioKpis() {
