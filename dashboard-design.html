@@ -1,334 +1,636 @@
 <!doctype html>
 <html lang="th">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SiamFolio Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="dashboard-design.css?v=1">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SiamFolio Prime Dashboard</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Thai:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard-design.css?v=20260703-02">
 </head>
-<body data-theme="dark">
+<body>
   <div class="app-shell">
-
     <header class="topbar panel">
-      <div class="topbar-row">
-        <div class="brand">
-          <div class="brand-mark" id="brandMark">SF</div>
-          <div class="brand-copy">
-            <div class="brand-name" id="brandName">SiamFolio</div>
-            <div class="brand-sub" id="brandSub">แดชบอร์ดการเงินและพอร์ตลงทุน</div>
-          </div>
-        </div>
-        <nav class="topnav" aria-label="Main navigation">
-          <a class="active" href="./dashboard-design.html">แดชบอร์ด</a>
-          <a href="./index.html#dashboard">พอร์ต</a>
-          <a href="./valuation.html">วิเคราะห์หุ้น</a>
-        </nav>
-        <div class="header-actions">
-          <div class="level-chip"><span class="lv-num" id="levelNum">67</span><span class="lv-label" id="levelLabel">เลเวล 67</span></div>
-          <div class="streak-chip"><span class="streak-dot"></span><span id="streakLabel">ต่อเนื่อง 14 วัน</span></div>
-          <div id="authArea"></div>
-          <button class="icon-btn" id="openSettingsBtn" aria-label="ตั้งค่า" title="ตั้งค่า">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-          </button>
-        </div>
+      <a class="brand" href="./dashboard-design.html" aria-label="SiamFolio dashboard">
+        <span class="brand-emblem"></span>
+        <span>
+          <strong>SiamFolio Prime</strong>
+          <small>แดชบอร์ดการเงินและพอร์ตลงทุน</small>
+        </span>
+      </a>
+
+      <nav class="topnav" aria-label="Main navigation">
+        <a class="active" href="./dashboard-design.html">แดชบอร์ด</a>
+        <a href="./index.html#dashboard">พอร์ต</a>
+
+        <a href="./valuation.html">วิเคราะห์หุ้น</a>
+      </nav>
+
+      <div class="level-hud">
+        <span>Lv. <b id="levelValue">67</b></span>
+        <i><b id="levelBar"></b></i>
+        <strong id="clockText">00:00:00</strong>
       </div>
-      <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:72%"></div></div>
     </header>
 
     <aside class="sidebar panel">
-      <div class="profile-card">
-        <div class="profile-avatar" id="profileAvatar">AT</div>
+      <section class="profile-card">
+        <div class="profile-avatar"><img src="assets/manga-dashboard-scene.webp" alt=""></div>
         <div>
-          <div class="profile-name" id="profileName">APISIT TIAKHAM</div>
-          <div class="profile-email" id="profileEmail">HONGAME5678@GMAIL.COM</div>
-          <span class="pro-badge">PRO</span>
+          <h1>APISIT TIAKHAM</h1>
+          <p>HONGAME5678@GMAIL.COM</p>
+          <span>PRO</span>
         </div>
-      </div>
-      <nav class="side-menu" id="sideMenu" aria-label="Dashboard sections">
-        <button class="active" data-action="scrollTop"><span class="dot"></span>แดชบอร์ด</button>
-        <button data-action="addIncome"><span class="dot"></span>รายรับ</button>
-        <button data-action="addExpense"><span class="dot"></span>รายจ่าย</button>
-        <button data-action="openAssetTx"><span class="dot"></span>พอร์ตลงทุน</button>
-        <button data-action="openGoals"><span class="dot"></span>เป้าหมาย</button>
-        <button data-action="openReport"><span class="dot"></span>รายงาน</button>
-        <button data-action="openSettings"><span class="dot"></span>ตั้งค่า</button>
+      </section>
+
+      <nav class="side-menu" aria-label="Dashboard sections">
+        <a class="active" href="#dashboard" data-section="แดชบอร์ด"><i data-lucide="layout-dashboard"></i><span>แดชบอร์ด</span></a>
+        <a href="#income" data-section="รายรับ"><i data-lucide="wallet-cards"></i><span>รายรับ</span></a>
+        <a href="#expense" data-section="รายจ่าย"><i data-lucide="receipt-text"></i><span>รายจ่าย</span></a>
+        <a href="#portfolio" data-section="พอร์ตลงทุน"><i data-lucide="chart-no-axes-combined"></i><span>พอร์ตลงทุน</span></a>
+        <a href="#goal" data-section="เป้าหมาย"><i data-lucide="target"></i><span>เป้าหมาย</span></a>
+    
+        <a href="#report" data-section="รายงาน"><i data-lucide="file-chart-column"></i><span>รายงาน</span></a>
+        <a href="#settings" data-section="ตั้งค่า"><i data-lucide="settings"></i><span>ตั้งค่า</span></a>
       </nav>
-      <div class="promo-card">
-        <div class="promo-title">โหมดหลักทำงานอยู่</div>
-        <div class="promo-body">พอร์ตลงทุน กระแสเงินสด เป้าหมาย และเงินปันผลถูกรวมไว้ในหน้าควบคุมเดียว</div>
+
+      <div class="fantasy-poster">
+        <div>
+          <strong>โหมดหลักทำงานอยู่</strong>
+          <span>พอร์ตลงทุน กระแสเงินสด เป้าหมาย และเงินปันผลถูกรวมไว้ในหน้าควบคุมเดียว</span>
+        </div>
       </div>
     </aside>
 
-    <main class="main-col">
-
-      <div class="kpi-row">
-        <div class="kpi-hero">
-          <div class="kpi-label">มูลค่าพอร์ตรวม</div>
-          <div class="kpi-value" id="kpiPortfolioValue">฿0</div>
-          <div class="kpi-delta" id="kpiPortfolioDelta">—</div>
-        </div>
-        <div class="kpi-card"><div class="kpi-label">กำไร / ขาดทุนสุทธิ</div><div class="kpi-value" id="kpiPnl">฿0</div><div class="kpi-delta" id="kpiPnlDelta">—</div></div>
-        <div class="kpi-card"><div class="kpi-label">ดอกเบี้ย/ปันผล</div><div class="kpi-value" id="kpiDividend">$0.00</div><div class="kpi-delta flat">พร้อมลงทุน</div></div>
-        <div class="kpi-card"><div class="kpi-label">รายรับเดือนนี้</div><div class="kpi-value" id="kpiIncome">฿0</div><div class="kpi-delta up" id="kpiIncomeDelta">—</div></div>
-        <div class="kpi-card"><div class="kpi-label">รายจ่ายเดือนนี้</div><div class="kpi-value" id="kpiExpense">฿0</div><div class="kpi-delta down" id="kpiExpenseDelta">—</div></div>
-      </div>
-
-      <div class="content-grid">
-
-        <article class="panel col-7">
-          <div class="panel-head">
-            <div><div class="panel-title">รายรับเทียบรายจ่าย</div><div class="panel-sub">กระแสเงินสดและเงินคงเหลือรายเดือน</div></div>
-            <div style="display:flex;gap:8px;">
-              <select class="panel-select" id="monthSelect"></select>
-              <button class="panel-btn ghost" data-action="addIncome">+ รายรับ</button>
-              <button class="panel-btn ghost" data-action="addExpense">+ รายจ่าย</button>
-            </div>
-          </div>
-          <div class="cashflow-grid">
-            <div class="ledger-box income">
-              <div><div class="ledger-label">รายรับรวม</div><div class="ledger-total" id="incomeTotal">฿0</div><div class="ledger-delta" id="incomeDelta">—</div></div>
-              <div class="ledger-lines" id="incomeLines"></div>
-            </div>
-            <div class="balance-col">
-              <div class="balance-ring" id="balanceRing"><div class="balance-ring-inner" id="balancePct">0%</div></div>
-              <div class="lbl">คงเหลือ</div>
-              <div class="val" id="balanceVal">฿0</div>
-            </div>
-            <div class="ledger-box expense">
-              <div><div class="ledger-label">รายจ่ายรวม</div><div class="ledger-total" id="expenseTotal">฿0</div><div class="ledger-delta" id="expenseDelta">—</div></div>
-              <div class="ledger-lines" id="expenseLines"></div>
-            </div>
-          </div>
+    <main class="dashboard">
+      <section class="summary-grid" aria-label="KPI cards">
+        <article class="stat-card panel">
+          <span class="stat-icon"><i data-lucide="chart-line"></i></span>
+          <p>มูลค่าพอร์ตรวม</p>
+          <strong>1,180,000 THB</strong>
+          <small class="up">+5.25% จากเดือนก่อน</small>
         </article>
-
-        <article class="panel col-5">
-          <div class="panel-head"><div><div class="panel-title">สัดส่วนพอร์ตลงทุน</div><div class="panel-sub">การกระจายสินทรัพย์และผลตอบแทน</div></div></div>
-          <div class="bars-wrap" id="portfolioLegend"></div>
+        <article class="stat-card panel">
+          <span class="stat-icon"><i data-lucide="trending-up"></i></span>
+          <p>กำไร / ขาดทุนสุทธิ</p>
+          <strong class="profit">+12,500 THB</strong>
+          <small class="up">+1.02% วันนี้</small>
         </article>
-
-        <article class="panel col-5">
-          <div class="panel-head">
-            <div><div class="panel-title">เป้าหมายการเงิน</div><div class="panel-sub">ความคืบหน้าของเป้าหมายหลัก</div></div>
-            <button class="panel-btn" data-action="openGoals">จัดการ</button>
-          </div>
-          <div class="goals-wrap" id="goalList"></div>
+        <article class="stat-card panel">
+          <span class="stat-icon"><i data-lucide="wallet"></i></span>
+          <p>ดอกเบี้ย/ปันผล</p>
+          <strong>35,700 THB</strong>
+          <small>พร้อมลงทุน</small>
         </article>
+        <article class="stat-card panel">
+          <span class="stat-icon"><i data-lucide="circle-dollar-sign"></i></span>
+          <p>รายรับเดือนนี้</p>
+          <strong>45,000 THB</strong>
+          <small class="up">กระแสเงินสดนิ่ง</small>
+        </article>
+        <article class="stat-card panel">
+          <span class="stat-icon"><i data-lucide="receipt"></i></span>
+          <p>รายจ่ายเดือนนี้</p>
+          <strong>21,400 THB</strong>
+          <small class="down">-3.25% จากเดือนก่อน</small>
+        </article>
+      </section>
 
-        <article class="panel col-7">
+      <section class="content-grid">
+        <article class="panel income-expense-panel">
           <div class="panel-head">
-            <div><div class="panel-title">สินทรัพย์ของฉัน</div><div class="panel-sub" id="assetSub">ยังไม่มีสินทรัพย์</div></div>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <div class="filter-pills" id="assetFilters">
-                <button class="filter-pill active" data-filter="all">ทั้งหมด</button>
-                <button class="filter-pill" data-filter="crypto">คริปโต</button>
-                <button class="filter-pill" data-filter="stocks">หุ้น</button>
-              </div>
-              <button class="panel-btn ghost" id="refreshPricesBtn" title="ดึงราคาล่าสุด">⟳</button>
-              <button class="panel-btn" data-action="openAssetTx">+ ธุรกรรม</button>
+            <div>
+              <h2>รายรับเทียบรายจ่าย</h2>
+              <p>กระแสเงินสดและเงินคงเหลือรายเดือน</p>
             </div>
-          </div>
-          <div class="asset-head-row"><div></div><div>สินทรัพย์</div><div style="text-align:right;">มูลค่า</div><div style="text-align:right;">ราคา</div><div style="text-align:right;">ผลตอบแทน</div></div>
-          <div id="assetTable"></div>
-        </article>
-
-        <article class="panel col-7">
-          <div class="panel-head">
-            <div><div class="panel-title">วิเคราะห์รายเดือน</div><div class="panel-sub">รายรับ รายจ่าย และเงินคงเหลือย้อนหลัง 6 เดือน</div></div>
-            <select class="panel-select" id="analyticsMode">
-              <option value="month" selected>รายเดือน</option>
+            <select id="monthSelect" aria-label="Select month">
+              <option>มิถุนายน 2026</option>
+              <option>พฤษภาคม 2026</option>
+              <option>เมษายน 2026</option>
             </select>
           </div>
-          <div class="monthly-rows" id="monthlyAnalytics"></div>
+          <div class="cash-flow-layout cash-flow-compare">
+            <section class="cash-ledger income-ledger">
+              <div class="ledger-title">
+                <div>
+                  <p>รายรับรวม</p>
+                  <strong>THB 45,000</strong>
+                  <small>เพิ่มขึ้น 12.5% จากเดือนก่อน</small>
+                </div>
+              </div>
+              <div class="ledger-lines">
+                <div><span>เงินเดือน</span><b>30,000</b></div>
+                <div><span>โบนัส</span><b>5,000</b></div>
+                <div><span>ปันผล</span><b>4,500</b></div>
+                <div><span>รายได้เสริม</span><b>5,500</b></div>
+              </div>
+              <div class="flow-meter income-meter"><i></i><span>สัดส่วน 67%</span></div>
+            </section>
+
+            <section class="cash-balance">
+              <span class="balance-orbit"><i data-lucide="scale"></i></span>
+              <p>คงเหลือ</p>
+              <strong>THB 23,550</strong>
+              <small>52%</small>
+            </section>
+
+            <section class="cash-ledger expense-ledger">
+              <div class="ledger-title">
+                <div>
+                  <p>รายจ่ายรวม</p>
+                  <strong>THB 21,450</strong>
+                  <small>ลดลง 3.25% จากเดือนก่อน</small>
+                </div>
+              </div>
+              <div class="ledger-lines">
+                <div><span>อาหาร</span><b>7,500</b></div>
+                <div><span>เดินทาง</span><b>2,500</b></div>
+                <div><span>บัตรเครดิต</span><b>5,000</b></div>
+                <div><span>อื่น ๆ</span><b>6,450</b></div>
+              </div>
+              <div class="flow-meter expense-meter"><i></i><span>สัดส่วน 33%</span></div>
+            </section>
+          </div>
         </article>
 
-        <article class="panel col-5">
-          <div class="panel-head"><div class="panel-title">สัดส่วนรายจ่าย</div><div class="panel-sub" id="expenseCatSub">เดือนนี้</div></div>
-          <div class="bars-wrap" id="expenseLegend"></div>
-        </article>
-
-        <article class="panel col-4">
+        <article class="panel portfolio-panel">
           <div class="panel-head">
-            <div><div class="panel-title">เงินปันผล</div><div class="panel-sub">รายการที่บันทึกไว้</div></div>
-            <button class="panel-btn ghost" id="addDividendBtn">+</button>
+            <div>
+              <h2>สัดส่วนพอร์ตลงทุน</h2>
+              <p>การกระจายสินทรัพย์และผลตอบแทน</p>
+            </div>
           </div>
-          <div id="dividendList"></div>
-          <div class="dividend-total"><span style="font-size:12px;font-weight:700;color:var(--gold);">ทั้งหมด</span><span style="font-family:var(--font-num);font-size:15px;font-weight:800;color:var(--gold);" id="dividendTotal">$0.00</span></div>
+          <div class="portfolio-wrap">
+            <div class="allocation-bars" id="portfolioLegend"></div>
+          </div>
         </article>
 
-        <article class="panel col-4">
-          <div class="panel-head"><div class="panel-title">รายได้ล่าสุด</div><button class="panel-btn ghost" data-action="openReport">ดูทั้งหมด</button></div>
-          <div class="list-rows" id="recentIncome"></div>
+        <article class="panel goals-panel">
+          <div class="panel-head">
+            <div>
+              <h2>เป้าหมายการเงิน</h2>
+              <p>ความคืบหน้าของเป้าหมายหลัก</p>
+            </div>
+            <button class="ghost-btn" type="button">จัดการ</button>
+          </div>
+          <div class="goal-list" id="goalList"></div>
         </article>
 
-        <article class="panel col-4">
-          <div class="panel-head"><div class="panel-title">ค่าใช้จ่ายล่าสุด</div><button class="panel-btn ghost" data-action="openReport">ดูทั้งหมด</button></div>
-          <div class="list-rows" id="recentExpense"></div>
+        <article class="panel asset-table-panel">
+          <div class="panel-head">
+            <div>
+              <h2>สินทรัพย์ของฉัน</h2>
+              <p>BTC, TRX, XAUT, TSM, NVDA, GOOGL, LLY</p>
+            </div>
+            <div class="filter-pills">
+              <button class="active" type="button">ทั้งหมด</button>
+              <button type="button">คริปโต</button>
+              <button type="button">หุ้น</button>
+              <button type="button">ราคา Live</button>
+            </div>
+          </div>
+          <div class="asset-table" id="assetTable"></div>
         </article>
 
-      </div>
+        <article class="panel trend-panel">
+          <div class="panel-head">
+            <div>
+              <h2>วิเคราะห์รายเดือน</h2>
+              <p>รายรับ รายจ่าย และเงินคงเหลือย้อนหลัง 6 เดือน</p>
+            </div>
+            <select id="analyticsMode" aria-label="Analytics range">
+              <option value="day">รายวัน</option>
+              <option value="month" selected>รายเดือน</option>
+              <option value="year">รายปี</option>
+            </select>
+          </div>
+          <div class="monthly-analytics" id="monthlyAnalytics"></div>
+        </article>
+
+        <article class="panel expense-breakdown">
+          <div class="panel-head">
+            <h2>สัดส่วนรายจ่าย</h2>
+            <select aria-label="Expense range"><option>เดือนนี้</option></select>
+          </div>
+          <div class="expense-donut-wrap">
+            <div class="expense-bars" id="expenseLegend"></div>
+          </div>
+        </article>
+
+        <article class="panel dividend-panel">
+          <div class="panel-head">
+            <div>
+              <h2>เงินปันผล</h2>
+              <p>รายได้ที่คาดการณ์ไว้สำหรับปี 2026</p>
+            </div>
+          </div>
+          <div class="dividend-list" id="dividendList"></div>
+          <div class="dividend-total"><span>ทั้งหมด</span><strong>$239.59</strong></div>
+        </article>
+
+        <article class="panel recent-panel">
+          <div class="panel-head">
+            <h2>รายได้ล่าสุด</h2>
+            <a href="./accounting-business.html">ดูทั้งหมด</a>
+          </div>
+          <div class="recent-list" id="recentIncome"></div>
+        </article>
+
+        <article class="panel recent-panel">
+          <div class="panel-head">
+            <h2>ค่าใช้จ่ายล่าสุด</h2>
+            <a href="./accounting-business.html">ดูทั้งหมด</a>
+          </div>
+          <div class="recent-list" id="recentExpense"></div>
+        </article>
+      </section>
     </main>
+
   </div>
 
-  <!-- Entry modal (income/expense) -->
-  <div class="overlay" id="entryOverlay" hidden>
-    <section class="modal" id="entryModal" role="dialog" aria-modal="true">
-      <button class="modal-close" id="entryClose" aria-label="ปิด">✕</button>
-      <form class="modal-body" id="entryForm">
-        <div class="modal-head">
-          <div class="modal-head-icon" id="entryIcon">💰</div>
-          <div><h2 id="entryTitle">เพิ่มรายการรายรับ</h2><p id="entrySubtitle">บันทึกรายรับของคุณ</p></div>
+  <div class="entry-overlay" id="entryOverlay" hidden>
+    <section class="entry-modal" id="entryModal" role="dialog" aria-modal="true" aria-labelledby="entryModalTitle">
+      <button class="entry-close" type="button" id="entryClose" aria-label="ปิดหน้าต่าง">
+        <i data-lucide="x"></i>
+      </button>
+
+      <form class="entry-form" id="entryForm">
+        <header class="entry-head">
+          <span class="entry-head-icon"><i data-lucide="wallet-cards"></i></span>
+          <div>
+            <h2 id="entryModalTitle">เพิ่มรายการรายรับ</h2>
+            <p id="entryModalSubtitle">บันทึกรายรับของคุณ</p>
+          </div>
+        </header>
+
+        <div class="entry-fields">
+          <label>
+            <span>จำนวนเงิน</span>
+            <div class="entry-input">
+              <b>฿</b>
+              <input id="entryAmount" name="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required>
+            </div>
+          </label>
+          <label>
+            <span>วันที่</span>
+            <div class="entry-input">
+              <i data-lucide="calendar-days"></i>
+              <input id="entryDate" name="date" type="date" required>
+            </div>
+          </label>
         </div>
-        <div class="field-grid">
-          <div class="field"><label>จำนวนเงิน</label><div class="field-input"><b>฿</b><input id="entryAmount" type="number" min="0" step="0.01" placeholder="0.00" required></div></div>
-          <div class="field"><label>วันที่</label><div class="field-input"><input id="entryDate" type="date" required></div></div>
-        </div>
-        <div class="field">
-          <label>หมวดหมู่</label>
+
+        <section class="entry-section">
+          <div class="entry-section-head">
+            <span>หมวดหมู่</span>
+          </div>
           <div class="category-grid" id="categoryGrid"></div>
-        </div>
-        <div class="field"><label>รายละเอียด</label><textarea class="note-input" id="entryNote" placeholder="เช่น เงินเดือนประจำเดือน, ข้าวกลางวัน"></textarea></div>
-        <div class="modal-actions">
-          <button type="button" class="btn-cancel" id="entryCancel">ยกเลิก</button>
-          <button type="submit" class="btn-submit" id="entrySubmit">บันทึกรายรับ</button>
-        </div>
+        </section>
+
+        <label class="entry-note">
+          <span>รายละเอียด</span>
+          <textarea id="entryNote" name="note" rows="4" placeholder="ระบุรายละเอียด เช่น เงินเดือนประจำเดือน, ข้าวกลางวัน, ค่าน้ำมัน"></textarea>
+        </label>
+
+        <footer class="entry-actions">
+          <button class="entry-cancel" type="button" id="entryCancel">ยกเลิก</button>
+          <button class="entry-submit" type="submit" id="entrySubmit">
+            <i data-lucide="save"></i>
+            บันทึกรายรับ
+          </button>
+        </footer>
       </form>
     </section>
   </div>
 
-  <!-- Asset transaction modal -->
-  <div class="overlay" id="assetTxOverlay" hidden>
-    <section class="modal wide" role="dialog" aria-modal="true">
-      <button class="modal-close" id="assetTxClose" aria-label="ปิด">✕</button>
-      <form class="modal-body" id="assetTxForm">
-        <div class="modal-head">
-          <div class="modal-head-icon">📈</div>
-          <div><h2>ธุรกรรมสินทรัพย์พอร์ต</h2><p>เพิ่มสินทรัพย์ใหม่ หรือซื้อ/ขายที่ถืออยู่</p></div>
-        </div>
-        <div class="field">
-          <label>สินทรัพย์ในพอร์ต</label>
-          <div class="category-grid" id="assetTxPicker" style="grid-template-columns:repeat(4,1fr);"></div>
-        </div>
-        <div class="field-grid">
-          <div class="field"><label>สัญลักษณ์ (ใหม่ได้)</label><div class="field-input"><input id="assetTxSymbol" type="text" placeholder="เช่น BTC, NVDA" required></div></div>
-          <div class="field"><label>ประเภท</label><div class="field-input"><select id="assetTxType"><option value="crypto">คริปโต</option><option value="stocks" selected>หุ้น/ทองคำ</option></select></div></div>
-          <div class="field"><label>ประเภทธุรกรรม</label><div class="field-input"><select id="assetTxKind"><option value="buy">ซื้อเพิ่ม</option><option value="sell">ขายออก</option></select></div></div>
-          <div class="field"><label>วันที่</label><div class="field-input"><input id="assetTxDate" type="date" required></div></div>
-          <div class="field"><label>จำนวนหน่วย</label><div class="field-input"><input id="assetTxQty" type="number" min="0" step="0.00000001" placeholder="0" required></div></div>
-          <div class="field"><label>ราคาต่อหน่วย (฿)</label><div class="field-input"><b>฿</b><input id="assetTxPrice" type="number" min="0" step="0.01" placeholder="0.00" required></div></div>
-        </div>
-        <div class="field"><label>มูลค่ารวม</label><div class="field-input"><output id="assetTxTotal">฿0.00</output></div></div>
-        <div class="modal-actions">
-          <button type="button" class="btn-cancel" id="assetTxCancel">ยกเลิก</button>
-          <button type="submit" class="btn-submit">บันทึกธุรกรรม</button>
-        </div>
-      </form>
-    </section>
-  </div>
+  <div class="entry-overlay report-overlay" id="reportOverlay" hidden>
+    <section class="entry-modal report-modal" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
+      <button class="entry-close" type="button" id="reportClose" aria-label="ปิดรายงาน">
+        <i data-lucide="x"></i>
+      </button>
 
-  <!-- Goal manager modal -->
-  <div class="overlay" id="goalOverlay" hidden>
-    <section class="modal wide" role="dialog" aria-modal="true">
-      <button class="modal-close" id="goalClose" aria-label="ปิด">✕</button>
-      <div class="modal-body">
-        <div class="modal-head">
-          <div class="modal-head-icon">🎯</div>
-          <div><h2>จัดการเป้าหมายการเงิน</h2><p>เพิ่ม แก้ไข และลบเป้าหมาย</p></div>
-        </div>
-        <div class="field">
-          <label>รายการเป้าหมาย</label>
-          <div class="manager-list" id="goalManagerList"></div>
-          <button class="panel-btn ghost" id="goalNewBtn" style="margin-top:10px;">+ เพิ่มเป้าหมายใหม่</button>
-        </div>
-        <form id="goalForm">
-          <div class="field-grid">
-            <div class="field" style="grid-column:1/-1;"><label>ชื่อเป้าหมาย</label><div class="field-input"><input id="goalName" type="text" placeholder="เช่น บ้านในฝัน" required></div></div>
-            <div class="field"><label>ยอดเป้าหมาย</label><div class="field-input"><b>฿</b><input id="goalTarget" type="number" min="1" step="1" required></div></div>
-            <div class="field"><label>สะสมแล้ว</label><div class="field-input"><b>฿</b><input id="goalCurrent" type="number" min="0" step="1" required></div></div>
+      <div class="entry-form report-form">
+        <header class="entry-head report-head">
+          <span class="entry-head-icon"><i data-lucide="file-chart-column"></i></span>
+          <div>
+            <h2 id="reportModalTitle">รายงานรายรับ-รายจ่าย</h2>
+            <p>ดูประวัติ แก้ไข และลบรายการที่บันทึกไว้</p>
           </div>
-          <div class="field" style="margin-top:14px;"><label>เลือกไอคอน</label><div class="icon-grid" id="goalIconGrid"></div></div>
-          <div class="modal-actions" style="margin-top:20px;grid-template-columns:1fr 1fr 1.3fr;">
-            <button type="button" class="btn-cancel" id="goalCancel">ปิด</button>
-            <button type="button" class="btn-danger" id="goalDeleteBtn">ลบ</button>
-            <button type="submit" class="btn-submit">บันทึกเป้าหมาย</button>
-          </div>
-        </form>
-      </div>
-    </section>
-  </div>
+        </header>
 
-  <!-- Report modal -->
-  <div class="overlay" id="reportOverlay" hidden>
-    <section class="modal wide" role="dialog" aria-modal="true">
-      <button class="modal-close" id="reportClose" aria-label="ปิด">✕</button>
-      <div class="modal-body">
-        <div class="modal-head">
-          <div class="modal-head-icon">📊</div>
-          <div><h2>รายงานรายรับ-รายจ่าย</h2><p>ดูประวัติ แก้ไข และลบรายการที่บันทึกไว้</p></div>
-        </div>
         <div class="report-summary">
-          <article><span>รายรับรวม</span><strong id="reportIncomeTotal" style="color:var(--green);">฿0</strong></article>
-          <article><span>รายจ่ายรวม</span><strong id="reportExpenseTotal" style="color:var(--red);">฿0</strong></article>
-          <article><span>คงเหลือ</span><strong id="reportBalanceTotal">฿0</strong></article>
+          <article>
+            <span>รายรับรวม</span>
+            <strong class="income" id="reportIncomeTotal">฿0</strong>
+          </article>
+          <article>
+            <span>รายจ่ายรวม</span>
+            <strong class="expense" id="reportExpenseTotal">฿0</strong>
+          </article>
+          <article>
+            <span>คงเหลือ</span>
+            <strong id="reportBalanceTotal">฿0</strong>
+          </article>
         </div>
-        <div class="report-toolbar" id="reportFilters">
-          <button class="active" data-filter="all">ทั้งหมด</button>
-          <button data-filter="income">รายรับ</button>
-          <button data-filter="expense">รายจ่าย</button>
+
+        <div class="report-toolbar" aria-label="ตัวกรองรายงาน">
+          <button class="active" type="button" data-report-filter="all">ทั้งหมด</button>
+          <button type="button" data-report-filter="income">รายรับ</button>
+          <button type="button" data-report-filter="expense">รายจ่าย</button>
         </div>
+
         <div class="report-list" id="reportList"></div>
       </div>
     </section>
   </div>
 
-  <!-- Settings modal -->
-  <div class="overlay" id="settingsOverlay" hidden>
-    <section class="modal wide" role="dialog" aria-modal="true">
-      <button class="modal-close" id="settingsClose" aria-label="ปิด">✕</button>
-      <form class="modal-body" id="settingsForm">
-        <div class="modal-head">
-          <div class="modal-head-icon">⚙️</div>
-          <div><h2>ตั้งค่าแดชบอร์ด</h2><p>ปรับชื่อ รูปโปรไฟล์ โลโก้ และธีมของ SiamFolio</p></div>
+  <div class="entry-overlay asset-tx-overlay" id="assetTxOverlay" hidden>
+    <section class="entry-modal asset-tx-modal" role="dialog" aria-modal="true" aria-labelledby="assetTxTitle">
+      <button class="entry-close" type="button" id="assetTxClose" aria-label="ปิดหน้าต่างเพิ่มธุรกรรมพอร์ต">
+        <i data-lucide="x"></i>
+      </button>
+
+      <form class="entry-form asset-tx-form" id="assetTxForm">
+        <header class="entry-head asset-tx-head">
+          <span class="entry-head-icon"><i data-lucide="chart-no-axes-combined"></i></span>
+          <div>
+            <h2 id="assetTxTitle">เพิ่มธุรกรรมสินทรัพย์</h2>
+            <p>เลือกสินทรัพย์ที่ถืออยู่ในพอร์ต แล้วบันทึกซื้อหรือขาย</p>
+          </div>
+        </header>
+
+        <section class="asset-tx-section">
+          <div class="entry-section-head">
+            <span>สินทรัพย์ในพอร์ต</span>
+          </div>
+          <div class="asset-tx-picker" id="assetTxAssetList"></div>
+        </section>
+
+        <div class="entry-fields asset-tx-fields">
+          <label>
+            <span>ประเภท</span>
+            <div class="entry-input">
+              <i data-lucide="repeat-2"></i>
+              <select id="assetTxKind" name="kind" required>
+                <option value="buy">ซื้อเพิ่ม</option>
+                <option value="sell">ขายออก</option>
+              </select>
+            </div>
+          </label>
+          <label>
+            <span>วันที่</span>
+            <div class="entry-input">
+              <i data-lucide="calendar-days"></i>
+              <input id="assetTxDate" name="date" type="date" required>
+            </div>
+          </label>
+          <label>
+            <span>จำนวนหน่วย</span>
+            <div class="entry-input">
+              <i data-lucide="hash"></i>
+              <input id="assetTxQty" name="qty" type="number" min="0" step="0.00000001" inputmode="decimal" placeholder="0" required>
+            </div>
+          </label>
+          <label>
+            <span>ราคาต่อหน่วย</span>
+            <div class="entry-input">
+              <b id="assetTxCurrencyMark">$</b>
+              <input id="assetTxPrice" name="price" type="number" min="0" step="0.00000001" inputmode="decimal" placeholder="0.00" required>
+            </div>
+          </label>
+          <label>
+            <span>สกุลเงิน</span>
+            <div class="entry-input">
+              <i data-lucide="banknote"></i>
+              <select id="assetTxCcy" name="ccy" required>
+                <option value="USD">USD</option>
+                <option value="THB">THB</option>
+              </select>
+            </div>
+          </label>
+          <label>
+            <span>มูลค่ารวม</span>
+            <div class="entry-input asset-tx-total">
+              <i data-lucide="calculator"></i>
+              <output id="assetTxTotal">0.00</output>
+            </div>
+          </label>
         </div>
+
+        <label class="entry-note">
+          <span>หมายเหตุ</span>
+          <textarea id="assetTxNote" name="note" rows="3" placeholder="เช่น ซื้อถัวเพิ่ม, ขายทำกำไร, ปรับพอร์ต"></textarea>
+        </label>
+
+        <footer class="entry-actions">
+          <button class="entry-cancel" type="button" id="assetTxCancel">ยกเลิก</button>
+          <button class="entry-submit" type="submit" id="assetTxSubmit">
+            <i data-lucide="save"></i>
+            บันทึกธุรกรรมพอร์ต
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+
+  <div class="entry-overlay goal-overlay" id="goalOverlay" hidden>
+    <section class="entry-modal goal-modal" role="dialog" aria-modal="true" aria-labelledby="goalModalTitle">
+      <button class="entry-close" type="button" id="goalClose" aria-label="ปิดหน้าต่างเป้าหมาย">
+        <i data-lucide="x"></i>
+      </button>
+
+      <div class="entry-form goal-manager">
+        <header class="entry-head goal-head">
+          <span class="entry-head-icon"><i data-lucide="target"></i></span>
+          <div>
+            <h2 id="goalModalTitle">จัดการเป้าหมายการเงิน</h2>
+            <p>เพิ่ม แก้ไข ลบ และเลือกไอคอนให้แต่ละเป้าหมาย</p>
+          </div>
+        </header>
+
+        <div class="goal-manager-grid">
+          <section class="goal-manager-list-wrap">
+            <div class="entry-section-head">
+              <span>รายการเป้าหมาย</span>
+              <button class="goal-new-btn" type="button" id="goalNewButton"><i data-lucide="plus"></i> เพิ่ม</button>
+            </div>
+            <div class="goal-manager-list" id="goalManagerList"></div>
+          </section>
+
+          <form class="goal-form" id="goalForm">
+            <div class="entry-fields">
+              <label>
+                <span>ชื่อเป้าหมาย</span>
+                <div class="entry-input">
+                  <i data-lucide="pen-line"></i>
+                  <input id="goalName" name="name" type="text" placeholder="เช่น บ้านในฝัน" required>
+                </div>
+              </label>
+              <label>
+                <span>ยอดเป้าหมาย</span>
+                <div class="entry-input">
+                  <b>฿</b>
+                  <input id="goalTargetValue" name="target" type="number" min="1" step="1" inputmode="numeric" placeholder="0" required>
+                </div>
+              </label>
+              <label>
+                <span>สะสมแล้ว</span>
+                <div class="entry-input">
+                  <b>฿</b>
+                  <input id="goalCurrentValue" name="current" type="number" min="0" step="1" inputmode="numeric" placeholder="0" required>
+                </div>
+              </label>
+              <label>
+                <span>ความคืบหน้า</span>
+                <div class="entry-input goal-progress-output">
+                  <i data-lucide="activity"></i>
+                  <output id="goalProgressPreview">0%</output>
+                </div>
+              </label>
+            </div>
+
+            <section class="entry-section goal-icon-section">
+              <div class="entry-section-head">
+                <span>เลือกไอคอน</span>
+              </div>
+              <div class="goal-icon-grid" id="goalIconGrid"></div>
+            </section>
+
+            <footer class="entry-actions">
+              <button class="entry-cancel" type="button" id="goalCancel">ปิด</button>
+              <button class="entry-submit goal-delete" type="button" id="goalDeleteButton">
+                <i data-lucide="trash-2"></i>
+                ลบ
+              </button>
+              <button class="entry-submit" type="submit" id="goalSubmit">
+                <i data-lucide="save"></i>
+                บันทึกเป้าหมาย
+              </button>
+            </footer>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="entry-overlay settings-overlay" id="settingsOverlay" hidden>
+    <section class="entry-modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+      <button class="entry-close" type="button" id="settingsClose" aria-label="ปิดหน้าต่างตั้งค่า">
+        <i data-lucide="x"></i>
+      </button>
+
+      <form class="entry-form settings-form" id="settingsForm">
+        <header class="entry-head settings-head">
+          <span class="entry-head-icon"><i data-lucide="sliders-horizontal"></i></span>
+          <div>
+            <h2 id="settingsModalTitle">ตั้งค่าแดชบอร์ด</h2>
+            <p>ปรับชื่อ รูปโปรไฟล์ โลโก้ และโหมดสีของ SiamFolio</p>
+          </div>
+        </header>
+
         <div class="settings-preview panel">
-          <span class="sp-logo" id="settingsPreviewLogo">SF</span>
-          <div class="sp-copy"><strong id="settingsPreviewName">SiamFolio</strong><small id="settingsPreviewSubtitle">แดชบอร์ดการเงินและพอร์ตลงทุน</small></div>
-          <span class="sp-avatar" id="settingsPreviewAvatar"></span>
+          <span class="settings-preview-logo" id="settingsPreviewLogo">SF</span>
+          <div class="settings-preview-copy">
+            <strong id="settingsPreviewName">SiamFolio Prime</strong>
+            <small id="settingsPreviewSubtitle">แดชบอร์ดการเงินและพอร์ตลงทุน</small>
+          </div>
+          <span class="settings-preview-avatar" id="settingsPreviewAvatar">
+            <img src="assets/manga-dashboard-scene.webp" alt="">
+          </span>
         </div>
+
         <div class="settings-grid">
-          <section class="field">
-            <label>ชื่อเว็บ</label><div class="field-input"><input id="settingsAppName" type="text" maxlength="40"></div>
-            <label style="margin-top:14px;">คำอธิบาย</label><div class="field-input"><input id="settingsSubtitle" type="text" maxlength="70"></div>
-            <label style="margin-top:14px;">ชื่อโปรไฟล์</label><div class="field-input"><input id="settingsUserName" type="text" maxlength="34"></div>
-            <label style="margin-top:14px;">อีเมล / ID</label><div class="field-input"><input id="settingsUserEmail" type="text" maxlength="42"></div>
+          <section class="settings-card">
+            <div class="entry-section-head">
+              <span>ตัวตนบนแดชบอร์ด</span>
+            </div>
+            <label>
+              <span>ชื่อเว็บ</span>
+              <div class="entry-input">
+                <i data-lucide="badge"></i>
+                <input id="settingsAppName" type="text" maxlength="40" placeholder="SiamFolio Prime">
+              </div>
+            </label>
+            <label>
+              <span>คำอธิบาย</span>
+              <div class="entry-input">
+                <i data-lucide="captions"></i>
+                <input id="settingsSubtitle" type="text" maxlength="70" placeholder="แดชบอร์ดการเงินและพอร์ตลงทุน">
+              </div>
+            </label>
+            <label>
+              <span>ชื่อโปรไฟล์</span>
+              <div class="entry-input">
+                <i data-lucide="user-round"></i>
+                <input id="settingsUserName" type="text" maxlength="34" placeholder="APISIT TIAKHAM">
+              </div>
+            </label>
+            <label>
+              <span>อีเมล / ID</span>
+              <div class="entry-input">
+                <i data-lucide="mail"></i>
+                <input id="settingsUserEmail" type="text" maxlength="42" placeholder="HONGAME5678@GMAIL.COM">
+              </div>
+            </label>
           </section>
-          <section class="field">
-            <label>รูปและโหมดสี</label>
-            <div class="upload-row">
-              <label class="upload-btn">โลโก้เว็บ<input id="settingsLogoFile" type="file" accept="image/*"><b>เลือกรูป</b></label>
-              <label class="upload-btn">รูปโปรไฟล์<input id="settingsAvatarFile" type="file" accept="image/*"><b>เลือกรูป</b></label>
+
+          <section class="settings-card">
+            <div class="entry-section-head">
+              <span>รูปและโหมดสี</span>
             </div>
-            <div class="theme-grid" style="margin-top:14px;" id="themeGrid">
-              <label class="theme-opt" data-theme-opt="dark"><input type="radio" name="settingsTheme" value="dark"><b>กลางคืน</b><small>เข้ม คอนทราสต์สูง</small></label>
-              <label class="theme-opt" data-theme-opt="light"><input type="radio" name="settingsTheme" value="light"><b>กลางวัน</b><small>สว่าง นุ่ม อ่านง่าย</small></label>
+            <div class="settings-upload-row">
+              <label class="settings-upload">
+                <span>โลโก้เว็บ</span>
+                <input id="settingsLogoFile" type="file" accept="image/*">
+                <b><i data-lucide="image-plus"></i> เลือกรูป</b>
+              </label>
+              <label class="settings-upload">
+                <span>รูปโปรไฟล์</span>
+                <input id="settingsAvatarFile" type="file" accept="image/*">
+                <b><i data-lucide="camera"></i> เลือกรูป</b>
+              </label>
             </div>
-            <button type="button" class="panel-btn ghost" id="settingsResetMedia" style="margin-top:14px;">รีเซ็ตรูปเดิม</button>
+
+            <div class="settings-theme-grid" role="radiogroup" aria-label="เลือกโหมดแสดงผล">
+              <label class="theme-option">
+                <input type="radio" name="settingsTheme" value="dark">
+                <span><i data-lucide="moon"></i></span>
+                <b>กลางคืน</b>
+                <small>ดำทอง คอนทราสต์สูง</small>
+              </label>
+              <label class="theme-option">
+                <input type="radio" name="settingsTheme" value="light">
+                <span><i data-lucide="sun-medium"></i></span>
+                <b>กลางวัน</b>
+                <small>สว่าง นุ่ม อ่านง่าย</small>
+              </label>
+            </div>
+
+            <button class="settings-reset-media" type="button" id="settingsResetMedia">
+              <i data-lucide="rotate-ccw"></i>
+              รีเซ็ตรูปเดิม
+            </button>
           </section>
         </div>
-        <div class="modal-actions">
-          <button type="button" class="btn-cancel" id="settingsCancel">ปิด</button>
-          <button type="submit" class="btn-submit">บันทึกตั้งค่า</button>
-        </div>
+
+        <footer class="entry-actions">
+          <button class="entry-cancel" type="button" id="settingsCancel">ปิด</button>
+          <button class="entry-submit" type="submit" id="settingsSubmit">
+            <i data-lucide="save"></i>
+            บันทึกตั้งค่า
+          </button>
+        </footer>
       </form>
     </section>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="auth-config.js"></script>
-  <script src="dashboard-design.js?v=1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="auth-config.js?v=34"></script>
+  <script src="dashboard-design.js?v=20260703-02"></script>
 </body>
 </html>
